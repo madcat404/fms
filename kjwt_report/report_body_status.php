@@ -69,11 +69,13 @@
     //사무/도급직 인원증감
     $current_year_dates = [];
     $previous_year_dates = [];
+    $year_before_dates = [];
 
     for ($month = 1; $month <= 12; $month++) {
         $formatted_month = sprintf('%02d', $month);
         $current_year_dates[] = "{$currentYear}{$formatted_month}01";
         $previous_year_dates[] = "{$previousYear}{$formatted_month}01";
+        $year_before_dates[] = "{$yearBeforePrevious}{$formatted_month}01"; // [추가]
     }
 
     // ★ 상수 정의
@@ -142,6 +144,7 @@
     // ★ 함수를 호출하여 올해와 작년의 상세 데이터를 각각 가져옵니다.
     $currentYearHeadcounts = getHeadcountsByDate($connect, $current_year_dates);
     $previousYearHeadcounts = getHeadcountsByDate($connect, $previous_year_dates);
+    $yearBeforeHeadcounts = getHeadcountsByDate($connect, $year_before_dates); 
 
     // 3단계: 그래프용 데이터로 가공하기 (새로 추가된 부분)
     // ★ 프론트엔드 차트에서 사용할 빈 배열들을 초기화합니다.
@@ -149,6 +152,8 @@
     $thisYearContractChartData = [];
     $lastYearOfficeChartData = [];
     $lastYearContractChartData = [];
+    $yearBeforeOfficeChartData = [];
+    $yearBeforeContractChartData = [];
 
     // ★ 가져온 상세 데이터를 순회하며 그래프용 배열에 값만 추출하여 추가합니다.
     foreach ($currentYearHeadcounts as $data) {
@@ -159,6 +164,12 @@
     foreach ($previousYearHeadcounts as $data) {
         $lastYearOfficeChartData[] = $data['office_count'];
         $lastYearContractChartData[] = $data['contract_count'];
+    }
+
+    // [추가] 2023년 데이터 가공
+    foreach ($yearBeforeHeadcounts as $data) {
+        $yearBeforeOfficeChartData[] = $data['office_count'];
+        $yearBeforeContractChartData[] = $data['contract_count'];
     }
 
 
@@ -278,8 +289,8 @@
     $monthlyData = [];
 
     // ★ 월별 상세 데이터 모두 가져오기 (2년 치)
-    $query = "SELECT KIND, WATER, GAS, (ELECTRICITY + ELECTRICITY2) AS ELECTRICITY, CONVERT(BIGINT, PAY) AS PAY, CONVERT(BIGINT, PAY2) AS PAY2, DELIVERY FROM CONNECT.dbo.FEE WHERE KIND LIKE ? OR KIND LIKE ?";
-    $result = sqlsrv_query($connect, $query, [$currentYear . '%', $previousYear . '%']);
+    $query = "SELECT KIND, WATER, GAS, (ELECTRICITY + ELECTRICITY2) AS ELECTRICITY, CONVERT(BIGINT, PAY) AS PAY, CONVERT(BIGINT, PAY2) AS PAY2, DELIVERY FROM CONNECT.dbo.FEE WHERE KIND LIKE ? OR KIND LIKE ? OR KIND LIKE ?";
+    $result = sqlsrv_query($connect, $query, [$currentYear . '%', $previousYear . '%', $yearBeforePrevious . '%']);
 
     if ($result) {
         while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
@@ -290,24 +301,22 @@
     // ★ 각종 누적 합계 데이터 가져오기
     $sumQueryPart = "SELECT SUM(WATER) AS WATER, SUM(GAS) AS GAS, SUM(ELECTRICITY + ELECTRICITY2) AS ELECTRICITY, SUM(CONVERT(BIGINT, PAY)) AS PAY, SUM(CONVERT(BIGINT, PAY2)) AS PAY2, SUM(CONVERT(BIGINT, DELIVERY)) AS DELIVERY FROM CONNECT.dbo.FEE";
 
-    // 금년 전체
+    //전체
     $dataThisYearTotal = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ?", [$currentYear . '%']), SQLSRV_FETCH_ASSOC);
-
-    // 작년 전체
     $dataLastYearTotal = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ?", [$previousYear . '%']), SQLSRV_FETCH_ASSOC);
+    $dataYearBeforeTotal = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ?", [$yearBeforePrevious . '%']), SQLSRV_FETCH_ASSOC);
 
-    // 금년 현재 월까지
+    //현재 월까지
     $dataThisYearToDate = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ? AND KIND <= ?", [$currentYear . '%', $currentYear . $currentMonth]), SQLSRV_FETCH_ASSOC);
-
-    // 작년 현재 월까지
     $dataLastYearToDate = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ? AND KIND <= ?", [$previousYear . '%', $previousYear . $currentMonth]), SQLSRV_FETCH_ASSOC);
+    $dataYearBeforeToDate = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ? AND KIND <= ?", [$yearBeforePrevious . '%', $yearBeforePrevious . $currentMonth]), SQLSRV_FETCH_ASSOC);
 
     // 2단계: 현대적인 그래프용 데이터 가공 (기존과 동일)
     $thisYearWaterChartData = []; $lastYearWaterChartData = [];
     $thisYearGasChartData = [];   $lastYearGasChartData = [];
     $thisYearElecChartData = [];  $lastYearElecChartData = [];
-    $thisYearPayChartData = [];  $lastYearPayChartData = [];
-    $thisYearPay2ChartData = [];  $lastYearPay2ChartData = [];
+    $thisYearPayChartData = []; $lastYearPayChartData = []; $yearBeforePayChartData = [];
+    $thisYearPay2ChartData = []; $lastYearPay2ChartData = []; $yearBeforePay2ChartData = [];
     $thisYearDeliChartData = [];  $lastYearDeliChartData = [];
 
     // ★ '년 합계', '월 누적 합계' 데이터 추가
@@ -318,6 +327,8 @@
         ${'thisYear'.$type.'ChartData'}[] = $dataThisYearToDate[$varName] ?? 0;
         ${'lastYear'.$type.'ChartData'}[] = $dataLastYearTotal[$varName] ?? 0;
         ${'lastYear'.$type.'ChartData'}[] = $dataLastYearToDate[$varName] ?? 0;
+        ${'yearBefore'.$type.'ChartData'}[] = $dataYearBeforeTotal[$varName] ?? 0;
+        ${'yearBefore'.$type.'ChartData'}[] = $dataYearBeforeToDate[$varName] ?? 0;
     }
 
     // ★ 1월~12월 월별 데이터 추가
@@ -339,6 +350,11 @@
         $lastYearPayChartData[]   = $monthlyData[$lastYearKey]['PAY'] ?? 0;
         $lastYearPay2ChartData[]   = $monthlyData[$lastYearKey]['PAY2'] ?? 0;
         $lastYearDeliChartData[]   = $monthlyData[$lastYearKey]['DELIVERY'] ?? 0;
+
+        // 재작년 월별 데이터
+        $yearBeforeKey = $yearBeforePrevious . sprintf('%02d', $month);
+        $yearBeforePayChartData[] = $monthlyData[$yearBeforeKey]['PAY'] ?? 0;
+        $yearBeforePay2ChartData[] = $monthlyData[$yearBeforeKey]['PAY2'] ?? 0;
     }
 
     // 3단계: 기존 테이블과의 호환성을 위한 변수 생성

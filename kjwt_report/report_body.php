@@ -1710,8 +1710,10 @@
         //인원증감
         const thisYearOfficeData = <?php echo json_encode($thisYearOfficeChartData); ?>;
         const lastYearOfficeData = <?php echo json_encode($lastYearOfficeChartData); ?>;
+        const yearBeforeOfficeData = <?php echo json_encode($yearBeforeOfficeChartData); ?>; 
         const thisYearContractData = <?php echo json_encode($thisYearContractChartData); ?>;        
         const lastYearContractData = <?php echo json_encode($lastYearContractChartData); ?>;
+        const yearBeforeContractData = <?php echo json_encode($yearBeforeContractChartData); ?>; 
         //사용량
         const thisYearWaterIwinUsageData = <?php echo json_encode($thisYearWaterIwinUsageData); ?>;
         const lastYearWaterIwinUsageData = <?php echo json_encode($lastYearWaterIwinUsageData); ?>;
@@ -1728,10 +1730,12 @@
         const lastYearElecChartData = <?php echo json_encode($lastYearElecChartData); ?>;
         const thisYearPayChartData = <?php echo json_encode($thisYearPayChartData); ?>;
         const lastYearPayChartData = <?php echo json_encode($lastYearPayChartData); ?>;
+        const yearBeforePayChartData = <?php echo json_encode($yearBeforePayChartData); ?>; 
         const thisYearPay2ChartData = <?php echo json_encode($thisYearPay2ChartData); ?>;
         const lastYearPay2ChartData = <?php echo json_encode($lastYearPay2ChartData); ?>;
+        const yearBeforePay2ChartData = <?php echo json_encode($yearBeforePay2ChartData); ?>; 
         const thisYearDeliChartData = <?php echo json_encode($thisYearDeliChartData); ?>;
-        const lastYearDeliChartData = <?php echo json_encode($lastYearDeliChartData); ?>;
+        const lastYearDeliChartData = <?php echo json_encode($lastYearDeliChartData); ?>;       
         //회계
         const financeDataCY   = <?php echo json_encode($financeDataCurrentYear  ?? []); ?>;
         const financeDataCY_1 = <?php echo json_encode($financeDataPreviousYear ?? []); ?>;
@@ -1779,14 +1783,22 @@
                     pointHighlightFill  : '#fff',
                     pointHighlightStroke: 'rgba(220,220,220,1)',          
                     data                : lastYearOfficeData
+                },
+                {
+                    label               : '<?php echo $Minus2YY?>년',
+                    backgroundColor     : 'rgba(175, 183, 197, 1)',
+                    borderColor         : 'rgba(175, 183, 197, 1)',
+                    pointRadius         : false,
+                    pointColor          : 'rgba(175, 183, 197, 1)',
+                    pointStrokeColor    : '#c1c7d1',
+                    pointHighlightFill  : '#fff',
+                    pointHighlightStroke: 'rgba(220,220,220,1)',          
+                    data                : yearBeforeOfficeData
                 }
             ]
             }
 
-            var temp0 = barChartData44.datasets[0]
-            var temp1 = barChartData44.datasets[1]
-            barChartData44.datasets[0] = temp1
-            barChartData44.datasets[1] = temp0
+            barChartData44.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -1851,14 +1863,22 @@
                     pointHighlightFill  : '#fff',
                     pointHighlightStroke: 'rgba(220,220,220,1)',          
                     data                : lastYearContractData
+                },
+                {
+                    label               : '<?php echo $Minus2YY?>년',
+                    backgroundColor     : 'rgba(175, 183, 197, 1)',
+                    borderColor         : 'rgba(175, 183, 197, 1)',
+                    pointRadius         : false,
+                    pointColor          : 'rgba(175, 183, 197, 1)',
+                    pointStrokeColor    : '#c1c7d1',
+                    pointHighlightFill  : '#fff',
+                    pointHighlightStroke: 'rgba(220,220,220,1)',          
+                    data                : yearBeforeContractData
                 }
             ]
             }
 
-            var temp0 = barChartData4.datasets[0]
-            var temp1 = barChartData4.datasets[1]
-            barChartData4.datasets[0] = temp1
-            barChartData4.datasets[1] = temp0
+            barChartData4.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -1927,10 +1947,7 @@
             ]
             }
 
-            var temp0 = barChartData3.datasets[0]
-            var temp1 = barChartData3.datasets[1]
-            barChartData3.datasets[0] = temp1
-            barChartData3.datasets[1] = temp0
+            barChartData3.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -2044,10 +2061,7 @@
             ]
             }
 
-            var temp0 = barChartData2.datasets[0]
-            var temp1 = barChartData2.datasets[1]
-            barChartData2.datasets[0] = temp1
-            barChartData2.datasets[1] = temp0
+            barChartData2.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -2161,10 +2175,7 @@
                 ]
             }
 
-            var temp0 = barChartData.datasets[0]
-            var temp1 = barChartData.datasets[1]
-            barChartData.datasets[0] = temp1
-            barChartData.datasets[1] = temp0
+            barChartData.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -2274,14 +2285,22 @@
                     pointHighlightFill  : '#fff',
                     pointHighlightStroke: 'rgba(220,220,220,1)',          
                     data                : lastYearPayChartData
+                },
+                {
+                    label               : '<?php echo $Minus2YY?>년',
+                    backgroundColor     : 'rgba(175, 183, 197, 1)',
+                    borderColor         : 'rgba(175, 183, 197, 1)',
+                    pointRadius         : false,
+                    pointColor          : 'rgba(175, 183, 197, 1)',
+                    pointStrokeColor    : '#c1c7d1',
+                    pointHighlightFill  : '#fff',
+                    pointHighlightStroke: 'rgba(220,220,220,1)',          
+                    data                : yearBeforePayChartData
                 }
             ]
             }
 
-            var temp0 = barChartData55.datasets[0]
-            var temp1 = barChartData55.datasets[1]
-            barChartData55.datasets[0] = temp1
-            barChartData55.datasets[1] = temp0
+            barChartData55.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -2374,14 +2393,22 @@
                     pointHighlightFill  : '#fff',
                     pointHighlightStroke: 'rgba(220,220,220,1)',          
                     data                : lastYearPay2ChartData
+                },
+                {
+                    label               : '<?php echo $Minus2YY?>년',
+                    backgroundColor     : 'rgba(175, 183, 197, 1)',
+                    borderColor         : 'rgba(175, 183, 197, 1)',
+                    pointRadius         : false,
+                    pointColor          : 'rgba(175, 183, 197, 1)',
+                    pointStrokeColor    : '#c1c7d1',
+                    pointHighlightFill  : '#fff',
+                    pointHighlightStroke: 'rgba(220,220,220,1)',          
+                    data                : yearBeforePay2ChartData
                 }
             ]
             }
 
-            var temp0 = barChartData5.datasets[0]
-            var temp1 = barChartData5.datasets[1]
-            barChartData5.datasets[0] = temp1
-            barChartData5.datasets[1] = temp0
+            barChartData5.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -2478,10 +2505,7 @@
             ]
             }
 
-            var temp0 = barChartData33.datasets[0]
-            var temp1 = barChartData33.datasets[1]
-            barChartData33.datasets[0] = temp1
-            barChartData33.datasets[1] = temp0
+            barChartData33.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -2601,10 +2625,7 @@
             ]
             }
 
-            var temp0 = barChartData22.datasets[0]
-            var temp1 = barChartData22.datasets[1]
-            barChartData22.datasets[0] = temp1
-            barChartData22.datasets[1] = temp0
+            barChartData22.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -2701,10 +2722,7 @@
                 ]
             }
 
-            var temp0 = barChartData11.datasets[0]
-            var temp1 = barChartData11.datasets[1]
-            barChartData11.datasets[0] = temp1
-            barChartData11.datasets[1] = temp0
+            barChartData11.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -2801,10 +2819,7 @@
             ]
             }
 
-            var temp0 = barChartData8.datasets[0]
-            var temp1 = barChartData8.datasets[1]
-            barChartData8.datasets[0] = temp1
-            barChartData8.datasets[1] = temp0
+            barChartData8.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -2895,14 +2910,7 @@
             ]
             }
 
-            var temp0 = barChartData6.datasets[0]
-            var temp1 = barChartData6.datasets[1]
-            var temp2 = barChartData6.datasets[2]
-            var temp3 = barChartData6.datasets[3]
-            barChartData6.datasets[0] = temp3
-            barChartData6.datasets[1] = temp2
-            barChartData6.datasets[2] = temp1
-            barChartData6.datasets[3] = temp0
+            barChartData6.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -3245,12 +3253,7 @@
                 ]
             }
 
-            var temp0 = barChartData7.datasets[0]
-            var temp1 = barChartData7.datasets[1]
-            var temp2 = barChartData7.datasets[2]
-            barChartData7.datasets[0] = temp2
-            barChartData7.datasets[1] = temp1
-            barChartData7.datasets[2] = temp0
+            barChartData7.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
@@ -3369,10 +3372,7 @@
             ]
             }
 
-            var temp0 = barChartDataV1.datasets[0]
-            var temp1 = barChartDataV1.datasets[1]
-            barChartDataV1.datasets[0] = temp1
-            barChartDataV1.datasets[1] = temp0
+            barChartDataV1.datasets.reverse();
 
             var barChartOptions = {
                 responsive              : true,
