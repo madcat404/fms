@@ -1,0 +1,14 @@
+.svn/
+DB/
+★wait/
+brother/
+img/
+files/
+icon/
+ssl/
+*.pptx
+*.ppt
+*.mp4
+plugins/
+scss/
+vendor/

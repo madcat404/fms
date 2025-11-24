@@ -1,0 +1,828 @@
+@charset "utf-8";
+
+/* 레이아웃 */
+#header {background: url(../img/header_bg.jpg) repeat-x center top; }
+#cont_center {
+    min-height: 500px; 
+    margin-right: 10%;
+    margin-left: 10%;
+    border-right: 1px solid #dbdbdb;
+    border-left: 1px solid #dbdbdb;
+    }
+#footer { border-top: 1px solid #dbdbdb; text-align:center; }
+
+/* 
+Generic Styling, for Desktops/Laptops 
+*/
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+  }
+  /* Zebra striping */
+  tr:nth-of-type(odd) { 
+    background: #eee; 
+  }
+  th { 
+    background: #333; 
+    color: white; 
+    font-weight: bold; 
+  }
+  td, th { 
+    padding: 6px; 
+    border: 1px solid #ccc; 
+    text-align: left; 
+  }
+
+/* 페이징 */
+.paging {
+  padding-bottom: 5px;
+  text-align: center;  
+}
+
+
+/* 컨테이너 */
+.container {position: relative; width: 100%; margin: 0 auto;}
+
+
+/* 아티클 & 콘텐츠(index.html) */
+.column { overflow: hidden; height: 100%; padding: 1.5%; border-bottom: 1px solid #dbdbdb; } 
+.column .col_tit {font-size: 20px; color: #2f7fa6; padding-bottom: 5px;}
+.column .col_desc {
+    border-bottom: 1px dashed #dbdbdb; 
+    padding-bottom: 1.5%; 
+    margin-bottom: 1.5%;  
+    color: #878787;
+    line-height: 18px;
+}
+.column .col_car { width: 100%; text-align: center; /*background-color: #ffca28;*/ }
+.column .col_car_sub1 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff9928;*/ }
+.column .col_car_sub1 > a > span:hover { color: #FA5858; }        
+.column .col_car_sub2 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff9888;*/ }
+.column .col_car_sub2 > a > span:hover { color: #FA5858; }    
+.column .col_car_sub3 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff4422;*/ }
+.column .col_car_sub3 > a > span:hover { color: #FA5858; }    
+.column .col_car_p_tit { font-size: medium;  font-family: 'Nanum+Gothic'; font-weight: bold; padding-bottom: 5px; }  
+.column .col_car_p_text { padding-bottom: 5px; } 
+
+.column .col { width: 100%; text-align: center; /*background-color: #ffca28;*/ }
+.column .col_sub1 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff9928;*/ }
+.column .col_sub1 > a > span:hover { color: #FA5858; }        
+.column .col_sub2 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff9888;*/ }
+.column .col_sub2 > a > span:hover { color: #FA5858; }    
+.column .col_sub3 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff4422;*/ }
+.column .col_sub3 > a > span:hover { color: #FA5858; }    
+.column .col_sub4 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff4422;*/ }
+.column .col_sub4 > a > span:hover { color: #FA5858; }  
+.column .col_sub5 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff4422;*/ }
+.column .col_sub5 > a > span:hover { color: #FA5858; }  
+.column .col_sub6 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff4422;*/ }
+.column .col_sub6 > a > span:hover { color: #FA5858; }  
+.column .col_sub7 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff4422;*/ }
+.column .col_sub7 > a > span:hover { color: #FA5858; }  
+.column .col_sub8 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff4422;*/ }
+.column .col_sub8 > a > span:hover { color: #FA5858; }  
+.column .col_sub9 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff4422;*/ }
+.column .col_sub9 > a > span:hover { color: #FA5858; }  
+.column .col_sub10 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff4422;*/ }
+.column .col_sub10 > a > span:hover { color: #FA5858; }  
+.column .col_sub11 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff4422;*/ }
+.column .col_sub11 > a > span:hover { color: #FA5858; }  
+.column .col_sub12 { display:inline-block; width: 30%; min-height: 150px; min-width: 180px; /*background-color: #ff4422;*/ }
+.column .col_sub12 > a > span:hover { color: #FA5858; }  
+.column .col_p_tit { font-size: medium;  font-family: 'Nanum+Gothic'; font-weight: bold; padding-bottom: 5px; }  
+.column .col_p_text { padding-bottom: 5px; } 
+
+/* 아티클 & 콘텐츠(rectal.php) */
+.column .col_rental { width: 100%; text-align: left; /*background-color: #ffca28;*/ }
+
+
+/* 헤더 */
+.header {height: 327px;}
+.header .header_tit { text-align: center; text-transform: uppercase; font-family: 'Abel', sans-serif;}
+.header .header_tit h1 {
+    margin-top: 80px;
+    font-size: 30px; 
+    color: #fff;     
+    display: inline-block; 
+    padding: 5px 30px 5px 30px; 
+    letter-spacing: 2px; 
+    font-weight: 900;
+    transition: box-shadow 0.25s ease-in-out;
+ }
+.header .header_img { text-align: center;}
+.header .header_img .header_img_r {width:400px;}
+
+
+/* select */
+select {
+    width: 160px; /* 원하는 너비설정 */
+    padding: .8em .5em; /* 여백으로 높이 설정 */
+    font-family: inherit;  /* 폰트 상속 */
+    font-size: 14px;
+    background: url('../img/arrow.png') no-repeat 95% 50%; /* 네이티브 화살표를 커스텀 화살표로 대체 */
+    border: 1px solid #999;
+    border: 1px solid #ccc;
+    border-radius: 4px; /* iOS 둥근모서리 제거 */
+    -webkit-appearance: none; /* 네이티브 외형 감추기 */
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* IE 10, 11의 네이티브 화살표 숨기기 */
+select::-ms-expand {
+    display: none;
+}
+
+
+
+ /**
+    * ------------------------
+    * Form Style
+    * ------------------------
+*/
+
+.form-inline .form-control {
+    display: inline-block;
+    width: auto;
+    vertical-align: middle;
+}
+
+.form-control {
+    display: block;
+    width: 100%;
+    height: 34px;
+    padding: 6px 12px;
+    font-size: 14px;    
+    border: 1px solid #ccc;
+    border-radius: 4px;   
+}
+
+.form-control:focus {
+    border-color: #66afe9;
+    outline: 0;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px rgba(102, 175, 233, .6)
+}
+
+/**
+* ------------------------
+* Button Style
+* ------------------------
+*/
+
+.btn-default {
+    display: inline-block;
+    padding: 10px 22px;
+    margin-bottom: 0;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-image: none;
+    background-color: #fff;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.42857143;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    -ms-touch-action: manipulation;
+    touch-action: manipulation;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+    
+.btn-default.active,
+.btn-default.focus,
+.btn-default:active,
+.btn-default:focus,
+.btn-default:hover {
+    color: #333;
+    background-color: #e6e6e6;
+    border-color: #adadad;
+}
+    
+.btn-primary {
+    color: #fff;
+    background-color: #337ab7;
+    border-color: #2e6da4;
+}
+    
+.btn-primary.active,
+.btn-primary.focus,
+.btn-primary:active,
+.btn-primary:focus,
+.btn-primary:hover {
+    color: #fff;
+    background-color: #286090;
+    border-color: #204d74;
+}
+    
+.btn-success {
+    color: #fff;
+    background-color: #5cb85c;
+    border-color: #4cae4c;
+}
+    
+.btn-success.active,
+.btn-success.focus,
+.btn-success:active,
+.btn-success:focus,
+.btn-success:hover {
+    color: #fff;
+    background-color: #449d44;
+    border-color: #398439;
+}
+    
+.btn-warning {
+    color: #fff;
+    background-color: #f0ad4e;
+    border-color: #eea236;
+}
+    
+.btn-warning.active,
+.btn-warning.focus,
+.btn-warning:active,
+.btn-warning:focus,
+.btn-warning:hover {
+    color: #fff;
+    background-color: #ec971f;
+    border-color: #d58512;
+}
+   
+
+
+ /* mediaquery */
+ /* 화면 너비 0~1220px */
+ @media (max-width: 1220px)
+ {
+     .container {width: 100%;}
+     #cont_center { margin-right: 10%; margin-left: 10%; }
+     .header .header_img .header_img_r {width:400px;}
+ }
+        
+ /* 화면 너비 0~1024px */
+ @media (max-width: 1024px)
+ {
+     .container {width: 100%;}
+      #cont_center { margin-right: 10%; margin-left: 10%; }
+      .header .header_img .header_img_r {width:400px;}
+ }
+        
+ /* 화면 너비 0~960px */
+ @media (max-width: 960px)
+ {
+     .container {width: 100%;}
+      #cont_center { margin-right: 10%; margin-left: 10%; }
+      .header .header_img .header_img_r {width:400px;}
+ }
+        
+ /* 화면 너비 0~768px */
+ @media (max-width: 768px)
+ {
+     .container {width: 100%;}
+      #cont_center { margin-right: 0%; margin-left: 0%; }
+     .column .col_tit { text-align: center; }
+     .column .col_desc { text-align: center; }
+     .header .header_img .header_img_r {width:400px;}
+ }
+        
+ /* 화면 너비 0~600px */
+ @media (max-width: 600px)
+ {
+     .container {width: 100%;}
+      #cont_center { margin-right: 0%; margin-left: 0%; }
+     .column .col_tit { text-align: center; }
+     .column .col_desc { text-align: center; }
+     .header .header_img .header_img_r {width:300px;}
+     .column .col_rental { width: 100%; text-align: center; }
+
+ }
+        
+ /* 화면 너비 0~480px */
+ @media (max-width: 480px)
+ {
+     .container {width: 100%;}
+     #cont_center { margin-right: 0%; margin-left: 0%; }
+     .column .col_tit { text-align: center; }
+     .column .col_desc { text-align: center; }
+     .header .header_img .header_img_r {width:300px;}
+     .column .col_rental { width: 100%; text-align: center; }
+ }      
+
+ @media 
+only screen and (max-width: 760px),
+(min-device-width: 768px) and (max-device-width: 1024px)  {
+
+	/* Force table to not be like tables anymore */
+	table, thead, tbody, th, td, tr { 
+		display: block; 
+	}
+	
+	/* Hide table headers (but not display: none;, for accessibility) */
+	thead tr { 
+		position: absolute;
+		top: -9999px;
+		left: -9999px;
+	}
+	
+	tr { border: 1px solid #ccc; }
+	
+	td { 
+		/* Behave  like a "row" */
+		border: none;
+		border-bottom: 1px solid #eee; 
+		position: relative;
+		padding-left: 50%; 
+	}
+	
+	td:before { 
+		/* Now like a table header */
+		position: absolute;
+		/* Top/left values mimic padding */
+		top: 6px;
+		left: 6px;
+		width: 45%; 
+		padding-right: 10px; 
+		white-space: nowrap;
+	}
+	
+	/*
+	Label the data
+	*/
+	td:nth-of-type(1):before { content: "차종"; }
+	td:nth-of-type(2):before { content: "상태"; }
+	td:nth-of-type(3):before { content: "대여일"; }
+	td:nth-of-type(4):before { content: "운전자"; }
+	td:nth-of-type(5):before { content: "목적지"; }
+	td:nth-of-type(6):before { content: "최종 KM"; }
+	td:nth-of-type(7):before { content: "하이패스 잔액"; }
+	td:nth-of-type(8):before { content: "20년 누적 km"; }
+	td:nth-of-type(9):before { content: "-"; }
+	td:nth-of-type(10):before { content: "-"; }
+
+  /* asset */
+  .asset1 td:nth-of-type(1):before { content: "노트북"; }
+  .asset1 td:nth-of-type(2):before { content: "데스크탑"; }
+  .asset1 td:nth-of-type(3):before { content: "워크스테이션"; }
+  .asset1 td:nth-of-type(4):before { content: "미니pc"; }
+  .asset1 td:nth-of-type(5):before { content: "Window7 HOME"; }  
+  .asset1 td:nth-of-type(6):before { content: "Window7 PRO"; }  
+  .asset1 td:nth-of-type(7):before { content: "Window10 HOME"; }  
+  .asset1 td:nth-of-type(8):before { content: "Window10 PRO"; }   
+  .asset1 td:nth-of-type(9):before { content: "Office 2007"; } 
+  .asset1 td:nth-of-type(10):before { content: "Office 2010"; } 
+  .asset1 td:nth-of-type(11):before { content: "Office 2013"; } 
+
+  .asset2 td:nth-of-type(1):before { content: "자산번호"; }
+  .asset2 td:nth-of-type(2):before { content: "사용자"; }
+  .asset2 td:nth-of-type(3):before { content: "종류"; }
+  .asset2 td:nth-of-type(4):before { content: "브랜드"; }
+  .asset2 td:nth-of-type(5):before { content: "모델"; }  
+  .asset2 td:nth-of-type(6):before { content: "위치"; }  
+  .asset2 td:nth-of-type(7):before { content: "IP"; }  
+  .asset2 td:nth-of-type(8):before { content: "WINDOW"; }   
+  .asset2 td:nth-of-type(9):before { content: "OFFICE"; } 
+
+  /* firstin */
+  .firstin1 td:nth-of-type(1):before { content: "날짜"; }
+  .firstin1 td:nth-of-type(2):before { content: "총인원"; }
+  .firstin1 td:nth-of-type(3):before { content: "출근"; }
+  .firstin1 td:nth-of-type(4):before { content: "퇴근"; }
+
+  .firstin2 td:nth-of-type(1):before { content: "이름"; }
+  .firstin2 td:nth-of-type(2):before { content: "출근일"; }
+  .firstin2 td:nth-of-type(3):before { content: "출근시간"; }
+  .firstin2 td:nth-of-type(4):before { content: "퇴근시간"; }
+
+  /* duty */
+  .duty1 td:nth-of-type(1):before { content: "날짜"; }
+  .duty1 td:nth-of-type(2):before { content: "휴일"; }
+  .duty1 td:nth-of-type(3):before { content: "당직자"; }
+  .duty1 td:nth-of-type(4):before { content: "변경자"; }
+
+  /* watt */
+  .watt1 td:nth-of-type(1):before { content: "날짜"; }
+  .watt1 td:nth-of-type(2):before { content: "가동시간 기준(시간)"; }
+  .watt1 td:nth-of-type(3):before { content: "가동시간(시간)"; }
+  .watt1 td:nth-of-type(4):before { content: "가동율(%)"; }
+
+  /* ht */
+  .ht1 td:nth-of-type(1):before { content: "측정일자"; }
+  .ht1 td:nth-of-type(2):before { content: "습도(%)"; }
+  .ht1 td:nth-of-type(3):before { content: "온도(℃)"; }
+
+  .ht2 td:nth-of-type(1):before { content: "A구역 측정일자"; }
+  .ht2 td:nth-of-type(2):before { content: "A구역 습도(%)"; }
+  .ht2 td:nth-of-type(3):before { content: "A구역 온도(℃)"; }
+  .ht2 td:nth-of-type(4):before { content: "B구역 측정일자"; }
+  .ht2 td:nth-of-type(5):before { content: "B구역 습도(%)"; }
+  .ht2 td:nth-of-type(6):before { content: "B구역 온도(℃)"; }
+
+  /* finished */
+  .finished1 td:nth-of-type(1):before { content: "위치"; }
+  .finished1 td:nth-of-type(2):before { content: "품번"; }
+  .finished1 td:nth-of-type(3):before { content: "품명"; }
+  .finished1 td:nth-of-type(4):before { content: "현재고"; }
+
+  /* imotion */
+  .imotion1 td:nth-of-type(1):before { content: "품번"; }
+  .imotion1 td:nth-of-type(2):before { content: "LOT날짜"; }
+  .imotion1 td:nth-of-type(3):before { content: "LOT번호"; }
+  .imotion1 td:nth-of-type(4):before { content: "자재품번"; }
+  .imotion1 td:nth-of-type(5):before { content: "자재LOT"; }
+  .imotion1 td:nth-of-type(6):before { content: "저항값"; }
+  .imotion1 td:nth-of-type(7):before { content: "저항판단"; }
+  .imotion1 td:nth-of-type(8):before { content: "SHORT판단"; }
+  .imotion1 td:nth-of-type(9):before { content: "NTC판단"; }
+  .imotion1 td:nth-of-type(10):before { content: "NTC값"; }
+  .imotion1 td:nth-of-type(11):before { content: "검사대"; }
+  .imotion1 td:nth-of-type(12):before { content: "지그ID"; }
+  .imotion1 td:nth-of-type(13):before { content: "지그번호"; }
+
+  /* capco */
+  .capco1 td:nth-of-type(1):before { content: "품번"; }
+  .capco1 td:nth-of-type(2):before { content: "LOT날짜"; }
+  .capco1 td:nth-of-type(3):before { content: "LOT번호"; }
+  .capco1 td:nth-of-type(4):before { content: "자재품번"; }
+  .capco1 td:nth-of-type(5):before { content: "자재LOT"; }
+  .capco1 td:nth-of-type(6):before { content: "저항값"; }
+  .capco1 td:nth-of-type(7):before { content: "저항판단"; }
+  .capco1 td:nth-of-type(8):before { content: "SHORT판단"; }
+  .capco1 td:nth-of-type(9):before { content: "NTC판단"; }
+  .capco1 td:nth-of-type(10):before { content: "NTC값"; }
+  .capco1 td:nth-of-type(11):before { content: "검사대"; }
+  .capco1 td:nth-of-type(12):before { content: "지그ID"; }
+  .capco1 td:nth-of-type(13):before { content: "지그번호"; }
+
+  /* aerator */
+  .aerator1 td:nth-of-type(1):before { content: "차종"; }
+  .aerator1 td:nth-of-type(2):before { content: "규격"; }
+  .aerator1 td:nth-of-type(3):before { content: "LOT날짜"; }
+  .aerator1 td:nth-of-type(4):before { content: "LOT번호"; }
+  .aerator1 td:nth-of-type(5):before { content: "자재품번"; }
+  .aerator1 td:nth-of-type(6):before { content: "자재LOT"; }
+  .aerator1 td:nth-of-type(7):before { content: "측정값(전류)"; }
+  .aerator1 td:nth-of-type(8):before { content: "측정값(온도)"; }
+  .aerator1 td:nth-of-type(9):before { content: "측정값(RPM)"; }
+  .aerator1 td:nth-of-type(10):before { content: "측정값(통풍량)"; }
+  .aerator1 td:nth-of-type(11):before { content: "측정값(소음)"; }
+  .aerator1 td:nth-of-type(12):before { content: "측정값(전압)"; }
+  .aerator1 td:nth-of-type(13):before { content: "고객PNO"; }
+  .aerator1 td:nth-of-type(14):before { content: "판정결과"; }
+  .aerator1 td:nth-of-type(15):before { content: "판정이유"; }
+  .aerator1 td:nth-of-type(16):before { content: "작업지그번호"; }
+  .aerator1 td:nth-of-type(17):before { content: "속도도달시간"; }
+
+  .aerator2 td:nth-of-type(1):before { content: "ORDER_NO"; }
+  .aerator2 td:nth-of-type(2):before { content: "DATE"; }
+  .aerator2 td:nth-of-type(3):before { content: "TIME"; }
+  .aerator2 td:nth-of-type(4):before { content: "JIG"; }
+  .aerator2 td:nth-of-type(5):before { content: "JUDGE"; }
+  .aerator2 td:nth-of-type(6):before { content: "BARCODE_IN"; }
+  .aerator2 td:nth-of-type(7):before { content: "BARCODE_OUT"; }
+  .aerator2 td:nth-of-type(8):before { content: "RPM"; }
+  .aerator2 td:nth-of-type(9):before { content: "VELOCITY1"; }
+  .aerator2 td:nth-of-type(10):before { content: "VELOCITY2"; }
+  .aerator2 td:nth-of-type(11):before { content: "TEMP"; }
+  .aerator2 td:nth-of-type(12):before { content: "VOLTAGE"; }
+  .aerator2 td:nth-of-type(13):before { content: "CURR"; }
+  .aerator2 td:nth-of-type(14):before { content: "NOISE"; }
+  .aerator2 td:nth-of-type(15):before { content: "TEST_TIME"; }
+  .aerator2 td:nth-of-type(16):before { content: "NG_REASON"; }
+  .aerator2 td:nth-of-type(17):before { content: "INSPECTOR_NUMBER"; }
+
+  /* individual */
+  .individual1 td:nth-of-type(1):before { content: "이름"; }
+  .individual1 td:nth-of-type(2):before { content: "차번"; }
+  .individual1 td:nth-of-type(3):before { content: "유종"; }
+  .individual1 td:nth-of-type(4):before { content: "출발지"; }
+  .individual1 td:nth-of-type(5):before { content: "경유/목적지"; }
+  .individual1 td:nth-of-type(6):before { content: "주행거리"; }
+  .individual1 td:nth-of-type(7):before { content: "톨비"; }
+  .individual1 td:nth-of-type(8):before { content: "주행거리사진"; }
+  .individual1 td:nth-of-type(9):before { content: "톨비사진"; }
+  .individual1 td:nth-of-type(10):before { content: "정산"; }
+
+  .individual2 td:nth-of-type(1):before { content: "NO"; }
+  .individual2 td:nth-of-type(2):before { content: "유종"; }
+  .individual2 td:nth-of-type(3):before { content: "가격"; }
+
+  /* rental */
+  .rental1 td:nth-of-type(1):before { content: "차종"; }
+  .rental1 td:nth-of-type(2):before { content: "대여일"; }
+  .rental1 td:nth-of-type(3):before { content: "반납일"; }
+  .rental1 td:nth-of-type(4):before { content: "운전자"; }
+
+  /* hipass */
+  .hipass1 td:nth-of-type(1):before { content: "카드종류"; }
+  .hipass1 td:nth-of-type(2):before { content: "마지막 사용자"; }
+  .hipass1 td:nth-of-type(3):before { content: "대여자"; }
+  .hipass1 td:nth-of-type(4):before { content: "현황"; }
+  .hipass1 td:nth-of-type(5):before { content: "잔액"; }
+  .hipass1 td:nth-of-type(6):before { content: "대여/반납일"; }
+
+  /* maskin */
+  .maskin1 td:nth-of-type(1):before { content: "94 큰박스"; }
+  .maskin1 td:nth-of-type(2):before { content: "94 작은박스"; }
+  .maskin1 td:nth-of-type(3):before { content: "AD 큰박스"; }
+  .maskin1 td:nth-of-type(4):before { content: "AD 작은박스"; }
+
+  .maskin2 td:nth-of-type(1):before { content: "마스크종류"; }
+  .maskin2 td:nth-of-type(2):before { content: "박스종류"; }
+  .maskin2 td:nth-of-type(3):before { content: "LOT날짜"; }
+  .maskin2 td:nth-of-type(4):before { content: "LOT번호"; }
+  .maskin2 td:nth-of-type(5):before { content: "라벨발행일시"; }
+
+  /* maskout */
+  .maskout1 td:nth-of-type(1):before { content: "94 큰박스"; }
+  .maskout1 td:nth-of-type(2):before { content: "94 작은박스"; }
+  .maskout1 td:nth-of-type(3):before { content: "AD 큰박스"; }
+  .maskout1 td:nth-of-type(4):before { content: "AD 작은박스"; }
+
+  .maskout2 td:nth-of-type(1):before { content: "마스크종류"; }
+  .maskout2 td:nth-of-type(2):before { content: "박스종류"; }
+  .maskout2 td:nth-of-type(3):before { content: "LOT날짜"; }
+  .maskout2 td:nth-of-type(4):before { content: "LOT번호"; }
+  .maskout2 td:nth-of-type(5):before { content: "스캔일시"; }
+
+  .maskout3 td:nth-of-type(1):before { content: "마스크종류"; }
+  .maskout3 td:nth-of-type(2):before { content: "박스종류"; }
+  .maskout3 td:nth-of-type(3):before { content: "LOT날짜"; }
+  .maskout3 td:nth-of-type(4):before { content: "LOT번호"; }
+  .maskout3 td:nth-of-type(5):before { content: "스캔일시"; }
+  
+  /* maskstorage */
+  .maskstorage1 td:nth-of-type(1):before { content: "기초재고(S)"; }
+  .maskstorage1 td:nth-of-type(2):before { content: "입고(S)"; }
+  .maskstorage1 td:nth-of-type(3):before { content: "출고(S)"; }
+  .maskstorage1 td:nth-of-type(4):before { content: "기말재고(S)"; }
+  .maskstorage1 td:nth-of-type(5):before { content: "기말재고(PCS)"; }
+
+  .maskstorage2 td:nth-of-type(1):before { content: "마스크종류"; }
+  .maskstorage2 td:nth-of-type(2):before { content: "박스종류"; }
+  .maskstorage2 td:nth-of-type(3):before { content: "제품명"; }
+  .maskstorage2 td:nth-of-type(4):before { content: "기초재고"; }
+  .maskstorage2 td:nth-of-type(5):before { content: "입고"; }
+  .maskstorage2 td:nth-of-type(6):before { content: "출고"; }
+  .maskstorage2 td:nth-of-type(7):before { content: "기말재고"; }
+
+  /* bb */
+  .bb1 td:nth-of-type(1):before { content: "박스수량"; }
+  .bb1 td:nth-of-type(2):before { content: "개별수량"; }
+
+  .bb2 td:nth-of-type(1):before { content: "품번"; }
+  .bb2 td:nth-of-type(2):before { content: "품명"; }
+  .bb2 td:nth-of-type(3):before { content: "박스수량"; }
+  .bb2 td:nth-of-type(4):before { content: "개별수량"; }
+  .bb2 td:nth-of-type(5):before { content: "위치"; }
+  .bb2 td:nth-of-type(6):before { content: "비고"; }
+
+  /* bbhistory */
+  .bbhistory1 td:nth-of-type(1):before { content: "박스수량"; }
+  .bbhistory1 td:nth-of-type(2):before { content: "개별수량"; }
+
+  .bbhistory2 td:nth-of-type(1):before { content: "품번"; }
+  .bbhistory2 td:nth-of-type(2):before { content: "품명"; }
+  .bbhistory2 td:nth-of-type(3):before { content: "로트날짜"; }
+  .bbhistory2 td:nth-of-type(4):before { content: "박스수량"; }
+  .bbhistory2 td:nth-of-type(5):before { content: "개별수량"; }
+  .bbhistory2 td:nth-of-type(6):before { content: "위치"; }
+  .bbhistory2 td:nth-of-type(7):before { content: "비고"; }
+  .bbhistory2 td:nth-of-type(8):before { content: "출고일"; }
+
+  /* materials */
+  .materials1 td:nth-of-type(1):before { content: "납품사"; }
+  .materials1 td:nth-of-type(2):before { content: "품번"; }
+  .materials1 td:nth-of-type(3):before { content: "품명"; }
+  .materials1 td:nth-of-type(4):before { content: "수량"; }
+  .materials1 td:nth-of-type(5):before { content: "비고"; }
+  .materials1 td:nth-of-type(6):before { content: "단위"; }
+  .materials1 td:nth-of-type(7):before { content: "직납 및 바로 출고"; }
+  .materials1 td:nth-of-type(8):before { content: "실적마감"; }
+
+  .materials2 td:nth-of-type(1):before { content: "납품사"; }
+  .materials2 td:nth-of-type(2):before { content: "품번"; }
+  .materials2 td:nth-of-type(3):before { content: "품명"; }
+  .materials2 td:nth-of-type(4):before { content: "규격"; }
+  .materials2 td:nth-of-type(5):before { content: "수량"; }
+  .materials2 td:nth-of-type(6):before { content: "단위"; }
+  .materials2 td:nth-of-type(7):before { content: "직납 및 바로 출고"; }
+  .materials2 td:nth-of-type(8):before { content: "실적마감"; }
+  .materials2 td:nth-of-type(9):before { content: "스캔일시"; }
+
+  .materials3 td:nth-of-type(1):before { content: "합계"; }
+  .materials3 td:nth-of-type(2):before { content: "거래명세서 스캔 수량"; }
+  .materials3 td:nth-of-type(3):before { content: "수량합계"; }
+  .materials3 td:nth-of-type(4):before { content: "입고금액(원)"; }
+
+  .materials4 td:nth-of-type(1):before { content: "가입고번호"; }
+  .materials4 td:nth-of-type(2):before { content: "발주번호"; }
+  .materials4 td:nth-of-type(3):before { content: "납품사"; }
+  .materials4 td:nth-of-type(4):before { content: "스캔날짜"; }
+  .materials4 td:nth-of-type(5):before { content: "입고날짜"; }
+  .materials4 td:nth-of-type(6):before { content: "직납 및 바로 출고"; }
+  .materials4 td:nth-of-type(7):before { content: "실적마감"; }
+
+  .materials5 td:nth-of-type(1):before { content: "합계"; }
+  .materials5 td:nth-of-type(2):before { content: "수량"; }
+  .materials5 td:nth-of-type(3):before { content: "입고금액(원)"; }
+
+  .materials6 td:nth-of-type(1):before { content: "가입고번호"; }
+  .materials6 td:nth-of-type(2):before { content: "발주번호"; }
+  .materials6 td:nth-of-type(3):before { content: "납품사"; }
+  .materials6 td:nth-of-type(4):before { content: "스캔일시"; }
+  .materials6 td:nth-of-type(5):before { content: "입고날짜"; }
+  .materials6 td:nth-of-type(6):before { content: "입고날짜 수정"; }
+  .materials6 td:nth-of-type(7):before { content: "실적마감"; }
+  .materials6 td:nth-of-type(8):before { content: "실적마감 수정"; }
+  .materials6 td:nth-of-type(9):before { content: "입력"; }
+  
+
+  /* ecuin */
+  .ecuin1td:nth-of-type(1):before { content: ""; }
+  .ecuin1 td:nth-of-type(2):before { content: "박스수량"; }
+  .ecuin1 td:nth-of-type(3):before { content: "개별수량"; }
+
+  .ecuin2 td:nth-of-type(1):before { content: "자동차품번"; }
+  .ecuin2 td:nth-of-type(2):before { content: "내부품번"; }
+  .ecuin2 td:nth-of-type(3):before { content: "품명"; }
+  .ecuin2 td:nth-of-type(4):before { content: "박스수량"; }
+  .ecuin2 td:nth-of-type(5):before { content: "개별수량"; }
+  .ecuin2 td:nth-of-type(6):before { content: "위치"; }
+  .ecuin2 td:nth-of-type(7):before { content: "직납여부"; }
+  .ecuin2 td:nth-of-type(8):before { content: "비고"; }
+
+  .ecuin3 td:nth-of-type(1):before { content: "자동차품번"; }
+  .ecuin3 td:nth-of-type(2):before { content: "내부품번"; }
+  .ecuin3 td:nth-of-type(3):before { content: "품명"; }
+  .ecuin3 td:nth-of-type(4):before { content: "LOT날짜"; }
+  .ecuin3 td:nth-of-type(5):before { content: "LOT번호"; }  
+  .ecuin3 td:nth-of-type(6):before { content: "수량"; }  
+  .ecuin3 td:nth-of-type(7):before { content: "위치"; }  
+  .ecuin3 td:nth-of-type(8):before { content: "직납"; }  
+  .ecuin3 td:nth-of-type(9):before { content: "스캔일시"; }  
+
+  /* ecuinhistory */
+  .ecuinhistory1 td:nth-of-type(1):before { content: "자동차품번"; }
+  .ecuinhistory1 td:nth-of-type(2):before { content: "내부품번"; }
+  .ecuinhistory1 td:nth-of-type(3):before { content: "품명"; }
+  .ecuinhistory1 td:nth-of-type(4):before { content: "LOT날짜"; }
+  .ecuinhistory1 td:nth-of-type(5):before { content: "박스수량"; }  
+  .ecuinhistory1 td:nth-of-type(6):before { content: "개별수량"; }  
+  .ecuinhistory1 td:nth-of-type(7):before { content: "위치"; }  
+  .ecuinhistory1 td:nth-of-type(8):before { content: "비고"; }   
+  .ecuinhistory1 td:nth-of-type(9):before { content: "입고일"; } 
+
+  /* ecuout */
+  .ecuout1 td:nth-of-type(1):before { content: ""; }
+  .ecuout1 td:nth-of-type(2):before { content: "파레트수량"; }
+  .ecuout1 td:nth-of-type(3):before { content: "박스수량"; }
+  .ecuout1 td:nth-of-type(4):before { content: "개별수량"; }
+
+  .ecuout2 td:nth-of-type(1):before { content: "자동차품번"; }
+  .ecuout2 td:nth-of-type(2):before { content: "내부품번"; }
+  .ecuout2 td:nth-of-type(3):before { content: "품명"; }
+  .ecuout2 td:nth-of-type(4):before { content: "박스수량"; }
+  .ecuout2 td:nth-of-type(5):before { content: "개별수량"; }  
+  .ecuout2 td:nth-of-type(6):before { content: "위치"; }  
+  .ecuout2 td:nth-of-type(7):before { content: "직납여부"; }  
+  .ecuout2 td:nth-of-type(8):before { content: "비고"; }  
+
+  .ecuout3 td:nth-of-type(1):before { content: "자동차품번"; }
+  .ecuout3 td:nth-of-type(2):before { content: "내부품번"; }
+  .ecuout3 td:nth-of-type(3):before { content: "품명"; }
+  .ecuout3 td:nth-of-type(4):before { content: "LOT날짜"; }
+  .ecuout3 td:nth-of-type(5):before { content: "LOT번호"; }  
+  .ecuout3 td:nth-of-type(6):before { content: "수량"; }  
+  .ecuout3 td:nth-of-type(7):before { content: "위치"; }  
+  .ecuout3 td:nth-of-type(8):before { content: "직납"; }  
+  .ecuout3 td:nth-of-type(9):before { content: "스캔일시"; }  
+
+  /* ecuouthistory */
+  .ecuouthistory1 td:nth-of-type(1):before { content: "자동차품번"; }
+  .ecuouthistory1 td:nth-of-type(2):before { content: "내부품번"; }
+  .ecuouthistory1 td:nth-of-type(3):before { content: "품명"; }
+  .ecuouthistory1 td:nth-of-type(4):before { content: "LOT날짜"; }
+  .ecuouthistory1 td:nth-of-type(5):before { content: "박스수량"; }  
+  .ecuouthistory1 td:nth-of-type(6):before { content: "개별수량"; }  
+  .ecuouthistory1 td:nth-of-type(7):before { content: "위치"; }  
+  .ecuouthistory1 td:nth-of-type(8):before { content: "비고"; }   
+  .ecuouthistory1 td:nth-of-type(9):before { content: "출고일"; }  
+
+  /* ecustorage */
+  .ecustorage1 td:nth-of-type(1):before { content: "구분"; }
+  .ecustorage1 td:nth-of-type(2):before { content: "품목"; }
+  .ecustorage1 td:nth-of-type(3):before { content: "자동차품번"; }
+  .ecustorage1 td:nth-of-type(4):before { content: "내부품번"; }
+  .ecustorage1 td:nth-of-type(5):before { content: "품명"; }  
+  .ecustorage1 td:nth-of-type(6):before { content: "기초재고"; }  
+  .ecustorage1 td:nth-of-type(7):before { content: "입고"; }  
+  .ecustorage1 td:nth-of-type(8):before { content: "출고"; }  
+  .ecustorage1 td:nth-of-type(9):before { content: "기말재고"; }  
+  .ecustorage1 td:nth-of-type(10):before { content: "안전재고"; }  
+  .ecustorage1 td:nth-of-type(11):before { content: "최대수용재고"; }  
+  .ecustorage1 td:nth-of-type(12):before { content: "판매지역"; }  
+
+}
+
+
+
+/**
+* ------------------------
+* checkbox Style
+* ------------------------
+*/
+
+.checks {position: relative;}
+
+.checks input[type="checkbox"] {  /* 실제 체크박스는 화면에서 숨김 */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip:rect(0,0,0,0);
+  border: 0
+}
+.checks input[type="checkbox"] + label {
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+.checks input[type="checkbox"] + label:before {  /* 가짜 체크박스 */
+  content: ' ';
+  display: inline-block;
+  width: 21px;  /* 체크박스의 너비를 지정 */
+  height: 21px;  /* 체크박스의 높이를 지정 */
+  line-height: 21px; /* 세로정렬을 위해 높이값과 일치 */
+  margin: -2px 8px 0 0;
+  text-align: center; 
+  vertical-align: middle;
+  background: #fafafa;
+  border: 1px solid #cacece;
+  border-radius : 3px;
+  box-shadow: 0px 1px 2px rgba(0,0,0,0.05), inset 0px -15px 10px -12px rgba(0,0,0,0.05);
+}
+.checks input[type="checkbox"] + label:active:before,
+.checks input[type="checkbox"]:checked + label:active:before {
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05), inset 0px 1px 3px rgba(0,0,0,0.1);
+}
+
+.checks input[type="checkbox"]:checked + label:before {  /* 체크박스를 체크했을때 */ 
+  content: '\2714';  /* 체크표시 유니코드 사용 */
+  color: #99a1a7;
+  text-shadow: 1px 1px #fff;
+  background: #e9ecee;
+  border-color: #adb8c0;
+  box-shadow: 0px 1px 2px rgba(0,0,0,0.05), inset 0px -15px 10px -12px rgba(0,0,0,0.05), inset 15px 10px -12px rgba(255,255,255,0.1);
+}
+
+.checks.etrans input[type="checkbox"] + label {
+  padding-left: 30px;
+}
+.checks.etrans input[type="checkbox"] + label:before {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin-top: 0;
+  opacity: .6;
+  box-shadow: none;
+  border-color: #6cc0e5;
+  -webkit-transition: all .12s, border-color .08s;
+  transition: all .12s, border-color .08s;
+}
+
+.checks.etrans input[type="checkbox"]:checked + label:before {
+  position: absolute;
+  content: "";
+  width: 10px;
+  top: -5px;
+  left: 5px;
+  border-radius: 0;
+  opacity:1; 
+  background: transparent;
+  border-color:transparent #6cc0e5 #6cc0e5 transparent;
+  border-top-color:transparent;
+  border-left-color:transparent;
+  -ms-transform:rotate(45deg);
+  -webkit-transform:rotate(45deg);
+  transform:rotate(45deg);
+}
+
+.no-csstransforms .checks.etrans input[type="checkbox"]:checked + label:before {
+  /*content:"\2713";*/
+  content: "\2714";
+  top: 0;
+  left: 0;
+  width: 21px;
+  line-height: 21px;
+  color: #6cc0e5;
+  text-align: center;
+  border: 1px solid #6cc0e5;
+}

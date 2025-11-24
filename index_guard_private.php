@@ -1,0 +1,131 @@
+<?php 
+// =============================================
+// Author:  KWON SUNG KUN - sealclear@naver.com
+// Create date: 24.04.23
+// Description: 경비실 전용 메뉴
+// =============================================
+session_start();
+
+
+$user_ip = $_SERVER['REMOTE_ADDR'];   //사용자 IP
+$cut_ip = substr($user_ip, 0, 9);
+
+if($cut_ip!="192.168.0" and $cut_ip!="192.168.3") {
+    require_once 'session/session_check.php';
+}
+
+// Function to generate card HTML
+function generateCard($href, $icon, $text) {
+    return "
+    <div class='col-6 col-xl-2 col-lg-2 col-md-3 col-sm-4 mb-2'>
+        <a href='$href'>
+            <div class='card h-100 py-2 align-items-center'>
+                <div class='card-body'>
+                    <div class='row no-gutters'>
+                        <div class='col-auto' style='text-align: center;'>
+                            <i class='fas $icon fa-2x'></i>
+                            <div class='text-md font-weight-bold text-primary text-center text-uppercase mb-1'>$text</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>";
+}
+
+$cards = [
+    '기록' => [
+        ["./kjwt_guard/guard.php", "fa-file-signature", "당숙일지"],
+        ["./kjwt_read_meter/meter.php", "fa-clipboard-check", "검침"],
+        ["./kjwt_gate/gate.php", "fa-door-open", "입출문"],
+        ["./kjwt_key/key.php", "fa-key", "키"]
+    ],
+    '차량' => [        
+        ["./kjwt_car/car.php", "fa-car-side", "직원차량"],
+        ["./kjwt_fms/rental.php", "fa-car-side", "법인차"]
+    ],
+    '내부정보' => [
+        ["./kjwt_gw/gw_attend.php", "fa-id-card", "근태"],
+        ["./kjwt_office_duty/duty.php", "fa-user-check", "당직"],
+        ["./kjwt_schedule/schedule.php", "fa-user-tie", "방문자"],
+        ["./kjwt_network/network.php", "fa-phone-volume", "비상연락"],
+        ["./kjwt_office_food/food.php", "fa-utensils", "식단표"],               
+        ["./files/에스원 세콤.txt", "fa-user-shield", "세콤"]        
+    ],
+    '위치정보' => [
+        ["./files/nfc 부착위치.zip", "fa-barcode", "NFC위치"],
+        ["./files/공장동 GATE명판 부착 설명.pptx", "fa-dungeon", "GATE위치"]
+    ],
+    '메뉴얼' => [
+        ["./files/대여취소.mp4", "fa-user-clock", "대여취소"]
+    ] 
+];
+?>
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <!-- 헤드 -->
+    <?php include 'head_root.php' ?>
+</head>
+
+<body id="page-top">
+
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+
+        <!-- 메뉴 -->
+        <?php include 'nav.php' ?>
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+
+            <!-- Main Content -->
+            <div id="content">
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                    <?php foreach ($cards as $guard2 => $cardList): ?>
+                        <!-- Page Heading -->
+                        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                            <h1 class="h3 mb-0 text-gray-800" style="padding-top:1em; display:inline-block; vertical-align:-4px;"><?php echo  $guard2 ?></h1>
+                        </div>
+                        
+                        <!-- Cards -->
+                        <div class="row">
+                            <?php foreach ($cardList as $card): ?>
+                                <?php echo  generateCard($card[0], $card[1], $card[2]) ?>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endforeach; ?> 
+
+                </div>
+                <!-- /.container-fluid -->
+            </div>
+            <!-- End of Main Content -->
+        </div>
+        <!-- End of Content Wrapper -->
+
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Bootstrap core JavaScript-->
+    <script src="vendor/jquery/jquery.min.js"></script>
+    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Core plugin JavaScript-->
+    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
+
+    <!-- Custom scripts for all pages-->
+    <script src="js/sb-admin-2.min.js"></script>
+
+    <!-- 호환성(브라우저 기능검사) -->
+    <script src="js/modernizr-custom.js"></script>
+</body>
+</html>
