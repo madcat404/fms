@@ -2040,7 +2040,6 @@ HTML;
             $systemName = '윤리 캠페인';
             $title = '안내';
             $contentHtml = <<<HTML
-            <p>안녕하십니까? 경영팀 권성근입니다.</p>
             <p style="margin-top: 8px;">우리 회사는 윤리경영 실천을 위해, 윤리강령규정 및 윤리행동지침이 그룹웨어 및 홈페이지에 게시되어 있습니다.</p>
             <p style="margin-top: 8px;">또한, 윤리적 문제나 위반 사항에 대해 제보할 수 있는 사내 익명게시판(내부고발)을 운영 중이오니 많은 관심과 활용 바랍니다.</p>
             <p style="margin-top: 20px;"><strong>참고사항)</strong></p>
@@ -2054,7 +2053,6 @@ HTML;
                     작성자의 익명성은 철저히 보장됩니다.
                 </li>
             </ol>
-            <p style="margin-top: 20px;">감사합니다.</p>
 HTML;
             $link = 'https://gw.iwin.kr'; // Link to Groupware
             $body = build_email_template($systemName, $title, $contentHtml, $link, '그룹웨어 바로가기', $logoCid);

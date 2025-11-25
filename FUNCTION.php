@@ -1821,7 +1821,7 @@
             }
             elseif($item=='M0052000') {
                 return "W06 CUSH";
-            }
+            }            
             else {
                 $Query_ItemName = "select * from NEOE.NEOE.MA_PITEM WHERE CD_ITEM='$item' and CD_PLANT='PL01'";              
                 $Result_ItemName = sqlsrv_query($connect, $Query_ItemName, $params, $options);		
@@ -1834,15 +1834,20 @@
         else {
             //89370GO050(NA) 식으로 납품국가가 달라서 뒤에 ()가 붙는 경우
             if(substr($item,-1)==')') {
-                $parts1 = substr($item,0,5);
-                $parts2 = substr($item,5,5);
-                $assembly = $parts1."-".$parts2."(";
+                if($item=='88390A7100(M)') {
+                    return "YD F/BACK";
+                }
+                else {
+                    $parts1 = substr($item,0,5);
+                    $parts2 = substr($item,5,5);
+                    $assembly = $parts1."-".$parts2."(";
 
-                $Query_ItemName = "select top 1 * from NEOE.NEOE.MA_PITEM WHERE CD_ITEM like '$assembly%'";              
-                $Result_ItemName = sqlsrv_query($connect, $Query_ItemName, $params, $options);		
-                $Data_ItemName = sqlsrv_fetch_array($Result_ItemName);  
+                    $Query_ItemName = "select top 1 * from NEOE.NEOE.MA_PITEM WHERE CD_ITEM like '$assembly%'";              
+                    $Result_ItemName = sqlsrv_query($connect, $Query_ItemName, $params, $options);		
+                    $Data_ItemName = sqlsrv_fetch_array($Result_ItemName);  
 
-                return $Data_ItemName['NM_ITEM'];
+                    return $Data_ItemName['NM_ITEM'];
+                }
             }
             else {
                 $length = strlen($item);

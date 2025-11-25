@@ -87,6 +87,8 @@
                                                 [25.10~12]<br>
                                                 - [물류] 운송 데이터 미출력 에러 해결<br>
                                                 - [품질] 그래프 금년 데이터 미출력 에러 해결<br>
+                                                - [경영] 그래프 3개년도 출력<br>
+                                                - [경영] 그래프 숫자표시 겹침 해결 (세로 표시)<br>
                                             </p>
 
                                             -----------------------------------------------------------------<br><br> 
@@ -361,6 +363,13 @@
                                                                                             'yearTotalVar' => $Data_LastYearFee0,
                                                                                             'monthTotalVar' => $Data_LastYearFee00,
                                                                                             'monthlyVarPrefix' => 'Data_LastYearFee'
+                                                                                        ],
+                                                                                        // 2년 전 데이터 정보
+                                                                                        [
+                                                                                            'label' => $Minus2YY,
+                                                                                            'yearTotalVar' => $Data_YearBeforeFee0,
+                                                                                            'monthTotalVar' => $Data_YearBeforeFee00,
+                                                                                            'monthlyVarPrefix' => 'Data_YearBeforeFee'
                                                                                         ]
                                                                                     ];
 
@@ -470,6 +479,13 @@
                                                                                             'yearTotalVar' => $Data_LastYearFee0,
                                                                                             'monthTotalVar' => $Data_LastYearFee00,
                                                                                             'monthlyVarPrefix' => 'Data_LastYearFee'
+                                                                                        ],
+                                                                                        // 2년 전 데이터 정보
+                                                                                        [
+                                                                                            'label' => $Minus2YY,
+                                                                                            'yearTotalVar' => $Data_YearBeforeFee0,
+                                                                                            'monthTotalVar' => $Data_YearBeforeFee00,
+                                                                                            'monthlyVarPrefix' => 'Data_YearBeforeFee'
                                                                                         ]
                                                                                     ];
 
@@ -574,7 +590,7 @@
                                                                                                 </thead>
                                                                                                 <tbody>
                                                                                                     <?php
-                                                                                                    // 💡 2단계: 올해와 작년 데이터를 하나의 배열로 묶어 처리
+                                                                                                    // 💡 2단계: 올해와 작년, 재작년 데이터를 하나의 배열로 묶어 처리
                                                                                                     $tableData = [
                                                                                                         // 올해 데이터 정보
                                                                                                         [
@@ -589,6 +605,13 @@
                                                                                                             'yearTotalVar' => $Data_LastYearFee0,
                                                                                                             'monthTotalVar' => $Data_LastYearFee00,
                                                                                                             'monthlyVarPrefix' => 'Data_LastYearFee'
+                                                                                                        ],
+                                                                                                        // 2년 전 데이터 정보
+                                                                                                        [
+                                                                                                            'label' => $Minus2YY,
+                                                                                                            'yearTotalVar' => $Data_YearBeforeFee0,
+                                                                                                            'monthTotalVar' => $Data_YearBeforeFee00,
+                                                                                                            'monthlyVarPrefix' => 'Data_YearBeforeFee'
                                                                                                         ]
                                                                                                     ];
 
@@ -1717,25 +1740,31 @@
         //사용량
         const thisYearWaterIwinUsageData = <?php echo json_encode($thisYearWaterIwinUsageData); ?>;
         const lastYearWaterIwinUsageData = <?php echo json_encode($lastYearWaterIwinUsageData); ?>;
+        const yearBeforeWaterIwinUsageData = <?php echo json_encode($yearBeforeWaterIwinUsageData); ?>;
         const thisYearGasUsageData = <?php echo json_encode($thisYearGasUsageData); ?>;
         const lastYearGasUsageData = <?php echo json_encode($lastYearGasUsageData); ?>;
+        const yearBeforeGasUsageData = <?php echo json_encode($yearBeforeGasUsageData); ?>;
         const thisYearElectricityUsageData = <?php echo json_encode($thisYearElectricityUsageData); ?>;
         const lastYearElectricityUsageData = <?php echo json_encode($lastYearElectricityUsageData); ?>;
+        const yearBeforeElectricityUsageData = <?php echo json_encode($yearBeforeElectricityUsageData); ?>;
         //비용
         const thisYearWaterChartData = <?php echo json_encode($thisYearWaterChartData); ?>;
         const lastYearWaterChartData = <?php echo json_encode($lastYearWaterChartData); ?>;
+        const yearBeforeWaterChartData = <?php echo json_encode($yearBeforeWaterChartData); ?>;
         const thisYearGasChartData = <?php echo json_encode($thisYearGasChartData); ?>;
         const lastYearGasChartData = <?php echo json_encode($lastYearGasChartData); ?>;
+        const yearBeforeGasChartData = <?php echo json_encode($yearBeforeGasChartData); ?>;
         const thisYearElecChartData = <?php echo json_encode($thisYearElecChartData); ?>;
         const lastYearElecChartData = <?php echo json_encode($lastYearElecChartData); ?>;
+        const yearBeforeElecChartData = <?php echo json_encode($yearBeforeElecChartData); ?>;
         const thisYearPayChartData = <?php echo json_encode($thisYearPayChartData); ?>;
         const lastYearPayChartData = <?php echo json_encode($lastYearPayChartData); ?>;
-        const yearBeforePayChartData = <?php echo json_encode($yearBeforePayChartData); ?>; 
+        const yearBeforePayChartData = <?php echo json_encode($yearBeforePayChartData); ?>;
         const thisYearPay2ChartData = <?php echo json_encode($thisYearPay2ChartData); ?>;
         const lastYearPay2ChartData = <?php echo json_encode($lastYearPay2ChartData); ?>;
-        const yearBeforePay2ChartData = <?php echo json_encode($yearBeforePay2ChartData); ?>; 
+        const yearBeforePay2ChartData = <?php echo json_encode($yearBeforePay2ChartData); ?>;
         const thisYearDeliChartData = <?php echo json_encode($thisYearDeliChartData); ?>;
-        const lastYearDeliChartData = <?php echo json_encode($lastYearDeliChartData); ?>;       
+        const lastYearDeliChartData = <?php echo json_encode($lastYearDeliChartData); ?>;      
         //회계
         const financeDataCY   = <?php echo json_encode($financeDataCurrentYear  ?? []); ?>;
         const financeDataCY_1 = <?php echo json_encode($financeDataPreviousYear ?? []); ?>;
@@ -1922,29 +1951,10 @@
             var barChartData3 = {
                 labels  : ['년 합계', '월 누적 합계', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
                 datasets: [
-                {
-                    label               : '<?php echo $YY?>년',
-                    backgroundColor     : 'rgba(236,194,76,1)',
-                    borderColor         : 'rgba(236,194,76,1)',
-                    pointRadius          : false,
-                    pointColor          : '#3b8bba',
-                    pointStrokeColor    : 'rgba(236,194,76,1)',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(236,194,76,1)',
-                    data                : thisYearElectricityUsageData
-                },
-                {
-                    label               : '<?php echo $Minus1YY?>년',
-                    backgroundColor     : 'rgba(210, 214, 222, 1)',
-                    borderColor         : 'rgba(210, 214, 222, 1)',
-                    pointRadius         : false,
-                    pointColor          : 'rgba(210, 214, 222, 1)',
-                    pointStrokeColor    : '#c1c7d1',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(220,220,220,1)',          
-                    data                : lastYearElectricityUsageData
-                }
-            ]
+                    { label : '<?php echo $YY?>년', backgroundColor : 'rgba(236,194,76,1)', borderColor : 'rgba(236,194,76,1)', data : thisYearElectricityUsageData },
+                    { label : '<?php echo $Minus1YY?>년', backgroundColor : 'rgba(210, 214, 222, 1)', borderColor : 'rgba(210, 214, 222, 1)', data : lastYearElectricityUsageData },
+                    { label : '<?php echo $Minus2YY?>년', backgroundColor : 'rgba(175, 183, 197, 1)', borderColor : 'rgba(175, 183, 197, 1)', data : yearBeforeElectricityUsageData }
+                ]
             }
 
             barChartData3.datasets.reverse();
@@ -1975,19 +1985,22 @@
                         }
                     },
                     datalabels: {
-                        anchor: 'end',       // 라벨 위치 설정
-                        align: 'end',        // 라벨 정렬 설정
+                        anchor: 'end',      // 막대 끝을 기준으로
+                        align: 'end',       // 막대 바깥쪽에 표시 (공간 없으면 조정됨)
+                        rotation: -90,      // [핵심] 글자를 -90도(세로)로 회전
+                        offset: 0,          // 막대와의 간격
                         formatter: function(value) {
-                            if (isNaN(value)) {
+                            if (isNaN(value) || value === 0) {
                                 return '';
-                            }
-                            else {
-                                return new Intl.NumberFormat('en-US', { maximumSignificantDigits: 6 } ).format(value);                         
+                            } else {
+                                // 숫자가 너무 길면 반올림하거나 포맷팅
+                                return new Intl.NumberFormat('en-US').format(Math.round(value));
                             }
                         },
-                        color: '#444',       // 라벨 색상 설정
+                        color: '#444',
                         font: {
-                            weight: 'bold'
+                            weight: 'bold',
+                            size: 11 // 글자 크기를 조금 줄여서 가독성 확보
                         }
                     }
                 },        
@@ -2036,29 +2049,10 @@
             var barChartData2 = {
                 labels  : ['합계', '월 누적 합계', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
                 datasets: [
-                {
-                    label               : '<?php echo $YY?>년',
-                    backgroundColor     : 'rgba(232,85,70,1)',
-                    borderColor         : 'rgba(232,85,70,1)',
-                    pointRadius          : false,
-                    pointColor          : '#3b8bba',
-                    pointStrokeColor    : 'rgba(232,85,70,1)',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(232,85,70,1)',
-                    data                : thisYearGasUsageData
-                },
-                {
-                    label               : '<?php echo $Minus1YY?>년',
-                    backgroundColor     : 'rgba(210, 214, 222, 1)',
-                    borderColor         : 'rgba(210, 214, 222, 1)',
-                    pointRadius         : false,
-                    pointColor          : 'rgba(210, 214, 222, 1)',
-                    pointStrokeColor    : '#c1c7d1',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(220,220,220,1)',          
-                    data                : lastYearGasUsageData
-                }
-            ]
+                    { label : '<?php echo $YY?>년', backgroundColor : 'rgba(232,85,70,1)', borderColor : 'rgba(232,85,70,1)', data : thisYearGasUsageData },
+                    { label : '<?php echo $Minus1YY?>년', backgroundColor : 'rgba(210, 214, 222, 1)', borderColor : 'rgba(210, 214, 222, 1)', data : lastYearGasUsageData },
+                    { label : '<?php echo $Minus2YY?>년', backgroundColor : 'rgba(175, 183, 197, 1)', borderColor : 'rgba(175, 183, 197, 1)', data : yearBeforeGasUsageData }
+                ]
             }
 
             barChartData2.datasets.reverse();
@@ -2088,20 +2082,23 @@
                             }
                         }
                     },
-                    datalabels: {
-                        anchor: 'end',       // 라벨 위치 설정
-                        align: 'end',        // 라벨 정렬 설정
+                   datalabels: {
+                        anchor: 'end',      // 막대 끝을 기준으로
+                        align: 'end',       // 막대 바깥쪽에 표시 (공간 없으면 조정됨)
+                        rotation: -90,      // [핵심] 글자를 -90도(세로)로 회전
+                        offset: 0,          // 막대와의 간격
                         formatter: function(value) {
-                            if (isNaN(value)) {
+                            if (isNaN(value) || value === 0) {
                                 return '';
-                            }
-                            else {
-                                return new Intl.NumberFormat('en-US', { maximumSignificantDigits: 6 } ).format(value); // 금액 포맷                        
+                            } else {
+                                // 숫자가 너무 길면 반올림하거나 포맷팅
+                                return new Intl.NumberFormat('en-US').format(Math.round(value));
                             }
                         },
-                        color: '#444',       // 라벨 색상 설정
+                        color: '#444',
                         font: {
-                            weight: 'bold'
+                            weight: 'bold',
+                            size: 11 // 글자 크기를 조금 줄여서 가독성 확보
                         }
                     }
                 },        
@@ -2150,28 +2147,9 @@
             var barChartData = {
                 labels  : ['년 합계', '월 누적 합계', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
                 datasets: [
-                {
-                    label               : '<?php echo $YY?>년',
-                    backgroundColor     : 'rgba(75,112,221, 1)',
-                    borderColor         : 'rgba(75,112,221, 1)',
-                    pointRadius         : false,
-                    pointColor          : '#3b8bba',
-                    pointStrokeColor    : 'rgba(75,112,221, 1)',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(75,112,221, 1)',
-                    data                :  thisYearWaterIwinUsageData
-                },
-                {
-                    label               : '<?php echo $Minus1YY?>년',
-                    backgroundColor     : 'rgba(210, 214, 222, 1)',
-                    borderColor         : 'rgba(210, 214, 222, 1)',
-                    pointRadius         : false,
-                    pointColor          : 'rgba(210, 214, 222, 1)',
-                    pointStrokeColor    : '#c1c7d1',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(220,220,220,1)',
-                    data                : lastYearWaterIwinUsageData
-                }
+                    { label : '<?php echo $YY?>년', backgroundColor : 'rgba(75,112,221, 1)', borderColor : 'rgba(75,112,221, 1)', data : thisYearWaterIwinUsageData },
+                    { label : '<?php echo $Minus1YY?>년', backgroundColor : 'rgba(210, 214, 222, 1)', borderColor : 'rgba(210, 214, 222, 1)', data : lastYearWaterIwinUsageData },
+                    { label : '<?php echo $Minus2YY?>년', backgroundColor : 'rgba(175, 183, 197, 1)', borderColor : 'rgba(175, 183, 197, 1)', data : yearBeforeWaterIwinUsageData }
                 ]
             }
 
@@ -2203,19 +2181,22 @@
                         }
                     },
                     datalabels: {
-                        anchor: 'end',       // 라벨 위치 설정
-                        align: 'end',        // 라벨 정렬 설정
+                        anchor: 'end',      // 막대 끝을 기준으로
+                        align: 'end',       // 막대 바깥쪽에 표시 (공간 없으면 조정됨)
+                        rotation: -90,      // [핵심] 글자를 -90도(세로)로 회전
+                        offset: 0,          // 막대와의 간격
                         formatter: function(value) {
-                            if (isNaN(value)) {
+                            if (isNaN(value) || value === 0) {
                                 return '';
-                            }
-                            else {
-                                return new Intl.NumberFormat('en-US', { maximumSignificantDigits: 5 } ).format(value); // 금액 포맷                        
+                            } else {
+                                // 숫자가 너무 길면 반올림하거나 포맷팅
+                                return new Intl.NumberFormat('en-US').format(Math.round(value));
                             }
                         },
-                        color: '#444',       // 라벨 색상 설정
+                        color: '#444',
                         font: {
-                            weight: 'bold'
+                            weight: 'bold',
+                            size: 11 // 글자 크기를 조금 줄여서 가독성 확보
                         }
                     }
                 },        
@@ -2480,29 +2461,10 @@
             var barChartData33 = {
                 labels  : ['년 합계', '월 누적 합계', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
                 datasets: [
-                {
-                    label               : '<?php echo $YY?>년',
-                    backgroundColor     : 'rgba(236,194,76,1)',
-                    borderColor         : 'rgba(236,194,76,1)',
-                    pointRadius          : false,
-                    pointColor          : '#3b8bba',
-                    pointStrokeColor    : 'rgba(236,194,76,1)',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(236,194,76,1)',
-                    data                : thisYearElecChartData
-                },
-                {
-                    label               : '<?php echo $Minus1YY?>년',
-                    backgroundColor     : 'rgba(210, 214, 222, 1)',
-                    borderColor         : 'rgba(210, 214, 222, 1)',
-                    pointRadius         : false,
-                    pointColor          : 'rgba(210, 214, 222, 1)',
-                    pointStrokeColor    : '#c1c7d1',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(220,220,220,1)',          
-                    data                : lastYearElecChartData
-                }
-            ]
+                    { label : '<?php echo $YY?>년', backgroundColor : 'rgba(236,194,76,1)', borderColor : 'rgba(236,194,76,1)', data : thisYearElecChartData },
+                    { label : '<?php echo $Minus1YY?>년', backgroundColor : 'rgba(210, 214, 222, 1)', borderColor : 'rgba(210, 214, 222, 1)', data : lastYearElecChartData },
+                    { label : '<?php echo $Minus2YY?>년', backgroundColor : 'rgba(175, 183, 197, 1)', borderColor : 'rgba(175, 183, 197, 1)', data : yearBeforeElecChartData }
+                ]
             }
 
             barChartData33.datasets.reverse();
@@ -2539,19 +2501,22 @@
                         }
                     },
                     datalabels: {
-                        anchor: 'end',       // 라벨 위치 설정
-                        align: 'end',        // 라벨 정렬 설정
+                        anchor: 'end',      // 막대 끝을 기준으로
+                        align: 'end',       // 막대 바깥쪽에 표시 (공간 없으면 조정됨)
+                        rotation: -90,      // [핵심] 글자를 -90도(세로)로 회전
+                        offset: 0,          // 막대와의 간격
                         formatter: function(value) {
-                            if (isNaN(value)) {
+                            if (isNaN(value) || value === 0) {
                                 return '';
-                            }
-                            else {
-                                return new Intl.NumberFormat('en-US', { maximumSignificantDigits: 4 } ).format(value/10000); // 금액 포맷                        
+                            } else {
+                                // 숫자가 너무 길면 반올림하거나 포맷팅
+                                return new Intl.NumberFormat('en-US').format(Math.round(value));
                             }
                         },
-                        color: '#444',       // 라벨 색상 설정
+                        color: '#444',
                         font: {
-                            weight: 'bold'
+                            weight: 'bold',
+                            size: 11 // 글자 크기를 조금 줄여서 가독성 확보
                         }
                     }
                 },        
@@ -2600,29 +2565,10 @@
             var barChartData22 = {
                 labels  : ['년 합계', '월 누적 합계', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
                 datasets: [
-                {
-                    label               : '<?php echo $YY?>년',
-                    backgroundColor     : 'rgba(232,85,70,1)',
-                    borderColor         : 'rgba(232,85,70,1)',
-                    pointRadius          : false,
-                    pointColor          : '#3b8bba',
-                    pointStrokeColor    : 'rgba(232,85,70,1)',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(232,85,70,1)',
-                    data                : thisYearGasChartData
-                },
-                {
-                    label               : '<?php echo $Minus1YY?>년',
-                    backgroundColor     : 'rgba(210, 214, 222, 1)',
-                    borderColor         : 'rgba(210, 214, 222, 1)',
-                    pointRadius         : false,
-                    pointColor          : 'rgba(210, 214, 222, 1)',
-                    pointStrokeColor    : '#c1c7d1',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(220,220,220,1)',          
-                    data                : lastYearGasChartData
-                }
-            ]
+                    { label : '<?php echo $YY?>년', backgroundColor : 'rgba(232,85,70,1)', borderColor : 'rgba(232,85,70,1)', data : thisYearGasChartData },
+                    { label : '<?php echo $Minus1YY?>년', backgroundColor : 'rgba(210, 214, 222, 1)', borderColor : 'rgba(210, 214, 222, 1)', data : lastYearGasChartData },
+                    { label : '<?php echo $Minus2YY?>년', backgroundColor : 'rgba(175, 183, 197, 1)', borderColor : 'rgba(175, 183, 197, 1)', data : yearBeforeGasChartData }
+                ]
             }
 
             barChartData22.datasets.reverse();
@@ -2697,28 +2643,9 @@
             var barChartData11 = {
                 labels  : ['년 합계', '월 누적 합계', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
                 datasets: [
-                {
-                    label               : '<?php echo $YY?>년',
-                    backgroundColor     : 'rgba(75,112,221, 1)',
-                    borderColor         : 'rgba(75,112,221, 1)',
-                    pointRadius         : false,
-                    pointColor          : '#3b8bba',
-                    pointStrokeColor    : 'rgba(75,112,221, 1)',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(75,112,221, 1)',
-                    data                : thisYearWaterChartData
-                },
-                {
-                    label               : '<?php echo $Minus1YY?>년',
-                    backgroundColor     : 'rgba(210, 214, 222, 1)',
-                    borderColor         : 'rgba(210, 214, 222, 1)',
-                    pointRadius         : false,
-                    pointColor          : 'rgba(210, 214, 222, 1)',
-                    pointStrokeColor    : '#c1c7d1',
-                    pointHighlightFill  : '#fff',
-                    pointHighlightStroke: 'rgba(220,220,220,1)',          
-                    data                : lastYearWaterChartData
-                }
+                    { label : '<?php echo $YY?>년', backgroundColor : 'rgba(75,112,221, 1)', borderColor : 'rgba(75,112,221, 1)', data : thisYearWaterChartData },
+                    { label : '<?php echo $Minus1YY?>년', backgroundColor : 'rgba(210, 214, 222, 1)', borderColor : 'rgba(210, 214, 222, 1)', data : lastYearWaterChartData },
+                    { label : '<?php echo $Minus2YY?>년', backgroundColor : 'rgba(175, 183, 197, 1)', borderColor : 'rgba(175, 183, 197, 1)', data : yearBeforeWaterChartData }
                 ]
             }
 

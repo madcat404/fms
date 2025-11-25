@@ -19,10 +19,10 @@
 
 
     //★ 변수 및 데이터 구조 초기화   
-    $currentYear = date('Y');
+    $currentYear = $YY;
     $currentMonth = date('m');
-    $previousYear = $currentYear - 1;
-    $yearBeforePrevious = $previousYear - 1;
+    $previousYear = $Minus1YY;
+    $yearBeforePrevious = $Minus2YY;
 
 
     //★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
@@ -176,14 +176,16 @@
     //★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
     //수도,가스,전기 사용량
     $usageDataTypes = ['WaterIwin', 'WaterMalle', 'Gas', 'Electricity'];
-    foreach ([$currentYear, $previousYear] as $year) {
+    // 금년, 작년, 재작년(2023) 루프
+    foreach ([$currentYear, $previousYear, $yearBeforePrevious] as $year) {
         foreach ($usageDataTypes as $type) {
-            $varName = ($year == $currentYear ? 'thisYear' : 'lastYear') . $type . 'UsageData';
-            $$varName = array_fill(0, 12, 0); // 12개월치 데이터를 0으로 채운 배열 생성
+            $prefix = ($year == $currentYear) ? 'thisYear' : (($year == $previousYear) ? 'lastYear' : 'yearBefore');
+            $varName = $prefix . $type . 'UsageData';
+            $$varName = array_fill(0, 12, 0); // 12개월치 0으로 초기화
         }
     }
 
-    // 2단계: [가스/수도] - 누적 검침량 데이터 한 번에 가져오기
+    // 2단계: [가스/수도] - 누적 검침량 데이터 가져오기 (2023년 포함)
     $cumulativeReadings = [];
     $queryMeter = "
         WITH RankedData AS (
@@ -191,12 +193,13 @@
                 SORTING_DATE, WATER_IWIN, WATER_MALLE, GAS,
                 ROW_NUMBER() OVER(PARTITION BY FORMAT(SORTING_DATE, 'yyyy-MM') ORDER BY SORTING_DATE DESC) as rn
             FROM CONNECT.dbo.READ_METER
-            WHERE (SORTING_DATE LIKE ? OR SORTING_DATE LIKE ? OR SORTING_DATE LIKE ?) AND GAS IS NOT NULL
+            WHERE (SORTING_DATE LIKE ? OR SORTING_DATE LIKE ? OR SORTING_DATE LIKE ? OR SORTING_DATE LIKE ?) AND GAS IS NOT NULL
         )
         SELECT SORTING_DATE, ISNULL(WATER_IWIN, 0) AS WATER_IWIN, ISNULL(WATER_MALLE, 0) AS WATER_MALLE, ISNULL(GAS, 0) AS GAS 
         FROM RankedData WHERE rn = 1
     ";
-    $paramsMeter = [$currentYear . '%', $previousYear . '%', $yearBeforePrevious . '-12%'];
+    // 2023년 사용량 계산을 위해 2022년 12월 데이터도 필요함
+    $paramsMeter = [$currentYear . '%', $previousYear . '%', $yearBeforePrevious . '%', ($yearBeforePrevious - 1) . '-12%'];
     $stmtMeter = sqlsrv_query($connect, $queryMeter, $paramsMeter);
 
     if ($stmtMeter) {
@@ -206,8 +209,8 @@
         }
     }
 
-    // 3단계: [가스/수도] - 월별 "사용량" 계산하기
-    foreach ([$currentYear, $previousYear] as $year) {
+    // 3단계: [가스/수도] - 월별 "사용량" 계산 (2023년 추가)
+    foreach ([$currentYear, $previousYear, $yearBeforePrevious] as $year) {
         for ($month = 1; $month <= 12; $month++) {
             $monthIndex = $month - 1;
             
@@ -224,26 +227,25 @@
                 $waterIwinUsage = $currentReading['WATER_IWIN'] - $previousReading['WATER_IWIN'];
                 $waterMalleUsage = $currentReading['WATER_MALLE'] - $previousReading['WATER_MALLE'];
 
-                // 계산된 사용량을 'UsageData' 배열에 저장
-                $varPrefix = ($year == $currentYear ? 'thisYear' : 'lastYear');
-                ${$varPrefix . 'GasUsageData'}[$monthIndex] = max(0, $gasUsage);
-                ${$varPrefix . 'WaterIwinUsageData'}[$monthIndex] = max(0, $waterIwinUsage);
-                ${$varPrefix . 'WaterMalleUsageData'}[$monthIndex] = max(0, $waterMalleUsage);
+                $prefix = ($year == $currentYear) ? 'thisYear' : (($year == $previousYear) ? 'lastYear' : 'yearBefore');
+                
+                ${$prefix . 'GasUsageData'}[$monthIndex] = max(0, $gasUsage);
+                ${$prefix . 'WaterIwinUsageData'}[$monthIndex] = max(0, $waterIwinUsage);
+                ${$prefix . 'WaterMalleUsageData'}[$monthIndex] = max(0, $waterMalleUsage);
             }
         }
     }
 
-    // 4단계: [전기] - 월별 "사용량" 합계 한 번에 가져오기
+    // 4단계: [전기] - 월별 "사용량" 합계 (2023년 포함)
     $queryElec = "
         SELECT
             FORMAT(DATEADD(month, CASE WHEN DAY(SORTING_DATE) <= 15 THEN 0 ELSE 1 END, SORTING_DATE), 'yyyy-MM') as UsageMonth,
-            -- ★★★★★ (수정!) BIGINT를 DECIMAL로 변경하여 소수점까지 합산 ★★★★★
             SUM(CONVERT(DECIMAL(18, 2), ELECTRICITY)) as ELECTRICITY_SUM
         FROM CONNECT.dbo.READ_METER
         WHERE SORTING_DATE >= ? AND SORTING_DATE < ?
         GROUP BY FORMAT(DATEADD(month, CASE WHEN DAY(SORTING_DATE) <= 15 THEN 0 ELSE 1 END, SORTING_DATE), 'yyyy-MM')
     ";
-    $startDate = ($previousYear - 1) . "-12-16";
+    $startDate = ($yearBeforePrevious - 1) . "-12-16";
     $endDate = $currentYear . "-12-16";
     $stmtElec = sqlsrv_query($connect, $queryElec, [$startDate, $endDate]);
 
@@ -256,28 +258,25 @@
                 $thisYearElectricityUsageData[$monthIndex] = $row['ELECTRICITY_SUM'];
             } elseif ($year == $previousYear) {
                 $lastYearElectricityUsageData[$monthIndex] = $row['ELECTRICITY_SUM'];
+            } elseif ($year == $yearBeforePrevious) {
+                $yearBeforeElectricityUsageData[$monthIndex] = $row['ELECTRICITY_SUM'];
             }
         }
     }
 
-    // ★★★★★ (추가!) 합계 및 누적 합계 계산 로직 ★★★★★
-    // '합계'와 '월 누적 합계'를 계산할 데이터 타입 목록
+    // 합계 및 누적 합계 계산
     $typesToCalculate = ['Gas', 'WaterIwin', 'WaterMalle', 'Electricity'];
-    $currentMonthIndex = (int)date('m') - 1; // 현재 월의 인덱스 (예: 10월 -> 9)
+    $currentMonthIndex = (int)date('m') - 1; 
 
-    foreach ([$currentYear, $previousYear] as $year) {
+    foreach ([$currentYear, $previousYear, $yearBeforePrevious] as $year) {
         foreach ($typesToCalculate as $type) {
-            $prefix = ($year == $currentYear ? 'thisYear' : 'lastYear');
+            $prefix = ($year == $currentYear) ? 'thisYear' : (($year == $previousYear) ? 'lastYear' : 'yearBefore');
             $varName = $prefix . $type . 'UsageData';
             
-            // 1. 년 합계 계산
             $totalSum = array_sum($$varName);
+            $limitIndex = ($year == $currentYear) ? $currentMonthIndex : 11;
+            $cumulativeSum = array_sum(array_slice($$varName, 0, $limitIndex + 1));
 
-            // 2. 월 누적 합계 계산 (1월부터 현재 월까지의 합)
-            // array_slice($$varName, 0, $currentMonthIndex + 1) -> 1월부터 현재 월까지의 데이터를 자름
-            $cumulativeSum = array_sum(array_slice($$varName, 0, $currentMonthIndex + 1));
-
-            // 3. 기존 배열의 맨 앞에 합계와 누적 합계를 추가
             array_unshift($$varName, $totalSum, $cumulativeSum);
         }
     }
@@ -285,93 +284,117 @@
 
     //★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
     //수도,가스, 전기비, 사무/도급직급여
-    // 1단계: DB에서 모든 원본 데이터를 효율적으로 가져오기
+    // 1단계: 그래프용 배열 명시적 초기화
+    $thisYearWaterChartData = []; $lastYearWaterChartData = []; $yearBeforeWaterChartData = [];
+    $thisYearGasChartData   = []; $lastYearGasChartData   = []; $yearBeforeGasChartData   = [];
+    $thisYearElecChartData  = []; $lastYearElecChartData  = []; $yearBeforeElecChartData  = [];
+    $thisYearPayChartData   = []; $lastYearPayChartData   = []; $yearBeforePayChartData   = [];
+    $thisYearPay2ChartData  = []; $lastYearPay2ChartData  = []; $yearBeforePay2ChartData  = [];
+    $thisYearDeliChartData  = []; $lastYearDeliChartData  = []; $yearBeforeDeliChartData  = [];
+
+    // 2단계: 월별 데이터 DB 조회 (금년, 작년, 재작년)
     $monthlyData = [];
-
-    // ★ 월별 상세 데이터 모두 가져오기 (2년 치)
     $query = "SELECT KIND, WATER, GAS, (ELECTRICITY + ELECTRICITY2) AS ELECTRICITY, CONVERT(BIGINT, PAY) AS PAY, CONVERT(BIGINT, PAY2) AS PAY2, DELIVERY FROM CONNECT.dbo.FEE WHERE KIND LIKE ? OR KIND LIKE ? OR KIND LIKE ?";
-    $result = sqlsrv_query($connect, $query, [$currentYear . '%', $previousYear . '%', $yearBeforePrevious . '%']);
-
+    
+    // 파라미터를 명시적 문자열로 변환
+    $params = [(string)$currentYear . '%', (string)$previousYear . '%', (string)$yearBeforePrevious . '%'];
+    $result = sqlsrv_query($connect, $query, $params);
+    
     if ($result) {
         while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
-            $monthlyData[$row['KIND']] = $row;
+            // [중요] trim()을 사용하여 DB 컬럼(KIND) 뒤에 붙은 공백을 제거합니다.
+            // CHAR 타입 컬럼일 경우 공백이 붙어 나와 매칭이 안 되는 문제를 해결합니다.
+            $monthlyData[trim($row['KIND'])] = $row;
         }
     }
 
-    // ★ 각종 누적 합계 데이터 가져오기
-    $sumQueryPart = "SELECT SUM(WATER) AS WATER, SUM(GAS) AS GAS, SUM(ELECTRICITY + ELECTRICITY2) AS ELECTRICITY, SUM(CONVERT(BIGINT, PAY)) AS PAY, SUM(CONVERT(BIGINT, PAY2)) AS PAY2, SUM(CONVERT(BIGINT, DELIVERY)) AS DELIVERY FROM CONNECT.dbo.FEE";
+    // 3단계: 합계 및 누적 데이터 조회
+    $sumQuery = "SELECT SUM(WATER) AS WATER, SUM(GAS) AS GAS, SUM(ELECTRICITY + ELECTRICITY2) AS ELECTRICITY, SUM(CONVERT(BIGINT, PAY)) AS PAY, SUM(CONVERT(BIGINT, PAY2)) AS PAY2, SUM(CONVERT(BIGINT, DELIVERY)) AS DELIVERY FROM CONNECT.dbo.FEE";
+    
+    // [전체 합계]
+    $sumThis = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ?", [(string)$currentYear . '%']), SQLSRV_FETCH_ASSOC);
+    $sumLast = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ?", [(string)$previousYear . '%']), SQLSRV_FETCH_ASSOC);
+    $sumBefore = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ?", [(string)$yearBeforePrevious . '%']), SQLSRV_FETCH_ASSOC);
 
-    //전체
-    $dataThisYearTotal = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ?", [$currentYear . '%']), SQLSRV_FETCH_ASSOC);
-    $dataLastYearTotal = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ?", [$previousYear . '%']), SQLSRV_FETCH_ASSOC);
-    $dataYearBeforeTotal = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ?", [$yearBeforePrevious . '%']), SQLSRV_FETCH_ASSOC);
+    // [누적 합계] (현재 월 기준)
+    $cumThis = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ? AND KIND <= ?", [(string)$currentYear . '%', (string)$currentYear . $currentMonth]), SQLSRV_FETCH_ASSOC);
+    $cumLast = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ? AND KIND <= ?", [(string)$previousYear . '%', (string)$previousYear . $currentMonth]), SQLSRV_FETCH_ASSOC);
+    $cumBefore = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ? AND KIND <= ?", [(string)$yearBeforePrevious . '%', (string)$yearBeforePrevious . $currentMonth]), SQLSRV_FETCH_ASSOC);
 
-    //현재 월까지
-    $dataThisYearToDate = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ? AND KIND <= ?", [$currentYear . '%', $currentYear . $currentMonth]), SQLSRV_FETCH_ASSOC);
-    $dataLastYearToDate = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ? AND KIND <= ?", [$previousYear . '%', $previousYear . $currentMonth]), SQLSRV_FETCH_ASSOC);
-    $dataYearBeforeToDate = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQueryPart WHERE KIND LIKE ? AND KIND <= ?", [$yearBeforePrevious . '%', $yearBeforePrevious . $currentMonth]), SQLSRV_FETCH_ASSOC);
-
-    // 2단계: 현대적인 그래프용 데이터 가공 (기존과 동일)
-    $thisYearWaterChartData = []; $lastYearWaterChartData = [];
-    $thisYearGasChartData = [];   $lastYearGasChartData = [];
-    $thisYearElecChartData = [];  $lastYearElecChartData = [];
-    $thisYearPayChartData = []; $lastYearPayChartData = []; $yearBeforePayChartData = [];
-    $thisYearPay2ChartData = []; $lastYearPay2ChartData = []; $yearBeforePay2ChartData = [];
-    $thisYearDeliChartData = [];  $lastYearDeliChartData = [];
-
-    // ★ '년 합계', '월 누적 합계' 데이터 추가
-    $dataTypes = ['Water', 'Gas', 'Electricity', 'Pay', 'Pay2', 'Delivery']; // WATER, GAS, ELECTRICITY
-    foreach ($dataTypes as $type) {
-        $varName = strtoupper(substr($type, 0, 5)); 
-        ${'thisYear'.$type.'ChartData'}[] = $dataThisYearTotal[$varName] ?? 0;
-        ${'thisYear'.$type.'ChartData'}[] = $dataThisYearToDate[$varName] ?? 0;
-        ${'lastYear'.$type.'ChartData'}[] = $dataLastYearTotal[$varName] ?? 0;
-        ${'lastYear'.$type.'ChartData'}[] = $dataLastYearToDate[$varName] ?? 0;
-        ${'yearBefore'.$type.'ChartData'}[] = $dataYearBeforeTotal[$varName] ?? 0;
-        ${'yearBefore'.$type.'ChartData'}[] = $dataYearBeforeToDate[$varName] ?? 0;
+    // 4단계: 데이터 채우기 함수 (합계, 누적, 1~12월)
+    if (!function_exists('fillCostArray')) {
+        function fillCostArray($colName, $sumRow, $cumRow, $monthlyData, $year) {
+            $arr = [];
+            // 0: 년 합계
+            $arr[] = $sumRow[$colName] ?? 0;
+            // 1: 월 누적 합계
+            $arr[] = $cumRow[$colName] ?? 0;
+            
+            // 2~13: 1월 ~ 12월 데이터
+            for ($m = 1; $m <= 12; $m++) {
+                $key = $year . sprintf('%02d', $m);
+                // 위에서 trim()으로 공백을 제거했으므로 이제 정확히 매칭됩니다.
+                $arr[] = $monthlyData[$key][$colName] ?? 0;
+            }
+            return $arr;
+        }
     }
 
-    // ★ 1월~12월 월별 데이터 추가
-    for ($month = 1; $month <= 12; $month++) {
-        // 금년 월별 데이터
-        $thisYearKey = $currentYear . sprintf('%02d', $month);
-        $thisYearWaterChartData[] = $monthlyData[$thisYearKey]['WATER'] ?? 0;
-        $thisYearGasChartData[]   = $monthlyData[$thisYearKey]['GAS'] ?? 0;
-        $thisYearElecChartData[]  = $monthlyData[$thisYearKey]['ELECTRICITY'] ?? 0;
-        $thisYearPayChartData[]   = $monthlyData[$thisYearKey]['PAY'] ?? 0;
-        $thisYearPay2ChartData[]   = $monthlyData[$thisYearKey]['PAY2'] ?? 0;
-        $thisYearDeliChartData[]   = $monthlyData[$thisYearKey]['DELIVERY'] ?? 0;
+    // 5단계: 각 항목별 데이터 할당 (명시적 호출)
+    // 수도
+    $thisYearWaterChartData   = fillCostArray('WATER', $sumThis, $cumThis, $monthlyData, $currentYear);
+    $lastYearWaterChartData   = fillCostArray('WATER', $sumLast, $cumLast, $monthlyData, $previousYear);
+    $yearBeforeWaterChartData = fillCostArray('WATER', $sumBefore, $cumBefore, $monthlyData, $yearBeforePrevious);
 
-        // 작년 월별 데이터
-        $lastYearKey = $previousYear . sprintf('%02d', $month);
-        $lastYearWaterChartData[] = $monthlyData[$lastYearKey]['WATER'] ?? 0;
-        $lastYearGasChartData[]   = $monthlyData[$lastYearKey]['GAS'] ?? 0;
-        $lastYearElecChartData[]  = $monthlyData[$lastYearKey]['ELECTRICITY'] ?? 0;
-        $lastYearPayChartData[]   = $monthlyData[$lastYearKey]['PAY'] ?? 0;
-        $lastYearPay2ChartData[]   = $monthlyData[$lastYearKey]['PAY2'] ?? 0;
-        $lastYearDeliChartData[]   = $monthlyData[$lastYearKey]['DELIVERY'] ?? 0;
+    // 가스
+    $thisYearGasChartData   = fillCostArray('GAS', $sumThis, $cumThis, $monthlyData, $currentYear);
+    $lastYearGasChartData   = fillCostArray('GAS', $sumLast, $cumLast, $monthlyData, $previousYear);
+    $yearBeforeGasChartData = fillCostArray('GAS', $sumBefore, $cumBefore, $monthlyData, $yearBeforePrevious);
 
-        // 재작년 월별 데이터
-        $yearBeforeKey = $yearBeforePrevious . sprintf('%02d', $month);
-        $yearBeforePayChartData[] = $monthlyData[$yearBeforeKey]['PAY'] ?? 0;
-        $yearBeforePay2ChartData[] = $monthlyData[$yearBeforeKey]['PAY2'] ?? 0;
-    }
+    // 전기 (변수명: Elec)
+    $thisYearElecChartData   = fillCostArray('ELECTRICITY', $sumThis, $cumThis, $monthlyData, $currentYear);
+    $lastYearElecChartData   = fillCostArray('ELECTRICITY', $sumLast, $cumLast, $monthlyData, $previousYear);
+    $yearBeforeElecChartData = fillCostArray('ELECTRICITY', $sumBefore, $cumBefore, $monthlyData, $yearBeforePrevious);
 
-    // 3단계: 기존 테이블과의 호환성을 위한 변수 생성
-    // 합계 데이터 할당 (이제 이 변수들 안에는 WATER, GAS, ELECTRICITY가 모두 들어있습니다)
-    $Data_ThisYearFee0 = $dataThisYearTotal;
-    $Data_ThisYearFee00 = $dataThisYearToDate;
-    $Data_LastYearFee0 = $dataLastYearTotal;
-    $Data_LastYearFee00 = $dataLastYearToDate;
+    // 사무직 급여 (Pay)
+    $thisYearPayChartData   = fillCostArray('PAY', $sumThis, $cumThis, $monthlyData, $currentYear);
+    $lastYearPayChartData   = fillCostArray('PAY', $sumLast, $cumLast, $monthlyData, $previousYear);
+    $yearBeforePayChartData = fillCostArray('PAY', $sumBefore, $cumBefore, $monthlyData, $yearBeforePrevious);
 
-    // (수정!) 월별 상세 데이터 할당 시 기본값에 GAS, ELECTRICITY 추가
+    // 도급비 (Pay2)
+    $thisYearPay2ChartData   = fillCostArray('PAY2', $sumThis, $cumThis, $monthlyData, $currentYear);
+    $lastYearPay2ChartData   = fillCostArray('PAY2', $sumLast, $cumLast, $monthlyData, $previousYear);
+    $yearBeforePay2ChartData = fillCostArray('PAY2', $sumBefore, $cumBefore, $monthlyData, $yearBeforePrevious);
+
+    // 운반비 (Deli)
+    $thisYearDeliChartData   = fillCostArray('DELIVERY', $sumThis, $cumThis, $monthlyData, $currentYear);
+    $lastYearDeliChartData   = fillCostArray('DELIVERY', $sumLast, $cumLast, $monthlyData, $previousYear);
+    $yearBeforeDeliChartData = fillCostArray('DELIVERY', $sumBefore, $cumBefore, $monthlyData, $yearBeforePrevious);
+
+
+    // -------------------------------------------------------------------------
+    // 4. 표 데이터 (2023년 추가)
+    // -------------------------------------------------------------------------
+    $Data_ThisYearFee0 = $sumThis;
+    $Data_ThisYearFee00 = $cumThis;
+    
+    $Data_LastYearFee0 = $sumLast;
+    $Data_LastYearFee00 = $cumLast;
+    
+    $Data_YearBeforeFee0 = $sumBefore; // 2023년 합계
+    $Data_YearBeforeFee00 = $cumBefore; // 2023년 누적
+
     for ($month = 1; $month <= 12; $month++) {
         $defaultRow = ['WATER' => 0, 'GAS' => 0, 'ELECTRICITY' => 0, 'PAY' => 0, 'PAY2' => 0, 'DELIVERY' => 0];
         
-        ${'Data_ThisYearFee' . $month} = $monthlyData[$currentYear . sprintf('%02d', $month)] ?? $defaultRow;
-        ${'Data_LastYearFee' . $month} = $monthlyData[$previousYear . sprintf('%02d', $month)] ?? $defaultRow;
-    }
+        $keyThis = $currentYear . sprintf('%02d', $month);
+        $keyLast = $previousYear . sprintf('%02d', $month);
+        $keyBefore = $yearBeforePrevious . sprintf('%02d', $month);
 
+        ${'Data_ThisYearFee' . $month}   = $monthlyData[$keyThis] ?? $defaultRow;
+        ${'Data_LastYearFee' . $month}   = $monthlyData[$keyLast] ?? $defaultRow;
+        ${'Data_YearBeforeFee' . $month} = $monthlyData[$keyBefore] ?? $defaultRow;
+    }
 
     //★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
     //회계
