@@ -89,6 +89,7 @@
                                                 - [품질] 그래프 금년 데이터 미출력 에러 해결<br>
                                                 - [경영] 그래프 3개년도 출력<br>
                                                 - [경영] 그래프 숫자표시 겹침 해결 (세로 표시)<br>
+                                                - [경영] 전기비 만원 단위 표시<br>
                                             </p>
 
                                             -----------------------------------------------------------------<br><br> 
@@ -2509,8 +2510,8 @@
                             if (isNaN(value) || value === 0) {
                                 return '';
                             } else {
-                                // 숫자가 너무 길면 반올림하거나 포맷팅
-                                return new Intl.NumberFormat('en-US').format(Math.round(value));
+                                var valueInManWon = value / 10000;
+                                return new Intl.NumberFormat('en-US').format(Math.round(valueInManWon));
                             }
                         },
                         color: '#444',

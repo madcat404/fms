@@ -219,12 +219,8 @@ if (!function_exists('h')) {
                                         }
 
                                         // Get GW Info
-                                        $limit_num = ($Data_Card['GW'] ?? 1) - 1;
-                                        if ($limit_num < 0) { $limit_num = 0; }
-
-                                        $stmt_gw = $connect3->prepare("SELECT doc_title, doc_sts FROM teag_appdoc WHERE user_nm=? AND doc_no LIKE '법인카드%' ORDER BY doc_id DESC LIMIT ?, 1");
-                                        $doc_title = '법인카드%';
-                                        $stmt_gw->bind_param("si", $Data_Card['NAME'], $limit_num);
+                                        $stmt_gw = $connect3->prepare("SELECT doc_title, doc_sts FROM teag_appdoc WHERE user_nm=? AND doc_no LIKE '법인카드%' ORDER BY created_dt DESC LIMIT 1");
+                                        $stmt_gw->bind_param("s", $Data_Card['NAME']);
                                         $stmt_gw->execute();
                                         $Result_GWInfo = $stmt_gw->get_result();
                                         $Data_GWInfo = $Result_GWInfo->fetch_assoc();

@@ -13,8 +13,36 @@
 
     //★탭활성화
     //메뉴 진입 시 탭활성화 start
-    $tab = $_GET["tab"] ?? 'none';
-    $tab_sequence = ($tab == 'management') ? 3 : 1;
+    $tab = $_GET["tab"] ?? 'information';
+    switch ($tab) {
+        case 'management':
+            $tab_sequence = 3;
+            break;
+        case 'accounting':
+            $tab_sequence = 4;
+            break;
+        case 'logistics':
+            $tab_sequence = 5;
+            break;
+        case 'sales':
+            $tab_sequence = 6;
+            break;
+        case 'quality':
+            $tab_sequence = 7;
+            break;
+        case 'orders':
+            $tab_sequence = 8;
+            break;
+        case 'youtube':
+            $tab_sequence = 9;
+            break;
+        case 'vietnam':
+            $tab_sequence = 10;
+            break;
+        default:
+            $tab_sequence = 1;
+            break;
+    }
     include '../TAB.php';
 
 

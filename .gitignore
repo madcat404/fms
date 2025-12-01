@@ -1,7 +1,6 @@
 .svn/
 DB/
 ★wait/
-brother/
 img/
 files/
 icon/
@@ -13,3 +12,4 @@ plugins/
 scss/
 vendor/
 kjwt_video/
+*.json
