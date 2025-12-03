@@ -47,10 +47,20 @@
 
 
     //★ 변수 및 데이터 구조 초기화   
-    $currentYear = $YY;
-    $currentMonth = date('m');
-    $previousYear = $Minus1YY;
-    $yearBeforePrevious = $Minus2YY;
+    // [수정] 외부 파일(FUNCTION.php)에 의존하지 않고 현재 서버 시간 기준으로 연도를 직접 생성합니다.
+    $currentYear = date("Y"); // 예: 2025
+    $currentMonth = date("m");
+    
+    // 정수형으로 변환하여 1년 전, 2년 전 연도를 정확히 계산
+    $currentYearInt = (int)$currentYear;
+    $previousYear = (string)($currentYearInt - 1);      // 예: 2024
+    $yearBeforePrevious = (string)($currentYearInt - 2); // 예: 2023
+
+    // [중요] 프론트엔드(report_body.php)의 그래프 라벨(범례)에 표시될 변수도 여기서 강제로 갱신합니다.
+    // 기존 $Minus1YY 변수가 잘못되었더라도 여기서 덮어쓰므로 정상 출력됩니다.
+    $YY = $currentYear;
+    $Minus1YY = $previousYear;
+    $Minus2YY = $yearBeforePrevious;
 
 
     //★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
@@ -61,121 +71,38 @@
     $attend_total = 0;
 
     try {
-        // 도급직 총원
-        // 1. SQL 인젝션 방지를 위해 변수를 placeholder(?)로 변경
-        // 2. 명확성을 위해 Name+Sabun을 CONCAT() 함수로 변경
-        $attend7_sql = "
-            SELECT COUNT(DISTINCT CONCAT(Name, Sabun)) AS COU 
-            FROM SECOM.dbo.T_SECOM_PERSON 
-            WHERE (Department IN ('015', '017', '018', '019')) 
-            AND JoiningDate <= ?";
+        // [수정] CONNECT.dbo.ATTEND 테이블을 사용하여 총원 조회
+        // 가장 최신 날짜(SORTING_DATE DESC)의 데이터를 기준으로 합니다.
+        $attend_sql = "SELECT TOP 1 * FROM CONNECT.dbo.ATTEND ORDER BY SORTING_DATE DESC";
+        $attend_result = sqlsrv_query($connect, $attend_sql);
         
-        // 2. 쿼리에 바인딩할 파라미터 배열 생성
-        $attend7_params = [$NoHyphen_today];
-        
-        // 3. 쿼리 실행
-        $attend7_result = sqlsrv_query($connect, $attend7_sql, $attend7_params);
-        $attend7_row = sqlsrv_fetch_array($attend7_result);
-        $contract_staff_count = $attend7_row['COU'];
-
-
-        // 사무직 총원
-        $attendA_sql = "
-            SELECT COUNT(DISTINCT CONCAT(Name, Sabun)) AS COU 
-            FROM SECOM.dbo.T_SECOM_PERSON 
-            WHERE Department IN ('021', '023')";
+        if ($attend_result) {
+            $attend_row = sqlsrv_fetch_array($attend_result, SQLSRV_FETCH_ASSOC);
             
-        $attendA_result = sqlsrv_query($connect, $attendA_sql);
-        $attendA_row = sqlsrv_fetch_array($attendA_result);
-        $office_staff_count = $attendA_row['COU'];
-        $attend_total = $office_staff_count + $contract_staff_count; 
+            if ($attend_row) {
+                // 사무직 총원 = SAMU_TOTAL
+                // 값이 없으면 0으로 처리
+                $office_staff_count = isset($attend_row['SAMU_TOTAL']) ? (int)$attend_row['SAMU_TOTAL'] : 0;
+                
+                // 도급직 총원 = FIRSTIN_FIELD_TOTAL(현장) + FIRSTIN_NONFIELD_TOTAL(비현장)
+                $field_total = isset($attend_row['FIRSTIN_FIELD_TOTAL']) ? (int)$attend_row['FIRSTIN_FIELD_TOTAL'] : 0;
+                $nonfield_total = isset($attend_row['FIRSTIN_NONFIELD_TOTAL']) ? (int)$attend_row['FIRSTIN_NONFIELD_TOTAL'] : 0;
+                
+                $contract_staff_count = $field_total + $nonfield_total;
+                
+                // 전체 합계
+                $attend_total = $office_staff_count + $contract_staff_count;
+            }
+        }
     } catch (Throwable $e) {
         error_log("Database query failed: " . $e->getMessage());
     }
 
+
     //★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-    //사무/도급직 인원증감
-    $current_year_dates = [];
-    $previous_year_dates = [];
-    $year_before_dates = [];
+    //사무/도급직 인원증감 (CONNECT.dbo.ATTEND 테이블 사용 - 월말 기준 / SQL 날짜함수 사용)
 
-    for ($month = 1; $month <= 12; $month++) {
-        $formatted_month = sprintf('%02d', $month);
-        $current_year_dates[] = "{$currentYear}{$formatted_month}01";
-        $previous_year_dates[] = "{$previousYear}{$formatted_month}01";
-        $year_before_dates[] = "{$yearBeforePrevious}{$formatted_month}01"; // [추가]
-    }
-
-    // ★ 상수 정의
-    define('OFFICE_DEPARTMENTS', ['021', '023']);
-    define('CONTRACT_DEPARTMENTS', ['015', '017', '018', '019']);
-
-    // ★ 데이터베이스에서 월별 인원수를 가져오는 함수 (수정 없음)
-    function getHeadcountsByDate($connect, array $dates): array
-    {
-        if (empty($dates)) {
-            return [];
-        }
-        
-        $sql = "
-            SELECT
-                WORKDATE,
-                COUNT(DISTINCT CASE WHEN Department IN (" . implode(',', array_fill(0, count(OFFICE_DEPARTMENTS), '?')) . ") THEN Name + Sabun END) AS office_count,
-                COUNT(DISTINCT CASE WHEN Department IN (" . implode(',', array_fill(0, count(CONTRACT_DEPARTMENTS), '?')) . ") THEN Name + Sabun END) AS contract_count
-            FROM SECOM.dbo.T_SECOM_WORKHISTORY
-            WHERE WORKDATE IN (" . implode(',', array_fill(0, count($dates), '?')) . ")
-            GROUP BY WORKDATE
-        ";
-        
-        $params = array_merge(OFFICE_DEPARTMENTS, CONTRACT_DEPARTMENTS, $dates);
-        $stmt = sqlsrv_query($connect, $sql, $params);
-        if ($stmt === false) { die(print_r(sqlsrv_errors(), true)); }
-
-        $results = [];
-        while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
-            
-            // 문자열로 반환되는 날짜를 안전하게 객체로 변환
-            $dateString = $row['WORKDATE'];
-            
-            // $dateString이 비어있지 않은 경우에만 처리
-            if (!empty($dateString)) {
-                try {
-                    // 문자열을 DateTime 객체로 변환
-                    $dateObject = new DateTime($dateString);
-                    // 변환된 객체를 'Ymd' 형식의 문자열로 포맷팅
-                    $workdateStr = $dateObject->format('Ymd');
-        
-                    $results[$workdateStr] = [
-                        'office_count' => $row['office_count'],
-                        'contract_count' => $row['contract_count']
-                    ];
-                } catch (Exception $e) {
-                    // 날짜 형식 변환에 실패하면 이 행은 건너뜁니다.
-                    // (예: 'Invalid date')
-                }
-            }
-        }
-        
-        $finalResults = [];
-        foreach ($dates as $date) {
-            $finalResults[$date] = [
-                'office_count'   => $results[$date]['office_count'] ?? 0,
-                'contract_count' => $results[$date]['contract_count'] ?? 0
-            ];
-        }
-
-        sqlsrv_free_stmt($stmt);
-        return $finalResults;
-    }
-
-    // 2단계: 함수를 호출하여 데이터 가져오기 (새로 추가된 부분)
-    // ★ 함수를 호출하여 올해와 작년의 상세 데이터를 각각 가져옵니다.
-    $currentYearHeadcounts = getHeadcountsByDate($connect, $current_year_dates);
-    $previousYearHeadcounts = getHeadcountsByDate($connect, $previous_year_dates);
-    $yearBeforeHeadcounts = getHeadcountsByDate($connect, $year_before_dates); 
-
-    // 3단계: 그래프용 데이터로 가공하기 (새로 추가된 부분)
-    // ★ 프론트엔드 차트에서 사용할 빈 배열들을 초기화합니다.
+    // 1. 그래프 데이터 배열 초기화
     $thisYearOfficeChartData = [];
     $thisYearContractChartData = [];
     $lastYearOfficeChartData = [];
@@ -183,21 +110,69 @@
     $yearBeforeOfficeChartData = [];
     $yearBeforeContractChartData = [];
 
-    // ★ 가져온 상세 데이터를 순회하며 그래프용 배열에 값만 추출하여 추가합니다.
-    foreach ($currentYearHeadcounts as $data) {
-        $thisYearOfficeChartData[] = $data['office_count'];
-        $thisYearContractChartData[] = $data['contract_count'];
+    // 2. 월별 마지막 데이터 조회 함수 정의 (개선된 SQL)
+    if (!function_exists('getMonthlyHeadcounts')) {
+        function getMonthlyHeadcounts($connect, $year) {
+            // 1~12월 기본값 0으로 초기화
+            $data = array_fill(1, 12, ['office' => 0, 'contract' => 0]); 
+
+            // [핵심 로직] 
+            // 1. YEAR(SORTING_DATE) = ? : 연도 일치 조건 (날짜 형식 무관하게 동작)
+            // 2. MONTH(SORTING_DATE) as MM : DB에서 직접 월을 추출하여 가져옴 (PHP 파싱 불필요)
+            $sql = "
+                WITH MonthlyRanked AS (
+                    SELECT
+                        MONTH(SORTING_DATE) as MM,
+                        ISNULL(SAMU_TOTAL, 0) AS SAMU_TOTAL,
+                        ISNULL(FIRSTIN_FIELD_TOTAL, 0) + ISNULL(FIRSTIN_NONFIELD_TOTAL, 0) AS CONTRACT_TOTAL,
+                        ROW_NUMBER() OVER (PARTITION BY MONTH(SORTING_DATE) ORDER BY SORTING_DATE DESC) as rn
+                    FROM CONNECT.dbo.ATTEND
+                    WHERE YEAR(SORTING_DATE) = ?
+                )
+                SELECT MM, SAMU_TOTAL, CONTRACT_TOTAL
+                FROM MonthlyRanked
+                WHERE rn = 1
+            ";
+
+            $params = [$year];
+            $stmt = sqlsrv_query($connect, $sql, $params);
+
+            if ($stmt) {
+                while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+                    // DB에서 가져온 월(MM) 사용
+                    $month = (int)$row['MM'];
+
+                    // 해당 월 데이터 저장
+                    if ($month >= 1 && $month <= 12) {
+                        $data[$month] = [
+                            'office' => (int)$row['SAMU_TOTAL'],
+                            'contract' => (int)$row['CONTRACT_TOTAL']
+                        ];
+                    }
+                }
+            } else {
+                // 쿼리 에러 확인용 (필요시 주석 해제)
+                // echo "Query Error ($year): "; print_r(sqlsrv_errors());
+            }
+            return $data;
+        }
     }
 
-    foreach ($previousYearHeadcounts as $data) {
-        $lastYearOfficeChartData[] = $data['office_count'];
-        $lastYearContractChartData[] = $data['contract_count'];
-    }
+    // 3. 상단에서 계산된 정확한 연도 변수를 사용하여 데이터 조회
+    $dataCurrent = getMonthlyHeadcounts($connect, $currentYear);
+    $dataLast = getMonthlyHeadcounts($connect, $previousYear);
+    $dataBefore = getMonthlyHeadcounts($connect, $yearBeforePrevious);
 
-    // [추가] 2023년 데이터 가공
-    foreach ($yearBeforeHeadcounts as $data) {
-        $yearBeforeOfficeChartData[] = $data['office_count'];
-        $yearBeforeContractChartData[] = $data['contract_count'];
+    // 4. 그래프용 배열에 순서대로 할당 (1월 ~ 12월)
+    for ($i = 1; $i <= 12; $i++) {
+        $thisYearOfficeChartData[] = $dataCurrent[$i]['office'];
+        $thisYearContractChartData[] = $dataCurrent[$i]['contract'];
+
+        $lastYearOfficeChartData[] = $dataLast[$i]['office'];
+        $lastYearContractChartData[] = $dataLast[$i]['contract'];
+
+        $yearBeforeOfficeChartData[] = $dataBefore[$i]['office'];
+        $yearBeforeContractChartData[] = $dataBefore[$i]['contract'];
     }
 
 
@@ -320,9 +295,10 @@
     $thisYearPay2ChartData  = []; $lastYearPay2ChartData  = []; $yearBeforePay2ChartData  = [];
     $thisYearDeliChartData  = []; $lastYearDeliChartData  = []; $yearBeforeDeliChartData  = [];
 
-    // 2단계: 월별 데이터 DB 조회 (금년, 작년, 재작년)
+    // 2단계: 월별 데이터 DB 조회 (금년, 작년, 재작년) - FEE 테이블 (수도, 가스, 전기, 도급비, 운반비)
     $monthlyData = [];
-    $query = "SELECT KIND, WATER, GAS, (ELECTRICITY + ELECTRICITY2) AS ELECTRICITY, CONVERT(BIGINT, PAY) AS PAY, CONVERT(BIGINT, PAY2) AS PAY2, DELIVERY FROM CONNECT.dbo.FEE WHERE KIND LIKE ? OR KIND LIKE ? OR KIND LIKE ?";
+    // PAY(사무직급여)는 별도 쿼리로 가져오므로 여기서 PAY는 제외하거나 무시됩니다.
+    $query = "SELECT KIND, WATER, GAS, (ELECTRICITY + ELECTRICITY2) AS ELECTRICITY, CONVERT(BIGINT, PAY2) AS PAY2, DELIVERY FROM CONNECT.dbo.FEE WHERE KIND LIKE ? OR KIND LIKE ? OR KIND LIKE ?";
     
     // 파라미터를 명시적 문자열로 변환
     $params = [(string)$currentYear . '%', (string)$previousYear . '%', (string)$yearBeforePrevious . '%'];
@@ -331,13 +307,64 @@
     if ($result) {
         while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
             // [중요] trim()을 사용하여 DB 컬럼(KIND) 뒤에 붙은 공백을 제거합니다.
-            // CHAR 타입 컬럼일 경우 공백이 붙어 나와 매칭이 안 되는 문제를 해결합니다.
-            $monthlyData[trim($row['KIND'])] = $row;
+            $kind = trim($row['KIND']);
+            $monthlyData[$kind] = $row;
+            // 초기 PAY 값 0으로 설정 (이후 덮어씌움)
+            $monthlyData[$kind]['PAY'] = 0;
         }
     }
 
-    // 3단계: 합계 및 누적 데이터 조회
-    $sumQuery = "SELECT SUM(WATER) AS WATER, SUM(GAS) AS GAS, SUM(ELECTRICITY + ELECTRICITY2) AS ELECTRICITY, SUM(CONVERT(BIGINT, PAY)) AS PAY, SUM(CONVERT(BIGINT, PAY2)) AS PAY2, SUM(CONVERT(BIGINT, DELIVERY)) AS DELIVERY FROM CONNECT.dbo.FEE";
+    // 2-1단계: [추가] 사무직 급여(PAY) - neoe.neoe.HR_PCALCPAY 테이블에서 조회
+    // 쿼리: 년월(ym)별 급여총액(am_totpay) 합계
+    $payQuery = "
+        SELECT ym, SUM(am_totpay) AS TOTAL_PAY 
+        FROM neoe.neoe.HR_PCALCPAY 
+        WHERE ym LIKE ? OR ym LIKE ? OR ym LIKE ? 
+        GROUP BY ym
+    ";
+    $payParams = [(string)$currentYear . '%', (string)$previousYear . '%', (string)$yearBeforePrevious . '%'];
+    $payResult = sqlsrv_query($connect, $payQuery, $payParams);
+
+    // 급여 집계 변수 초기화 (합계 및 누적)
+    $paySums = [$currentYear => 0, $previousYear => 0, $yearBeforePrevious => 0];
+    $payCums = [$currentYear => 0, $previousYear => 0, $yearBeforePrevious => 0];
+    
+    // 누적 계산을 위한 기준 월 (문자열 비교용)
+    $currentMonthStr = sprintf('%02d', $currentMonth); 
+
+    if ($payResult) {
+        while ($row = sqlsrv_fetch_array($payResult, SQLSRV_FETCH_ASSOC)) {
+            $ym = $row['ym']; // 예: 202501
+            $pay = (float)$row['TOTAL_PAY'];
+            $year = substr($ym, 0, 4);
+            $month = substr($ym, 4, 2);
+
+            // $monthlyData에 병합
+            if (!isset($monthlyData[$ym])) {
+                $monthlyData[$ym] = [
+                    'WATER' => 0, 'GAS' => 0, 'ELECTRICITY' => 0, 'PAY2' => 0, 'DELIVERY' => 0
+                ];
+            }
+            $monthlyData[$ym]['PAY'] = $pay;
+
+            // 년도별 합계 계산
+            if (isset($paySums[$year])) {
+                $paySums[$year] += $pay;
+            }
+
+            // 누적 합계 계산 (해당 월이 현재 월보다 작거나 같을 때)
+            // 작년, 재작년도 동일하게 현재 월(currentMonth) 기준으로 누적을 구하는 로직 유지
+            if ($month <= $currentMonthStr) {
+                 if (isset($payCums[$year])) {
+                    $payCums[$year] += $pay;
+                }
+            }
+        }
+    }
+
+    // 3단계: 합계 및 누적 데이터 조회 (FEE 테이블 항목들)
+    // PAY 컬럼은 제외하고 조회하거나, 조회 후 위에서 계산한 값으로 덮어씁니다.
+    $sumQuery = "SELECT SUM(WATER) AS WATER, SUM(GAS) AS GAS, SUM(ELECTRICITY + ELECTRICITY2) AS ELECTRICITY, SUM(CONVERT(BIGINT, PAY2)) AS PAY2, SUM(CONVERT(BIGINT, DELIVERY)) AS DELIVERY FROM CONNECT.dbo.FEE";
     
     // [전체 합계]
     $sumThis = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ?", [(string)$currentYear . '%']), SQLSRV_FETCH_ASSOC);
@@ -345,9 +372,18 @@
     $sumBefore = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ?", [(string)$yearBeforePrevious . '%']), SQLSRV_FETCH_ASSOC);
 
     // [누적 합계] (현재 월 기준)
-    $cumThis = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ? AND KIND <= ?", [(string)$currentYear . '%', (string)$currentYear . $currentMonth]), SQLSRV_FETCH_ASSOC);
-    $cumLast = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ? AND KIND <= ?", [(string)$previousYear . '%', (string)$previousYear . $currentMonth]), SQLSRV_FETCH_ASSOC);
-    $cumBefore = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ? AND KIND <= ?", [(string)$yearBeforePrevious . '%', (string)$yearBeforePrevious . $currentMonth]), SQLSRV_FETCH_ASSOC);
+    $cumThis = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ? AND KIND <= ?", [(string)$currentYear . '%', (string)$currentYear . $currentMonthStr]), SQLSRV_FETCH_ASSOC);
+    $cumLast = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ? AND KIND <= ?", [(string)$previousYear . '%', (string)$previousYear . $currentMonthStr]), SQLSRV_FETCH_ASSOC);
+    $cumBefore = sqlsrv_fetch_array(sqlsrv_query($connect, "$sumQuery WHERE KIND LIKE ? AND KIND <= ?", [(string)$yearBeforePrevious . '%', (string)$yearBeforePrevious . $currentMonthStr]), SQLSRV_FETCH_ASSOC);
+
+    // 3-1단계: [수정] 계산된 급여(PAY) 합계/누적 값을 배열에 주입
+    $sumThis['PAY'] = $paySums[$currentYear];
+    $sumLast['PAY'] = $paySums[$previousYear];
+    $sumBefore['PAY'] = $paySums[$yearBeforePrevious];
+
+    $cumThis['PAY'] = $payCums[$currentYear];
+    $cumLast['PAY'] = $payCums[$previousYear];
+    $cumBefore['PAY'] = $payCums[$yearBeforePrevious];
 
     // 4단계: 데이터 채우기 함수 (합계, 누적, 1~12월)
     if (!function_exists('fillCostArray')) {
@@ -384,7 +420,7 @@
     $lastYearElecChartData   = fillCostArray('ELECTRICITY', $sumLast, $cumLast, $monthlyData, $previousYear);
     $yearBeforeElecChartData = fillCostArray('ELECTRICITY', $sumBefore, $cumBefore, $monthlyData, $yearBeforePrevious);
 
-    // 사무직 급여 (Pay)
+    // 사무직 급여 (Pay) - [수정됨: HR_PCALCPAY 데이터 사용]
     $thisYearPayChartData   = fillCostArray('PAY', $sumThis, $cumThis, $monthlyData, $currentYear);
     $lastYearPayChartData   = fillCostArray('PAY', $sumLast, $cumLast, $monthlyData, $previousYear);
     $yearBeforePayChartData = fillCostArray('PAY', $sumBefore, $cumBefore, $monthlyData, $yearBeforePrevious);

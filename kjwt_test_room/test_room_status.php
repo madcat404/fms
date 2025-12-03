@@ -3,6 +3,7 @@
 	// Author: <KWON SUNG KUN - sealclear@naver.com>	
 	// Create date: <25.02.12>
 	// Description:	<시험실 체크시트>	
+    // Last Modified: <Current Date> - Fixed Tab Redirect & Mobile Logic
 	// =============================================
 
     //★DB연결 및 함수사용
@@ -20,7 +21,8 @@
     if ((!empty($checker) || !empty($supervisor2)) && empty($recorder)) {
         $tab_sequence = 3;
     } elseif (!empty($tab)) {
-        $tab_sequence = ($tab == "6") ? 6 : 4;
+        // [수정] tab 값이 있으면 해당 탭 번호를 그대로 사용
+        $tab_sequence = $tab;
     } elseif (!empty($recorder)) {
         $tab_sequence = 5;
     } else {
@@ -71,18 +73,14 @@
         $tab_sequence=2; 
         include '../TAB.php';
 
-
-        //오늘 날짜의 데이터가 있는지 확인
         $Query_TodayData = "SELECT * from CONNECT.dbo.TEST_ROOM WHERE SORTING_DATE='$Hyphen_today'";              
         $Result_TodayData = sqlsrv_query($connect, $Query_TodayData, $params, $options);		
-        $Count_TodayData = sqlsrv_num_rows($Result_TodayData);  
+        $Count_TodayData = ($Result_TodayData) ? sqlsrv_num_rows($Result_TodayData) : 0;  
 
-        //오늘 날짜의 데이터가 있으면 UPDATE
-        if($Count_TodayData>0) {
+        if($Count_TodayData > 0) {
             $Query_UpdateData = "UPDATE CONNECT.dbo.TEST_ROOM set GAS_INSPECT1='$GAS_INSPECT1', GAS_INSPECT2='$GAS_INSPECT2', WHO='$who21', NOTE='$note21' where SORTING_DATE='$Hyphen_today'";              
             sqlsrv_query($connect, $Query_UpdateData, $params, $options);            
         }
-        //오늘 날짜의 데이터가 없으면 INSERT
         else {                     
             $Query_InsertData = "INSERT INTO CONNECT.dbo.TEST_ROOM(GAS_INSPECT1, GAS_INSPECT2, INSPECT_DT, WHO, NOTE) VALUES('$GAS_INSPECT1', '$GAS_INSPECT2', getdate(), '$who21', '$note21')";              
             sqlsrv_query($connect, $Query_InsertData, $params, $options);   
@@ -97,7 +95,7 @@
 
         $Query_Select = "SELECT * from CONNECT.dbo.TEST_ROOM WHERE SORTING_DATE BETWEEN '$s_dt4' AND '$e_dt4'";              
         $Result_Select = sqlsrv_query($connect, $Query_Select, $params, $options);	
-        $Count_Select = sqlsrv_num_rows($Result_Select);  
+        $Count_Select = ($Result_Select) ? sqlsrv_num_rows($Result_Select) : 0;  
     }   
     //설비기록
     elseif($bt51=="on") {
@@ -107,8 +105,7 @@
         if($equipment!=0) {
             $Query_Record = "INSERT INTO CONNECT.dbo.TEST_ROOM_EQUIPMENT(EQUIPMENT_NUM, COST, RECORDER, NOTE) VALUES('$equipment', '$cost', '$recorder51', '$content51')";              
             $Result_Record = sqlsrv_query($connect, $Query_Record, $params, $options);	
-            $Count_Record = sqlsrv_num_rows($Result_Record);  
-
+            
             echo "<script>alert('입력되었습니다!');location.href='test_room.php?tab=6';</script>";
         }
     } 
@@ -125,21 +122,21 @@
                         ) b ON a.EQUIPMENT_NUM = b.EQUIPMENT_NUM 
                         WHERE a.SORTING_DATE BETWEEN '$s_dt6' AND '$e_dt6'";              
         $Result_RecordSelect = sqlsrv_query($connect, $Query_RecordSelect, $params, $options);	
-        $Count_RecordSelect = sqlsrv_num_rows($Result_RecordSelect);  
+        $Count_RecordSelect = ($Result_RecordSelect) ? sqlsrv_num_rows($Result_RecordSelect) : 0;  
     } 
-    //확인자 입력버튼을 눌렀을때
+    //확인자 입력버튼
     elseif($supervisor=='on') {
         echo "<script>location.href='test_room_pop_supervisor.php?equipment=$equipment&checker=$checker31';</script>";
     }
-    //팝업창에 확인자 주민번호를 입력했을때
+    //팝업창에 확인자 주민번호 입력
     elseif($supervisor2!='') {
         $tab_sequence=4; 
         include '../TAB.php';
         
         $Query_ID = "SELECT TOP 1 * from NEOE.NEOE.MA_EMP WHERE NO_RES LIKE '$supervisor2%'";              
         $Result_ID = sqlsrv_query($connect, $Query_ID, $params, $options);	
-        $Count_ID = sqlsrv_num_rows($Result_ID); 
-        $Data_ID = sqlsrv_fetch_array($Result_ID);
+        $Count_ID = ($Result_ID) ? sqlsrv_num_rows($Result_ID) : 0; 
+        $Data_ID = ($Result_ID) ? sqlsrv_fetch_array($Result_ID) : null;
 
         IF($Count_ID>0) {
             $Query_UpdateSupervisor= "UPDATE CONNECT.dbo.TEST_ROOM set equipment_supervisor='$Data_ID[NM_KOR]' where SORTING_DATE='$Hyphen_today'";                
@@ -154,26 +151,22 @@
         $tab_sequence=3; 
         include '../TAB.php';
 
-        // 장비번호 유효범위 검증 (1~30, 23제외)
         $valid_equipments = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,24,25,26,27,28,29,30];
         if (!in_array($equipment, $valid_equipments)) {
             echo "<script>alert('유효하지 않은 장비번호입니다.');history.back();</script>";
             exit;
         }
 
-        //오늘 날짜의 데이터가 있는지 확인
         $Query_TodayData_pop = "SELECT * from CONNECT.dbo.TEST_ROOM WHERE SORTING_DATE='$Hyphen_today'";              
         $Result_TodayData_pop = sqlsrv_query($connect, $Query_TodayData_pop, $params, $options);		
-        $Count_TodayData_pop = sqlsrv_num_rows($Result_TodayData_pop);  
+        $Count_TodayData_pop = ($Result_TodayData_pop) ? sqlsrv_num_rows($Result_TodayData_pop) : 0;  
 
         $field_name = "equipment_who" . $equipment;
 
-        //오늘 날짜의 데이터가 있으면 UPDATE
-        if($Count_TodayData_pop>0) {
+        if($Count_TodayData_pop > 0) {
             $Query_UpdateData_pop = "UPDATE CONNECT.dbo.TEST_ROOM set $field_name='$checker_pop' where SORTING_DATE='$Hyphen_today'";              
             sqlsrv_query($connect, $Query_UpdateData_pop, $params, $options);     
         }
-        //오늘 날짜의 데이터가 없으면 INSERT
         else {    
             $Query_InsertData_pop = "INSERT INTO CONNECT.dbo.TEST_ROOM($field_name, INSPECT_DT) VALUES('$checker_pop', getdate())";              
             sqlsrv_query($connect, $Query_InsertData_pop, $params, $options);   
@@ -183,7 +176,6 @@
         $tab_sequence=3; 
         include '../TAB.php';
 
-        // 필수값 검증
         if(empty($equipment) || empty($checker31)) {
             echo "<script>alert('장비번호와 점검자 정보를 모두 입력해주세요.');history.back();</script>";
             exit;
@@ -196,7 +188,6 @@
             28 => 4, 29 => 3, 30 => 5
         ];
     
-        // 장비번호 유효범위 검증
         if(!array_key_exists($equipment, $equipment_fields_map)) {
             echo "<script>alert('유효하지 않은 장비번호입니다.');history.back();</script>";
             exit;
@@ -215,18 +206,14 @@
             $update_pairs[] = "$field_name='$post_value'";
         }
 
-
-        //오늘 날짜의 데이터가 있는지 확인
         $Query_TodayData31 = "SELECT * from CONNECT.dbo.TEST_ROOM WHERE SORTING_DATE='$Hyphen_today'";              
         $Result_TodayData31 = sqlsrv_query($connect, $Query_TodayData31, $params, $options);		
-        $Count_TodayData31 = sqlsrv_num_rows($Result_TodayData31);  
+        $Count_TodayData31 = ($Result_TodayData31) ? sqlsrv_num_rows($Result_TodayData31) : 0;  
         
-        //오늘 날짜의 데이터가 있으면 UPDATE
-        if($Count_TodayData31>0) {
+        if($Count_TodayData31 > 0) {
             $update_query = "UPDATE CONNECT.dbo.TEST_ROOM SET " . implode(', ', $update_pairs) . " WHERE SORTING_DATE='$Hyphen_today'";
             sqlsrv_query($connect, $update_query, $params, $options);
         }
-        //오늘 날짜의 데이터가 없으면 INSERT
         else {
             $fields[] = 'INSPECT_DT';
             $values[] = 'getdate()';
@@ -239,31 +226,37 @@
 
     //★메뉴 진입 시 실행
     //가스검출기1
+    $Data_GAS_INSPECT1 = [];
     $Query_GAS_INSPECT1 = "SELECT top 2 * from CONNECT.dbo.TEST_ROOM where GAS_INSPECT1='on' order by NO desc";              
     $Result_GAS_INSPECT1 = sqlsrv_query($connect, $Query_GAS_INSPECT1, $params, $options);		
-    $Data_GAS_INSPECT1 = [];
-    while ($row = sqlsrv_fetch_array($Result_GAS_INSPECT1, SQLSRV_FETCH_ASSOC)) {
-        $Data_GAS_INSPECT1[] = $row;
+    if ($Result_GAS_INSPECT1) {
+        while ($row = sqlsrv_fetch_array($Result_GAS_INSPECT1, SQLSRV_FETCH_ASSOC)) {
+            $Data_GAS_INSPECT1[] = $row;
+        }
     }
     
     //가스검출기2
+    $Data_GAS_INSPECT2 = [];
     $Query_GAS_INSPECT2 = "SELECT top 2 * from CONNECT.dbo.TEST_ROOM where GAS_INSPECT2='on' order by NO desc";              
     $Result_GAS_INSPECT2 = sqlsrv_query($connect, $Query_GAS_INSPECT2, $params, $options);		
-    $Data_GAS_INSPECT2 = [];
-    while ($row = sqlsrv_fetch_array($Result_GAS_INSPECT2, SQLSRV_FETCH_ASSOC)) {
-        $Data_GAS_INSPECT2[] = $row;
+    if ($Result_GAS_INSPECT2) {
+        while ($row = sqlsrv_fetch_array($Result_GAS_INSPECT2, SQLSRV_FETCH_ASSOC)) {
+            $Data_GAS_INSPECT2[] = $row;
+        }
     }
 
     //오늘 날짜의 데이터 확인
     $Query_TodayCheckList = "SELECT * from CONNECT.dbo.TEST_ROOM WHERE SORTING_DATE='$Hyphen_today'";              
     $Result_TodayCheckList = sqlsrv_query($connect, $Query_TodayCheckList, $params, $options);		
-    $Data_TodayCheckList = sqlsrv_fetch_array($Result_TodayCheckList); 
+    $Data_TodayCheckList = ($Result_TodayCheckList) ? sqlsrv_fetch_array($Result_TodayCheckList) : null; 
     
+    $Data_TodayCheckList2 = [];
     $Query_TodayCheckList2 = "SELECT * from CONNECT.dbo.TEST_ROOM_CHECKLIST WHERE EQUIPMENT_NUM='$equipment'";              
     $Result_TodayCheckList2 = sqlsrv_query($connect, $Query_TodayCheckList2, $params, $options);		
-    $Data_TodayCheckList2 = [];
-    while ($row = sqlsrv_fetch_array($Result_TodayCheckList2, SQLSRV_FETCH_ASSOC)) {
-        $Data_TodayCheckList2[] = $row;
+    if ($Result_TodayCheckList2) {
+        while ($row = sqlsrv_fetch_array($Result_TodayCheckList2, SQLSRV_FETCH_ASSOC)) {
+            $Data_TodayCheckList2[] = $row;
+        }
     }
 
     if(!empty($Data_TodayCheckList) && !empty($Data_TodayCheckList['equipment_supervisor'])) {

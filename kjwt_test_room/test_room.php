@@ -3,8 +3,50 @@
 	// Author: <KWON SUNG KUN - sealclear@naver.com>	
 	// Create date: <25.02.12>
 	// Description:	<시험실 체크시트>	
+    // Last Modified: <Current Date> - Mobile Layout Update (2 Columns)
 	// =============================================
     include 'test_room_status.php';
+
+    // [안전장치] 가스경보기 데이터 초기화
+    if (!isset($Data_GAS_INSPECT1) || !is_array($Data_GAS_INSPECT1)) $Data_GAS_INSPECT1 = [];
+    if (!isset($Data_GAS_INSPECT2) || !is_array($Data_GAS_INSPECT2)) $Data_GAS_INSPECT2 = [];
+
+    // [Tab 2] 가스경보기 데이터 배열
+    $alarms = [
+        ['id' => '1', 'name' => '가스경보기1', 'data' => $Data_GAS_INSPECT1],
+        ['id' => '2', 'name' => '가스경보기2', 'data' => $Data_GAS_INSPECT2]
+    ];
+
+    // [Tab 4] 결과 데이터 배열 저장
+    $search_results_tab4 = [];
+    if (isset($Result_Select) && $Count_Select > 0) {
+        while ($row = sqlsrv_fetch_array($Result_Select, SQLSRV_FETCH_ASSOC)) {
+            $checklist_items = [];
+            if($equipment_name=='ALL') {
+                $Query_List = "SELECT * from CONNECT.dbo.TEST_ROOM_CHECKLIST";              
+            } ELSE {
+                $Query_List = "SELECT * from CONNECT.dbo.TEST_ROOM_CHECKLIST WHERE EQUIPMENT_NUM='$equipment_name'";              
+            }
+            $Result_List = sqlsrv_query($connect, $Query_List, $params, $options);
+            if ($Result_List) {
+                while($item = sqlsrv_fetch_array($Result_List, SQLSRV_FETCH_ASSOC)){
+                    $item['MERGE_KEY'] = "equipment".$item['EQUIPMENT_NUM'].$item['EQUIPMENT_SEQ'];
+                    $item['WHO_KEY'] = "equipment_who".$item['EQUIPMENT_NUM'];
+                    $checklist_items[] = $item;
+                }
+            }
+            $row['CHECKLIST_ITEMS'] = $checklist_items;
+            $search_results_tab4[] = $row;
+        }
+    }
+
+    // [Tab 6] 설비이력 데이터 배열 저장
+    $search_results_tab6 = [];
+    if (isset($Result_RecordSelect) && $Count_RecordSelect > 0) {
+        while ($row = sqlsrv_fetch_array($Result_RecordSelect, SQLSRV_FETCH_ASSOC)) {
+            $search_results_tab6[] = $row;
+        }
+    }
 ?>
 
 
@@ -12,23 +54,89 @@
 <html lang="ko">
 
 <head>
-    <!-- 헤드 -->
     <?php include '../head_lv1.php' ?>
     <?php include '../head_popup.php' ?>
+    <style>
+        /* 모바일 선택 효과 스타일 */
+        .selected-card {
+            background-color: #e8f0fe !important; /* 연한 파란색 배경 */
+            border: 1px solid #4e73df !important; /* 파란색 테두리 */
+        }
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        /* 팝업 반응형 스타일 */
+        #popupEquipment {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            -webkit-transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 400px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 99999;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        #popupEquipmentBackground {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 99998;
+        }
+        /* 팝업 내 Select 스타일 */
+        .popup select {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            background-color: #fff;
+        }
+        /* PC 테이블 스타일 보정 */
+        .table-info-th {
+            background-color: #f8f9fc;
+            vertical-align: middle !important;
+            text-align: center;
+            font-weight: bold;
+        }
+        .table-info-td {
+            vertical-align: middle !important;
+            text-align: center;
+        }
+    </style>
     <script>
-        // 팝업창 열기
+        // [기존] 체크리스트 입력 팝업 열기
         function openPopup() {
+            const checked1 = document.querySelectorAll('input[name="GAS_INSPECT1"]:checked').length > 0;
+            const checked2 = document.querySelectorAll('input[name="GAS_INSPECT2"]:checked').length > 0;
+
+            if (!checked1 && !checked2) {
+                alert("경보기를 선택해주세요.");
+                return;
+            }
+
             document.getElementById('popupBackground').style.display = 'block';
             document.getElementById('popup').style.display = 'block';
         }
 
-        // 팝업창 닫기
+        // [기존] 체크리스트 입력 팝업 닫기
         function closePopup() {
             document.getElementById('popupBackground').style.display = 'none';
             document.getElementById('popup').style.display = 'none';
         }
 
-        // 입력값을 확인 버튼으로 제출하는 함수
+        // [기존] 체크리스트 데이터 제출
         function submitInput() {
             const input = document.getElementById("userInput").value;
             const note = document.getElementById("noteInput").value;
@@ -41,26 +149,72 @@
                 alert("값을 입력해 주세요.");
             }
         }
+
+        // [추가] 설비선택 팝업 열기
+        let currentPopupTab = ''; 
+
+        function openEquipmentPopup(tabNum) {
+            currentPopupTab = tabNum; 
+            document.getElementById('popupEquipmentBackground').style.display = 'block';
+            document.getElementById('popupEquipment').style.display = 'block';
+            setTimeout(function() {
+                document.getElementById('equipmentInput').focus();
+            }, 100);
+        }
+
+        // [추가] 설비선택 팝업 닫기
+        function closeEquipmentPopup() {
+            document.getElementById('popupEquipmentBackground').style.display = 'none';
+            document.getElementById('popupEquipment').style.display = 'none';
+        }
+
+        // [수정] 설비번호 제출 및 페이지 이동
+        function submitEquipmentInput() {
+            const eqNum = document.getElementById("equipmentInput").value;
+            if (eqNum) {
+                let url = "https://fms.iwin.kr/kjwt_test_room/test_room.php?equipment=" + eqNum;
+                if (currentPopupTab) {
+                    url += "&tab=" + currentPopupTab;
+                }
+                location.href = url;
+            } else {
+                alert("설비를 선택해 주세요.");
+            }
+        }
+
+        // 카드/리스트 클릭 시 체크박스 토글 및 스타일 적용
+        function toggleCheckbox(element, event) {
+            if (event.target.type === 'checkbox') {
+                updateCardStyle(element, event.target.checked);
+                return;
+            }
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                updateCardStyle(element, checkbox.checked);
+            }
+        }
+
+        // 스타일 업데이트 함수
+        function updateCardStyle(element, isChecked) {
+            if (isChecked) {
+                element.classList.add('selected-card');
+            } else {
+                element.classList.remove('selected-card');
+            }
+        }
     </script>
 </head>
 
 <body id="page-top">
 
-    <!-- Page Wrapper -->
     <div id="wrapper">      
         
-        <!-- 메뉴 -->
         <?php include '../nav.php' ?>
 
-        <!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-
-        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
-            <!-- Main Content -->
             <div id="content">
-                <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3" title="sidebartop_button">
                             <i class="fa fa-bars"></i>
@@ -68,42 +222,48 @@
                         <h1 class="h3 mb-0 text-gray-800" style="padding-top:1em; display:inline-block; vertical-align:-4px;">시험실 체크리스트</h1>
                     </div>               
 
-                    <!-- Begin row -->
                     <div class="row"> 
-
-                        <!-- 탭 시작 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
 
                         <div class="col-lg-12"> 
                             <div class="card card-primary card-tabs">
                                 <div class="card-header p-0 pt-1">
                                     <ul class="nav nav-tabs" id="custom-tabs-one-tab">
+                                        <li class="nav-item"><a class="nav-link" id="tab-one" data-toggle="pill" href="#tab1">공지</a></li>
+                                        <li class="nav-item"><a class="nav-link <?php echo $tab2;?>" id="tab-two" data-toggle="pill" href="#tab2">가스경보기</a></li>  
+                                        
                                         <li class="nav-item">
-                                            <a class="nav-link" id="tab-one" data-toggle="pill" href="#tab1">공지</a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link <?php echo $tab2;?>" id="tab-two" data-toggle="pill" href="#tab2">가스경보기</a>
+                                            <a class="nav-link <?php echo $tab3;?>" id="tab-three" 
+                                               <?php if(!empty($equipment)) { ?>
+                                                   data-toggle="pill" href="#tab3"
+                                               <?php } else { ?>
+                                                   href="#" onclick="event.preventDefault(); openEquipmentPopup(3); return false;"
+                                               <?php } ?>>
+                                               일상점검
+                                            </a>
                                         </li>  
+                                        
+                                        <li class="nav-item"><a class="nav-link <?php echo $tab4;?>" id="tab-four" data-toggle="pill" href="#tab4">점검조회</a></li> 
+                                        
                                         <li class="nav-item">
-                                            <a class="nav-link <?php echo $tab3;?>" id="tab-three" data-toggle="pill" href="#tab3">일상점검</a>
+                                            <a class="nav-link <?php echo $tab5;?>" id="tab-five" 
+                                               <?php if(!empty($equipment)) { ?>
+                                                   data-toggle="pill" href="#tab5"
+                                               <?php } else { ?>
+                                                   href="#" onclick="event.preventDefault(); openEquipmentPopup(5); return false;"
+                                               <?php } ?>>
+                                               설비기록
+                                            </a>
                                         </li>  
-                                        <li class="nav-item">
-                                            <a class="nav-link <?php echo $tab4;?>" id="tab-four" data-toggle="pill" href="#tab4">점검조회</a>
-                                        </li> 
-                                        <li class="nav-item">
-                                            <a class="nav-link <?php echo $tab5;?>" id="tab-five" data-toggle="pill" href="#tab5">설비기록</a>
-                                        </li>  
-                                        <li class="nav-item">
-                                            <a class="nav-link <?php echo $tab6;?>" id="tab-six" data-toggle="pill" href="#tab6">설비이력</a>
-                                        </li>  
+                                        
+                                        <li class="nav-item"><a class="nav-link <?php echo $tab6;?>" id="tab-six" data-toggle="pill" href="#tab6">설비이력</a></li>  
                                     </ul>
                                 </div>
-                                <div class="card-body">
+                                <div class="card-body p-2">
                                     <div class="tab-content" id="custom-tabs-one-tabContent">
-                                        <!-- 1번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                        <div class="tab-pane fade" id="tab1" role="tabpanel" aria-labelledby="tab-one">
+                                        
+                                        <div class="tab-pane fade p-2" id="tab1" role="tabpanel" aria-labelledby="tab-one">
                                             [목표]<br>
                                             - 시험실 가스경보기 점검 및 체크리스트 전산화<br><br>
-
                                             [참조]<br>
                                             - 요청자: 윤지성, 전우준<br>
                                             - 사용자: 시험팀<br>
@@ -115,623 +275,508 @@
                                             - 점검일 : 2025/2/15, 2025/8/15<br>                                           
                                             - 확인자의 싸인이 x박스로 출력되는 경우 gw.iwin.kr에 로그인을 하면 된다. (FIXME)<br>
                                             - 시험실 '점검했어요' 포맥스 바코드 형식 ex) https://fms.iwin.kr/kjwt_test_room/test_room_pop.php?equipment=1<br><br> 
-
                                             [제작일]<br>
                                             - 25.2.12<br><br>                                         
                                         </div>
                                         
-                                        <!-- 2번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                                         <div class="tab-pane fade <?php echo $tab2_text;?>" id="tab2" role="tabpanel" aria-labelledby="tab-two">
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample21">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">체크리스트</h1>
-                                                    </a>
-                                                    <form id="mainForm" method="POST" autocomplete="off" action="test_room.php"> 
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample21">
-                                                            <div class="card-body table-responsive p-2">  
-                                                                <div id="table" class="table-editable"> 
-                                                                    <table class="table table-bordered" id="table6">
-                                                                        <thead>
-                                                                            <tr>                                            
-                                                                                <th style="text-align: center;">착안점</th>
-                                                                                <th style="text-align: center;">구분</th>
-                                                                                <th style="text-align: center;">점검</th>
-                                                                                <th style="text-align: center;">마지막 점검자</th>
-                                                                                <th style="text-align: center;">마지막 점검일</th>
-                                                                                <th style="text-align: center;">이전 점검일</th>
-                                                                                <th style="text-align: center;">조치사항</th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody> 
-                                                                            <tr><td style="vertical-align: middle; text-align: center;">가스경보기1</td>  
-                                                                                <td rowspan="2" style="vertical-align: middle; text-align: center;">성능점검 (가스 검출 시 경보음이 발생하는가?)</td> 
-                                                                                <td style="text-align: center;">
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample21">
+                                                    <h1 class="h6 m-0 font-weight-bold text-primary">체크리스트</h1>
+                                                </a>
+                                                <form id="mainForm" method="POST" autocomplete="off" action="test_room.php"> 
+                                                    <div class="collapse show" id="collapseCardExample21">
+                                                        <div class="card-body p-2">
+                                                            <div class="d-md-none">
+                                                                <?php foreach($alarms as $alarm): 
+                                                                    $chk_name = 'GAS_INSPECT' . $alarm['id'];
+                                                                    $is_checked_attr = (!empty($Data_TodayCheckList[$chk_name]) && $Data_TodayCheckList[$chk_name]=='on') ? 'checked' : '';
+                                                                    $last_who = !empty($alarm['data']) ? ($alarm['data'][0]['WHO'] ?? '') : '';
+                                                                    $last_note = !empty($alarm['data']) ? ($alarm['data'][0]['NOTE'] ?? '') : '';
+                                                                    $card_class = $is_checked_attr ? 'selected-card' : '';
+                                                                ?>
+                                                                <div class="card mb-2 cursor-pointer <?= $card_class ?>" onclick="toggleCheckbox(this, event)">
+                                                                    <div class="card-body p-3">
+                                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                            <h6 class="m-0 font-weight-bold text-secondary"><?= $alarm['name'] ?></h6>
+                                                                            <input type="checkbox" name="<?= $chk_name ?>" style="transform: scale(2);" <?= $is_checked_attr ?>>
+                                                                        </div>
+                                                                        <div class="row mb-1"><div class="col-4 small text-gray-600 font-weight-bold">점검항목</div><div class="col-8 small">성능점검 (경보음 확인)</div></div>
+                                                                        <div class="row mb-1"><div class="col-4 small text-gray-600 font-weight-bold">마지막점검자</div><div class="col-8 small"><?= $last_who ?></div></div>
+                                                                        <div class="row mb-1"><div class="col-4 small text-gray-600 font-weight-bold">조치사항</div><div class="col-8 small"><?= $last_note ?></div></div>
+                                                                        <div class="row mb-0">
+                                                                            <div class="col-4 small text-gray-600 font-weight-bold">최근점검일</div>
+                                                                            <div class="col-8 small">
                                                                                 <?php 
-                                                                                    if(!empty($Data_TodayCheckList['GAS_INSPECT1']) && $Data_TodayCheckList['GAS_INSPECT1']=='on') {
-                                                                                ?>
-                                                                                        <input type='checkbox' name='GAS_INSPECT1' style='zoom: 2;' checked></td>  
-                                                                                <?php 
+                                                                                    $dates = [];
+                                                                                    foreach ($alarm['data'] as $d) {
+                                                                                        if (count($dates) >= 2) break;
+                                                                                        $dt = $d['INSPECT_DT'] instanceof DateTime ? $d['INSPECT_DT'] : date_create($d['INSPECT_DT']);
+                                                                                        if($dt) $dates[] = date_format($dt, "Y-m-d");
                                                                                     }
-                                                                                    else {
+                                                                                    echo implode(", ", $dates);
                                                                                 ?>
-                                                                                        <input type='checkbox' name='GAS_INSPECT1' style='zoom: 2;'></td>  
-                                                                                <?php 
-                                                                                    } 
-                                                                                ?>
-                                                                                <td style='text-align: center;'><?php echo !empty($Data_GAS_INSPECT1) ? ($Data_GAS_INSPECT1[0]['WHO'] ?? '') : ''; ?></td>
-                                                                                <?php  
-                                                                                    $count = 0;
-                                                                                    foreach ($Data_GAS_INSPECT1 as $data) {
-                                                                                        if ($count >= 2) break;
-                                                                                        if ($data['INSPECT_DT'] instanceof DateTime) {
-                                                                                            echo "<td style='text-align: center;'>" . date_format($data['INSPECT_DT'], "Y-m-d") . "</td>";
-                                                                                        } else {
-                                                                                            $date = date_create($data['INSPECT_DT']);
-                                                                                            if ($date) {
-                                                                                                echo "<td style='text-align: center;'>" . date_format($date, "Y-m-d") . "</td>";
-                                                                                            } else {
-                                                                                                echo "<td style='text-align: center;'>Invalid date</td>";
-                                                                                            }
-                                                                                        }
-                                                                                        $count++;
-                                                                                    }
-                                                                                ?>   
-                                                                                <td style='text-align: center;'><?php echo !empty($Data_GAS_INSPECT1) ? ($Data_GAS_INSPECT1[0]['NOTE'] ?? '') : ''; ?></td>                                                                                                         
-                                                                            </tr>   
-                                                                            <tr>
-                                                                                <td style="vertical-align: middle; text-align: center;">가스경보기2</td>  
-                                                                                <td style="text-align: center;">
-                                                                                <?php 
-                                                                                    if(!empty($Data_TodayCheckList['GAS_INSPECT2']) && $Data_TodayCheckList['GAS_INSPECT2']=='on') {
-                                                                                ?>
-                                                                                        <input type='checkbox' name='GAS_INSPECT2' style='zoom: 2;' checked></td>  
-                                                                                <?php 
-                                                                                    }
-                                                                                    else {
-                                                                                ?>
-                                                                                        <input type='checkbox' name='GAS_INSPECT2' style='zoom: 2;'></td>  
-                                                                                <?php 
-                                                                                    }
-                                                                                ?>
-                                                                                <td style='text-align: center;'><?php echo !empty($Data_GAS_INSPECT2) ? ($Data_GAS_INSPECT2[0]['WHO'] ?? '') : ''; ?></td>
-                                                                                <?php  
-                                                                                    $count = 0;
-                                                                                    foreach ($Data_GAS_INSPECT2 as $data) {
-                                                                                        if ($count >= 2) break;
-                                                                                        if ($data['INSPECT_DT'] instanceof DateTime) {
-                                                                                            echo "<td style='text-align: center;'>" . date_format($data['INSPECT_DT'], "Y-m-d") . "</td>";
-                                                                                        } else {
-                                                                                            $date = date_create($data['INSPECT_DT']);
-                                                                                            if ($date) {
-                                                                                                echo "<td style='text-align: center;'>" . date_format($date, "Y-m-d") . "</td>";
-                                                                                            } else {
-                                                                                                echo "<td style='text-align: center;'>Invalid date</td>";
-                                                                                            }
-                                                                                        }
-                                                                                        $count++;
-                                                                                    } 
-                                                                                ?>  
-                                                                                <td style='text-align: center;'><?php echo !empty($Data_GAS_INSPECT2) ? ($Data_GAS_INSPECT2[0]['NOTE'] ?? '') : ''; ?></td>                 
-                                                                            </tr>                                                                                                                                                                                                                      
-                                                                        </tbody>
-                                                                    </table> 
-                                                                    <!-- 사용자 입력 -->
-                                                                    <input type="hidden" id="who21" name="who21">
-                                                                    <input type="hidden" id="note21" name="note21">
-                                                                    <input type="hidden" id="bt21" name="bt21">                                                                
-                                                                </div> 
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <?php endforeach; ?>
                                                             </div>
-                                                            <!-- /.card-body -->
 
-                                                            <!-- Begin card-footer --> 
-                                                            <div class="card-footer text-right">
-                                                                <button type="button" class="btn btn-primary" onclick="openPopup()">입력</button>
+                                                            <div class="table-responsive d-none d-md-block">  
+                                                                <table class="table table-bordered">
+                                                                    <thead>
+                                                                        <tr>                                            
+                                                                            <th style="text-align: center;">착안점</th>
+                                                                            <th style="text-align: center;">구분</th>
+                                                                            <th style="text-align: center;">점검</th>
+                                                                            <th style="text-align: center;">마지막 점검자</th>
+                                                                            <th style="text-align: center;">마지막 점검일</th>
+                                                                            <th style="text-align: center;">이전 점검일</th>
+                                                                            <th style="text-align: center;">조치사항</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody> 
+                                                                        <?php foreach($alarms as $alarm): 
+                                                                            $chk_name = 'GAS_INSPECT' . $alarm['id'];
+                                                                            $is_checked = (!empty($Data_TodayCheckList[$chk_name]) && $Data_TodayCheckList[$chk_name]=='on') ? 'checked' : '';
+                                                                        ?>
+                                                                        <tr>
+                                                                            <td style="vertical-align: middle; text-align: center;"><?= $alarm['name'] ?></td>  
+                                                                            <td style="vertical-align: middle; text-align: center;">성능점검 (가스 검출 시 경보음이 발생하는가?)</td>
+                                                                            <td style="text-align: center;"><input type='checkbox' name='<?= $chk_name ?>' style='zoom: 2;' <?= $is_checked ?>></td>
+                                                                            <td style='text-align: center;'><?php echo !empty($alarm['data']) ? ($alarm['data'][0]['WHO'] ?? '') : ''; ?></td>
+                                                                            <?php  
+                                                                                $count = 0;
+                                                                                foreach ($alarm['data'] as $data) {
+                                                                                    if ($count >= 2) break;
+                                                                                    $date_str = ($data['INSPECT_DT'] instanceof DateTime) ? date_format($data['INSPECT_DT'], "Y-m-d") : (date_create($data['INSPECT_DT']) ? date_format(date_create($data['INSPECT_DT']), "Y-m-d") : "Invalid");
+                                                                                    echo "<td style='text-align: center;'>" . $date_str . "</td>";
+                                                                                    $count++;
+                                                                                }
+                                                                                for($k=$count; $k<2; $k++) echo "<td></td>";
+                                                                            ?>   
+                                                                            <td style='text-align: center;'><?php echo !empty($alarm['data']) ? ($alarm['data'][0]['NOTE'] ?? '') : ''; ?></td>                                                                                                         
+                                                                        </tr>
+                                                                        <?php endforeach; ?>
+                                                                    </tbody>
+                                                                </table> 
                                                             </div>
-                                                            <!-- /.card-footer -->  
+
+                                                            <input type="hidden" id="who21" name="who21">
+                                                            <input type="hidden" id="note21" name="note21">
+                                                            <input type="hidden" id="bt21" name="bt21">                                                                
+                                                        </div> 
+                                                        <div class="card-footer text-right">
+                                                            <button type="button" class="btn btn-primary" onclick="openPopup()">입력</button>
                                                         </div>
-                                                        <!-- /.Card Content - Collapse -->
-                                                    </form> 
-                                                </div>
-                                                <!-- /.card -->
+                                                    </div>
+                                                </form> 
                                             </div>
                                         </div>  
 
-                                        <!-- 3번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                                         <div class="tab-pane fade <?php echo $tab3_text;?>" id="tab3" role="tabpanel" aria-labelledby="tab-three">
-                                            <div class="col-lg-12"> 
+                                            <div class="col-lg-12 p-0"> 
                                                 <form method="POST" autocomplete="off" action="test_room.php?equipment=<?php echo $equipment; ?>"> 
-                                                    <div id="table" class="table-editable"> 
-                                                        <?php 
-                                                            if(isMobile()) {
-                                                        ?>
-                                                            <table class="table table-bordered col-lg-12">
-                                                                <tr>
-                                                                    <th style="text-align: center;"><img src="../img/equipment<?php echo $equipment;?>.jpg" style="width: 100%; height: 30%"></th>                                                                                             
-                                                                </tr>  
-                                                            </table>   
-                                                            
-                                                            <table class="table table-bordered col-lg-12">
-                                                                <tr>
-                                                                    <th style="text-align: center;">장비명</th>  
-                                                                    <td style="text-align: center;"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['EQUIPMENT_NAME'] ?? '-') : '-';  ?></td>                                                                                           
-                                                                </tr>
-                                                                <tr>
-                                                                    <th style="text-align: center;">점검일</th>  
-                                                                    <td style="text-align: center;"><?php echo $Hyphen_today; ?></td>                                                                                             
-                                                                </tr>  
-                                                                <tr>
-                                                                    <th style="text-align: center;">점검방법</th> 
-                                                                    <td style="text-align: center;">기능확인</td>                                                                                                
-                                                                </tr> 
-                                                                <tr> 
-                                                                    <th style="text-align: center;">점검주기</th> 
-                                                                    <td style="text-align: center;">1회/1일</td>                                                                                                
-                                                                </tr>
-                                                                <tr>
-                                                                    <th style="text-align: center; vertical-align: middle;">점검자</th> 
-                                                                    <td style="text-align: center; vertical-align: middle;"><?php if($checker_pop!='') {echo $checker_pop;} elseif($checker!='') {echo $checker;} else {echo '-';} ?></td>                                                                                               
-                                                                </tr> 
-                                                                <tr> 
-                                                                    <th style="text-align: center; vertical-align: middle;">확인자</th> 
-                                                                    <td style="text-align: center;"><?php if(!empty($Data_TodayCheckList['equipment_supervisor'])) { ?> 윤지성<img src="https://fms.iwin.kr/img/윤지성.jpg" style="width: 40px; height: 30px;"> <?php } else { ?><button type="submit" class="btn btn-info" name="supervisor" value="on">입력</button><?php } ?></td>   
-                                                                </tr> 
-                                                            </table>
-                                                        <?php 
-                                                            }
-                                                            else {
-                                                        ?>
-                                                                <table class="table table-bordered col-lg-12">
-                                                                    <tr>
-                                                                        <th style="text-align: center;">장비명</th>  
-                                                                        <td style="text-align: center;"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['EQUIPMENT_NAME'] ?? '-') : '-';  ?></td> 
-                                                                        <th style="text-align: center;">점검일</th>  
-                                                                        <td style="text-align: center;"><?php echo $Hyphen_today; ?></td>                                                                                             
-                                                                    </tr>  
-                                                                    <tr>
-                                                                        <th style="text-align: center;">점검방법</th> 
-                                                                        <td style="text-align: center;">기능확인</td>  
-                                                                        <th style="text-align: center;">점검주기</th> 
-                                                                        <td style="text-align: center;">1회/1일</td>                                                                                                
-                                                                    </tr> 
-                                                                    <tr>
-                                                                        <th style="text-align: center; vertical-align: middle;">점검자</th> 
-                                                                        <td style="text-align: center; vertical-align: middle;"><?php if($checker_pop!='') {echo $checker_pop;} elseif($checker!='') {echo $checker;} else {echo '-';} ?></td>  
-                                                                        <th style="text-align: center; vertical-align: middle;">확인자</th> 
-                                                                        <td style="text-align: center;"><?php if(!empty($Data_TodayCheckList['equipment_supervisor'])) { ?> 윤지성<img src="https://fms.iwin.kr/img/윤지성.jpg" style="width: 40px; height: 30px;"> <?php } else { ?><button type="submit" class="btn btn-info" name="supervisor" value="on">입력</button><?php } ?></td>                                                                                                
-                                                                    </tr> 
-                                                                </table>
-                                                        <?php 
-                                                            }
-                                                        ?>
+                                                    
+                                                    <div class="card shadow mb-2">
+                                                        <div class="card-body p-3">
+                                                            <div class="d-md-none">
+                                                                <div class="text-center mb-3">
+                                                                    <img src="../img/equipment<?php echo $equipment;?>.jpg" style="max-width: 100%; max-height: 200px; border-radius: 5px;">
+                                                                </div>
+                                                                <div class="row mb-2 align-items-center">
+                                                                    <div class="col-4 font-weight-bold text-gray-700">장비명</div>
+                                                                    <div class="col-8"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['EQUIPMENT_NAME'] ?? '-') : '-';  ?></div>
+                                                                </div>
+                                                                <div class="row mb-2 align-items-center">
+                                                                    <div class="col-4 font-weight-bold text-gray-700">점검일</div>
+                                                                    <div class="col-8"><?php echo $Hyphen_today; ?></div>
+                                                                </div>
+                                                                <div class="row mb-2 align-items-center">
+                                                                    <div class="col-4 font-weight-bold text-gray-700">점검방법</div>
+                                                                    <div class="col-8">기능확인</div>
+                                                                </div>
+                                                                <div class="row mb-2 align-items-center">
+                                                                    <div class="col-4 font-weight-bold text-gray-700">점검주기</div>
+                                                                    <div class="col-8">1회/1일</div>
+                                                                </div>
+                                                                <div class="row mb-2 align-items-center">
+                                                                    <div class="col-4 font-weight-bold text-gray-700">점검자</div>
+                                                                    <div class="col-8"><?php if($checker_pop!='') {echo $checker_pop;} elseif($checker!='') {echo $checker;} else {echo '-';} ?></div>
+                                                                </div>
+                                                                <div class="row mb-2 align-items-center">
+                                                                    <div class="col-4 font-weight-bold text-gray-700">확인자</div>
+                                                                    <div class="col-8">
+                                                                        <?php if(!empty($Data_TodayCheckList['equipment_supervisor'])) { ?> 
+                                                                            윤지성<img src="https://fms.iwin.kr/img/윤지성.jpg" style="width: 40px; height: 30px;"> 
+                                                                        <?php } else { ?>
+                                                                            <button type="submit" class="btn btn-sm btn-info py-0" name="supervisor" value="on">입력</button>
+                                                                        <?php } ?>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
 
-                                                        <table class="table table-bordered col-lg-12">
-                                                            <thead>
-                                                                <tr>                                            
-                                                                    <th style="text-align: center;">점검내용</th>
-                                                                    <th style="text-align: center;">점검</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody> 
-                                                                <?php 
-                                                                    foreach ($Data_TodayCheckList2 as $item) {
-                                                                        echo "<tr>";
-                                                                        echo "<td style='text-align: center;'>{$item['CHECKLIST']}</td>";
-                                                                        echo "<td style='text-align: center;'>";
-                                                                        $name = 'equipment'.$item['EQUIPMENT_NUM'].$item['EQUIPMENT_SEQ'];
-                                                                        if (!empty($Data_TodayCheckList) && ($Data_TodayCheckList[$name] ?? 'off') == 'on') {
-                                                                            echo "<input type='checkbox' name='{$name}' style='zoom: 2;' checked>";
-                                                                        } else {
-                                                                            echo "<input type='checkbox' name='{$name}' style='zoom: 2;'>";
-                                                                        }
-                                                                        echo "</td>";
-                                                                        echo "</tr>";
-                                                                    }
-                                                                ?>  
-                                                            </tbody>
-                                                        </table>  
-                                                        
-                                                        <?php 
-                                                            if($checker_pop!='') {
-                                                        ?>
-                                                                <input type="hidden" value="<?php echo $checker_pop; ?>" name="checker">
-                                                        <?php
-                                                            }
-                                                            else {
-                                                        ?>
-                                                                <input type="hidden" value="<?php echo $checker; ?>" name="checker">
-                                                        <?php
-                                                            }
-                                                        ?>                                                        
-                                                        <div class="footer text-right">
+                                                            <div class="d-none d-md-block">
+                                                                <table class="table table-bordered">
+                                                                    <colgroup>
+                                                                        <col style="width: 20%">
+                                                                        <col style="width: 15%">
+                                                                        <col style="width: 25%">
+                                                                        <col style="width: 15%">
+                                                                        <col style="width: 25%">
+                                                                    </colgroup>
+                                                                    <tbody>
+                                                                        <tr>
+                                                                            <td rowspan="3" class="text-center align-middle p-2" style="background-color: #fff;">
+                                                                                <img src="../img/equipment<?php echo $equipment;?>.jpg" style="max-width: 100%; max-height: 200px;">
+                                                                            </td>
+                                                                            <th class="table-info-th">장비명</th>
+                                                                            <td class="table-info-td"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['EQUIPMENT_NAME'] ?? '-') : '-';  ?></td>
+                                                                            <th class="table-info-th">점검주기</th>
+                                                                            <td class="table-info-td">1회/1일</td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th class="table-info-th">점검일</th>
+                                                                            <td class="table-info-td"><?php echo $Hyphen_today; ?></td>
+                                                                            <th class="table-info-th">점검자</th>
+                                                                            <td class="table-info-td"><?php if($checker_pop!='') {echo $checker_pop;} elseif($checker!='') {echo $checker;} else {echo '-';} ?></td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th class="table-info-th">점검방법</th>
+                                                                            <td class="table-info-td">기능확인</td>
+                                                                            <th class="table-info-th">확인자</th>
+                                                                            <td class="table-info-td">
+                                                                                <?php if(!empty($Data_TodayCheckList['equipment_supervisor'])) { ?> 
+                                                                                    윤지성<img src="https://fms.iwin.kr/img/윤지성.jpg" style="width: 40px; height: 30px;"> 
+                                                                                <?php } else { ?>
+                                                                                    <button type="submit" class="btn btn-sm btn-info py-0" name="supervisor" value="on">입력</button>
+                                                                                <?php } ?>
+                                                                            </td>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="card shadow mb-2">
+                                                        <div class="card-body p-0">
+                                                            <div class="d-md-none">
+                                                                <?php foreach ($Data_TodayCheckList2 as $item): 
+                                                                    $name = 'equipment'.$item['EQUIPMENT_NUM'].$item['EQUIPMENT_SEQ'];
+                                                                    $checked_attr = (!empty($Data_TodayCheckList) && ($Data_TodayCheckList[$name] ?? 'off') == 'on') ? 'checked' : '';
+                                                                    $row_class = $checked_attr ? 'selected-card' : '';
+                                                                ?>
+                                                                <div class="p-3 border-bottom d-flex justify-content-between align-items-center cursor-pointer <?= $row_class ?>" onclick="toggleCheckbox(this, event)">
+                                                                    <span class="mr-2"><?= $item['CHECKLIST'] ?></span>
+                                                                    <input type='checkbox' name='<?= $name ?>' style='transform: scale(1.5);' <?= $checked_attr ?>>
+                                                                </div>
+                                                                <?php endforeach; ?>
+                                                            </div>
+
+                                                            <div class="table-responsive d-none d-md-block p-2">
+                                                                <table class="table table-bordered">
+                                                                    <thead>
+                                                                        <tr><th class="table-info-th" style="text-align: center;">점검내용</th><th class="table-info-th" style="text-align: center; width: 100px;">점검</th></tr>
+                                                                    </thead>
+                                                                    <tbody> 
+                                                                        <?php foreach ($Data_TodayCheckList2 as $item): 
+                                                                            $name = 'equipment'.$item['EQUIPMENT_NUM'].$item['EQUIPMENT_SEQ'];
+                                                                            $checked = (!empty($Data_TodayCheckList) && ($Data_TodayCheckList[$name] ?? 'off') == 'on') ? 'checked' : '';
+                                                                        ?>
+                                                                        <tr>
+                                                                            <td style='text-align: center;'><?= $item['CHECKLIST'] ?></td>
+                                                                            <td style='text-align: center;'><input type='checkbox' name='<?= $name ?>' style='zoom: 2;' <?= $checked ?>></td>
+                                                                        </tr>
+                                                                        <?php endforeach; ?>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                        <div class="card-footer text-right">
+                                                            <input type="hidden" value="<?php echo $checker_pop ?: $checker; ?>" name="checker">
                                                             <button type="submit" value="on" class="btn btn-primary" name="bt31">입력</button>
                                                         </div>
-                                                    </div>   
+                                                    </div>
                                                 </form>                                                 
                                             </div>
                                         </div>   
                                         
-                                        <!-- 4번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                                         <div class="tab-pane fade <?php echo $tab4_text;?>" id="tab4" role="tabpanel" aria-labelledby="tab-four">
-                                            <!-- 검색 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample41" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample41">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">검색</h1>
-                                                    </a>
-                                                    <form method="POST" autocomplete="off" action="test_room.php"> 
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample41">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row">                                                                        
-                                                                    <!-- Begin 검색범위 -->
-                                                                    <div class="col-md-6">
-                                                                        <div class="form-group">
-                                                                            <label>검색범위</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="far fa-calendar-alt"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <?php 
-                                                                                    if($dt4!='') {
-                                                                                ?>
-                                                                                        <input type="text" class="form-control float-right kjwt-search-date" value="<?php echo $dt4 ?: date('Y-m-d').' ~ '.date('Y-m-d'); ?>" name="dt4">
-                                                                                <?php 
-                                                                                    }
-                                                                                    else {
-                                                                                ?>
-                                                                                        <input type="text" class="form-control float-right kjwt-search-date" name="dt4">
-                                                                                <?php 
-                                                                                    }
-                                                                                ?>                                                                                 
-                                                                            </div>
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample41" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample41">
+                                                    <h1 class="h6 m-0 font-weight-bold text-primary">검색</h1>
+                                                </a>
+                                                <form method="POST" autocomplete="off" action="test_room.php"> 
+                                                    <div class="collapse show" id="collapseCardExample41">                                    
+                                                        <div class="card-body p-3">
+                                                            <div class="row">                                                                        
+                                                                <div class="col-md-6">
+                                                                    <div class="form-group mb-2">
+                                                                        <label>검색범위</label>
+                                                                        <div class="input-group">                                                
+                                                                            <div class="input-group-prepend"><span class="input-group-text"><i class="far fa-calendar-alt"></i></span></div>
+                                                                            <input type="text" class="form-control float-right kjwt-search-date" value="<?php echo $dt4 ?: date('Y-m-d').' ~ '.date('Y-m-d'); ?>" name="dt4">
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 검색범위 -->   
-                                                                    <!-- Begin 설비명 -->
-                                                                    <div class="col-md-6">
-                                                                        <div class="form-group">
-                                                                            <label>설비명</label>
-                                                                            <select name="equipment_name" class="form-control select12" style="width: 100%;">
-                                                                                <option value="ALL" selected="selected">ALL</option>			
-                                                                                <option value="1">1. X-RAY</option>
-                                                                                <option value="3">3. Z-FOLDING</option>
-                                                                                <option value="4">4. SEAT BACK 전후 작동내구 시험기</option>
-                                                                                <option value="5">5. 복합환경내구시험기</option>
-                                                                                <option value="6">6. 시트 진동내구 시험기</option>
-                                                                                <option value="7">7. ROBOT 승강내구1</option>
-                                                                                <option value="8">8. ROBOT 승강내구2</option>
-                                                                                <option value="9">9. BENDING1</option>
-                                                                                <option value="10">10. BENDING２</option>
-                                                                                <option value="11">11. BENDING３</option>
-                                                                                <option value="12">12. ＵＴＭ</option>
-                                                                                <option value="13">13. LIFE CYCLE</option>
-                                                                                <option value="14">14. KNEE TEST1</option>
-                                                                                <option value="15">15. KNEE TEST2</option>
-                                                                                <option value="16">16. KNEE TEST3</option>
-                                                                                <option value="17">17. DRY OVEN</option>
-                                                                                <option value="18">18. 항온항습기1</option>
-                                                                                <option value="19">19. 항온항습기2</option>
-                                                                                <option value="20">20. 항온항습기3</option>
-                                                                                <option value="21">21. 먼지 시험기</option>
-                                                                                <option value="22">22. 열충격 시험기</option>
-                                                                                <option value="24">24. 풍량 시험기</option>
-                                                                                <option value="25">25. 반무향실</option>
-                                                                                <option value="26">26. 워크인챔버1</option>
-                                                                                <option value="27">27. 워크인챔버2</option>
-                                                                                <option value="28">28. 워크인챔버3</option>
-                                                                                <option value="29">29. 염수분무시험기</option>
-                                                                                <option value="30">30. 연소성 시험기</option>
-                                                                            </select>
-                                                                        </div>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <div class="form-group mb-2">
+                                                                        <label>설비명</label>
+                                                                        <select name="equipment_name" class="form-control select12" style="width: 100%;">
+                                                                            <option value="ALL" selected="selected">ALL</option>			
+                                                                            <option value="1">1. X-RAY</option>
+                                                                            <option value="3">3. Z-FOLDING</option>
+                                                                            <option value="4">4. SEAT BACK 전후 작동내구 시험기</option>
+                                                                            <option value="5">5. 복합환경내구시험기</option>
+                                                                            <option value="6">6. 시트 진동내구 시험기</option>
+                                                                            <option value="7">7. ROBOT 승강내구1</option>
+                                                                            <option value="8">8. ROBOT 승강내구2</option>
+                                                                            <option value="9">9. BENDING1</option>
+                                                                            <option value="10">10. BENDING２</option>
+                                                                            <option value="11">11. BENDING３</option>
+                                                                            <option value="12">12. ＵＴＭ</option>
+                                                                            <option value="13">13. LIFE CYCLE</option>
+                                                                            <option value="14">14. KNEE TEST1</option>
+                                                                            <option value="15">15. KNEE TEST2</option>
+                                                                            <option value="16">16. KNEE TEST3</option>
+                                                                            <option value="17">17. DRY OVEN</option>
+                                                                            <option value="18">18. 항온항습기1</option>
+                                                                            <option value="19">19. 항온항습기2</option>
+                                                                            <option value="20">20. 항온항습기3</option>
+                                                                            <option value="21">21. 먼지 시험기</option>
+                                                                            <option value="22">22. 열충격 시험기</option>
+                                                                            <option value="24">24. 풍량 시험기</option>
+                                                                            <option value="25">25. 반무향실</option>
+                                                                            <option value="26">26. 워크인챔버1</option>
+                                                                            <option value="27">27. 워크인챔버2</option>
+                                                                            <option value="28">28. 워크인챔버3</option>
+                                                                            <option value="29">29. 염수분무시험기</option>
+                                                                            <option value="30">30. 연소성 시험기</option>
+                                                                        </select>
                                                                     </div>
-                                                                    <!-- end 설비명 -->                                    
-                                                                </div> 
-                                                                <!-- /.row -->         
+                                                                </div>                                   
                                                             </div> 
-                                                            <!-- /.card-body -->                                                                       
-
-                                                            <!-- Begin card-footer --> 
-                                                            <div class="card-footer text-right">
-                                                                <button type="submit" value="on" class="btn btn-primary" name="bt41">검색</button>
-                                                            </div>
-                                                            <!-- /.card-footer -->   
-                                                        </form>             
+                                                        </div> 
+                                                        <div class="card-footer text-right">
+                                                            <button type="submit" value="on" class="btn btn-primary" name="bt41">검색</button>
+                                                        </div>
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div>  
+                                                </form>             
+                                            </div>
 
-                                            <!-- 결과!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample42" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample42">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">결과</h1>
-                                                    </a>
-                                                    <!-- Card Content - Collapse -->
-                                                    <div class="collapse show" id="collapseCardExample42">
-                                                        <div class="card-body table-responsive p-2">    
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample42" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample42">
+                                                    <h1 class="h6 m-0 font-weight-bold text-primary">결과</h1>
+                                                </a>
+                                                <div class="collapse show" id="collapseCardExample42">
+                                                    <div class="card-body p-2">
+                                                        <div class="d-md-none">
+                                                            <?php foreach($search_results_tab4 as $res): 
+                                                                $date_str = date_format($res['SORTING_DATE'], "Y-m-d");
+                                                                foreach($res['CHECKLIST_ITEMS'] as $item):
+                                                                    $is_checked = ($res[$item['MERGE_KEY']] == 'on') ? "Y" : "N";
+                                                                    $checker_name = $res[$item['WHO_KEY']];
+                                                            ?>
+                                                            <div class="card mb-2">
+                                                                <div class="card-body p-3">
+                                                                    <div class="h6 font-weight-bold text-secondary mb-2"><?= $item['EQUIPMENT_NAME'] ?></div>
+                                                                    <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">점검일</div><div class="col-8 small"><?= $date_str ?></div></div>
+                                                                    <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">점검내용</div><div class="col-8 small"><?= $item['CHECKLIST'] ?></div></div>
+                                                                    <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">점검여부</div><div class="col-8 small"><?= $is_checked ?></div></div>
+                                                                    <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">점검자</div><div class="col-8 small"><?= $checker_name ?></div></div>
+                                                                    <div class="row mb-0"><div class="col-4 small font-weight-bold text-gray-600">확인자</div><div class="col-8 small">윤지성<img src="https://fms.iwin.kr/img/윤지성.jpg" style="width: 30px;"></div></div>
+                                                                </div>
+                                                            </div>
+                                                            <?php endforeach; endforeach; ?>
+                                                        </div>
+
+                                                        <div class="table-responsive d-none d-md-block">    
                                                             <table class="table table-bordered table-hover text-nowrap" id="table3">
                                                                 <thead>
                                                                     <tr>
-                                                                        <th>점검일</th>
-                                                                        <th>설비명</th>
-                                                                        <th>점검내용</th>   
-                                                                        <th>점검여부</th> 
-                                                                        <th>점검자</th> 
-                                                                        <th>확인자</th> 
+                                                                        <th>점검일</th><th>설비명</th><th>점검내용</th><th>점검여부</th><th>점검자</th><th>확인자</th> 
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    <?php 
-                                                                        for($i=1; $i<=$Count_Select; $i++)
-                                                                        {		
-                                                                            $Data_Select = sqlsrv_fetch_array($Result_Select);
-
-                                                                            if($equipment_name=='ALL') {
-                                                                                $Query_SelectList = "SELECT * from CONNECT.dbo.TEST_ROOM_CHECKLIST";              
-                                                                                $Result_SelectList = sqlsrv_query($connect, $Query_SelectList, $params, $options);	
-                                                                                $Count_SelectList = sqlsrv_num_rows($Result_SelectList);
-                                                                            }
-                                                                            ELSE {
-                                                                                $Query_SelectList = "SELECT * from CONNECT.dbo.TEST_ROOM_CHECKLIST WHERE EQUIPMENT_NUM='$equipment_name'";              
-                                                                                $Result_SelectList = sqlsrv_query($connect, $Query_SelectList, $params, $options);	
-                                                                                $Count_SelectList = sqlsrv_num_rows($Result_SelectList);
-                                                                            }
-
-                                                                            for($j=1; $j<=$Count_SelectList; $j++)
-                                                                            {
-                                                                                $Data_SelectList = sqlsrv_fetch_array($Result_SelectList);
-                                                                                $merge3 = "equipment".$Data_SelectList['EQUIPMENT_NUM'].$Data_SelectList['EQUIPMENT_SEQ'];
-                                                                                $merge4 = "equipment_who".$Data_SelectList['EQUIPMENT_NUM'];                                                                               
+                                                                    <?php foreach($search_results_tab4 as $res): 
+                                                                        $date_str = date_format($res['SORTING_DATE'], "Y-m-d");
+                                                                        foreach($res['CHECKLIST_ITEMS'] as $item):
+                                                                            $is_checked = ($res[$item['MERGE_KEY']] == 'on') ? "Y" : "";
+                                                                            $checker_name = $res[$item['WHO_KEY']];
                                                                     ?>
                                                                     <tr>
-                                                                        <td><?php echo date_format($Data_Select['SORTING_DATE'], "Y-m-d") ; ?></td>  
-                                                                        <td><?php echo $Data_SelectList['EQUIPMENT_NAME']; ?></td>  
-                                                                        <td><?php echo $Data_SelectList['CHECKLIST']; ?></td>  
-                                                                        <td><?php if($Data_Select[$merge3]=='on') {echo "Y";} ?></td>   
-                                                                        <td><?php echo $Data_Select[$merge4]; ?></td>
+                                                                        <td><?= $date_str ?></td>  
+                                                                        <td><?= $item['EQUIPMENT_NAME'] ?></td>  
+                                                                        <td><?= $item['CHECKLIST'] ?></td>  
+                                                                        <td><?= $is_checked ?></td>   
+                                                                        <td><?= $checker_name ?></td>
                                                                         <td>윤지성<img src="https://fms.iwin.kr/img/윤지성.jpg" style="width: 40px; height: 30px;"></td>  
                                                                     </tr> 
-                                                                    <?php 
-                                                                            }
-
-                                                                            if($Data_Select == false) {
-                                                                                exit;
-                                                                            }
-                                                                        }
-                                                                    ?>       
+                                                                    <?php endforeach; endforeach; ?>       
                                                                 </tbody>
                                                             </table>                                     
                                                         </div>
-                                                        <!-- /.card-body -->
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
                                                 </div>
-                                                <!-- /.card -->
                                             </div> 
                                         </div>
 
-                                        <!-- 5번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                                         <div class="tab-pane fade <?php echo $tab5_text;?>" id="tab5" role="tabpanel" aria-labelledby="tab-five">
-                                            <div class="col-lg-12"> 
+                                            <div class="col-lg-12 p-0"> 
                                                 <form method="POST" autocomplete="off" action="test_room.php?equipment=<?php echo $equipment; ?>"> 
-                                                    <div id="table" class="table-editable"> 
-                                                        <?php 
-                                                            if(isMobile()) {
-                                                        ?>
-                                                            <table class="table table-bordered col-lg-12">
-                                                                <tr>
-                                                                    <th style="text-align: center;"><img src="../img/equipment<?php echo $equipment;?>.jpg" style="width: 100%; height: 30%"></th>                                                                                             
-                                                                </tr>  
-                                                            </table>   
-                                                            
-                                                            <table class="table table-bordered col-lg-12">
-                                                                <tr>
-                                                                    <th style="text-align: center;">장비명</th>  
-                                                                    <td style="text-align: center;"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['EQUIPMENT_NAME'] ?? '-') : '-';  ?></td>                                                                                           
-                                                                </tr>
-                                                                <tr>
-                                                                    <th style="text-align: center;">제작처</th>  
-                                                                    <td style="text-align: center;"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['BUY'] ?? '-') : '-'; ?></td>                                                                                             
-                                                                </tr>  
-                                                                <tr>
-                                                                    <th style="text-align: center;">연락처</th>  
-                                                                    <td style="text-align: center;"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['CALL'] ?? '-') : '-'; ?></td>                                                                                               
-                                                                </tr>  
-                                                                <tr>
-                                                                    <th style="text-align: center;">기록자</th>  
-                                                                    <td style="text-align: center;"><?php if($recorder!='') {echo $recorder;} else {echo '-';} ?></td>                                                                                               
-                                                                </tr>                                                               
-                                                            </table>
-                                                        <?php 
-                                                            }
-                                                            else {
-                                                        ?>
-                                                                <table class="table table-bordered col-lg-12">
-                                                                    <tr>
-                                                                        <th style="text-align: center;">장비명</th>  
-                                                                        <td style="text-align: center;"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['EQUIPMENT_NAME'] ?? '-') : '-';  ?></td> 
-                                                                        <th style="text-align: center;">제작처</th>  
-                                                                        <td style="text-align: center;"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['BUY'] ?? '-') : '-'; ?></td>  
-                                                                        <th style="text-align: center;">연락처</th>  
-                                                                        <td style="text-align: center;"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['CALL'] ?? '-') : '-'; ?></td>  
-                                                                        <th style="text-align: center;">기록자</th>  
-                                                                        <td style="text-align: center;"><?php if($recorder!='') {echo $recorder;} else {echo '-';} ?></td>                                                                                                  
-                                                                    </tr>                                                                      
+                                                    <div class="card shadow mb-2">
+                                                        <div class="card-body p-3">
+                                                            <div class="d-md-none">
+                                                                <div class="text-center mb-3">
+                                                                    <img src="../img/equipment<?php echo $equipment;?>.jpg" style="max-width: 100%; max-height: 200px; border-radius: 5px;">
+                                                                </div>
+                                                                <div class="row mb-2 align-items-center">
+                                                                    <div class="col-4 font-weight-bold text-gray-700">장비명</div>
+                                                                    <div class="col-8"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['EQUIPMENT_NAME'] ?? '-') : '-';  ?></div>
+                                                                </div>
+                                                                <div class="row mb-2 align-items-center">
+                                                                    <div class="col-4 font-weight-bold text-gray-700">제작처</div>
+                                                                    <div class="col-8"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['BUY'] ?? '-') : '-'; ?></div>
+                                                                </div>
+                                                                <div class="row mb-2 align-items-center">
+                                                                    <div class="col-4 font-weight-bold text-gray-700">연락처</div>
+                                                                    <div class="col-8"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['CALL'] ?? '-') : '-'; ?></div>
+                                                                </div>
+                                                                <div class="row mb-2 align-items-center">
+                                                                    <div class="col-4 font-weight-bold text-gray-700">기록자</div>
+                                                                    <div class="col-8"><?php if($recorder!='') {echo $recorder;} else {echo '-';} ?></div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="d-none d-md-block">
+                                                                <table class="table table-bordered">
+                                                                    <colgroup>
+                                                                        <col style="width: 20%">
+                                                                        <col style="width: 15%">
+                                                                        <col style="width: 25%">
+                                                                        <col style="width: 15%">
+                                                                        <col style="width: 25%">
+                                                                    </colgroup>
+                                                                    <tbody>
+                                                                        <tr>
+                                                                            <td rowspan="2" class="text-center align-middle p-2" style="background-color: #fff;">
+                                                                                <img src="../img/equipment<?php echo $equipment;?>.jpg" style="max-width: 100%; max-height: 200px;">
+                                                                            </td>
+                                                                            <th class="table-info-th">장비명</th>
+                                                                            <td class="table-info-td"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['EQUIPMENT_NAME'] ?? '-') : '-';  ?></td>
+                                                                            <th class="table-info-th">연락처</th>
+                                                                            <td class="table-info-td"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['CALL'] ?? '-') : '-'; ?></td>
+                                                                        </tr>
+                                                                        <tr>
+                                                                            <th class="table-info-th">제작처</th>
+                                                                            <td class="table-info-td"><?php echo !empty($Data_TodayCheckList2) ? ($Data_TodayCheckList2[0]['BUY'] ?? '-') : '-'; ?></td>
+                                                                            <th class="table-info-th">기록자</th>
+                                                                            <td class="table-info-td"><?php if($recorder!='') {echo $recorder;} else {echo '-';} ?></td>
+                                                                        </tr>
+                                                                    </tbody>
                                                                 </table>
-                                                        <?php 
-                                                            }
-                                                        ?>
+                                                            </div>
 
-                                                                <textarea 
-                                                                    class="form-control mb-3" 
-                                                                    name="content51" 
-                                                                    rows="3" 
-                                                                    placeholder="내용을 입력하세요"
-                                                                    style="width: 100%; resize: vertical;"
-                                                                    id="contentTextarea"
-                                                                    autofocus
-                                                                ></textarea>
-      
-                                                                <input type="text" class="form-control mb-3" name="cost51" placeholder="수리비용"> 
-
-                                                                <input type="hidden" value="<?php echo $recorder; ?>" name="recorder51">
-
-                                                        <div class="footer text-right">
+                                                            <hr>
+                                                            <div class="form-group mb-2">
+                                                                <textarea class="form-control" name="content51" rows="3" placeholder="내용을 입력하세요" style="width: 100%; resize: vertical;" id="contentTextarea"></textarea>
+                                                            </div>
+                                                            <div class="form-group mb-2">
+                                                                <input type="text" class="form-control" name="cost51" placeholder="수리비용"> 
+                                                            </div>
+                                                            <input type="hidden" value="<?php echo $recorder; ?>" name="recorder51">
+                                                        </div>
+                                                        <div class="card-footer text-right">
                                                             <button type="submit" value="on" class="btn btn-primary" name="bt51">입력</button>
                                                         </div>
-                                                    </div>   
+                                                    </div>
                                                 </form>                                                 
                                             </div>
                                         </div>
                                         
-                                        <!-- 6번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                                         <div class="tab-pane fade <?php echo $tab6_text;?>" id="tab6" role="tabpanel" aria-labelledby="tab-six">
-                                            <!-- 검색 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample61" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample61">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">검색</h1>
-                                                    </a>
-                                                    <form method="POST" autocomplete="off" action="test_room.php"> 
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample61">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row">                                                                        
-                                                                    <!-- Begin 검색범위 -->
-                                                                    <div class="col-md-12">
-                                                                        <div class="form-group">
-                                                                            <label>검색범위</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="far fa-calendar-alt"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <?php 
-                                                                                    if($dt6!='') {
-                                                                                ?>
-                                                                                        <input type="text" class="form-control float-right kjwt-search-date" value="<?php echo $dt6 ?: date('Y-m-d').' ~ '.date('Y-m-d'); ?>" name="dt6">
-                                                                                <?php 
-                                                                                    }
-                                                                                    else {
-                                                                                ?>
-                                                                                        <input type="text" class="form-control float-right kjwt-search-date" name="dt6">
-                                                                                <?php 
-                                                                                    }
-                                                                                ?>                                                                                 
-                                                                            </div>
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample61" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample61">
+                                                    <h1 class="h6 m-0 font-weight-bold text-primary">검색</h1>
+                                                </a>
+                                                <form method="POST" autocomplete="off" action="test_room.php"> 
+                                                    <div class="collapse show" id="collapseCardExample61">                                    
+                                                        <div class="card-body p-3">
+                                                            <div class="row">                                                                        
+                                                                <div class="col-md-12">
+                                                                    <div class="form-group mb-0">
+                                                                        <label>검색범위</label>
+                                                                        <div class="input-group">                                                
+                                                                            <div class="input-group-prepend"><span class="input-group-text"><i class="far fa-calendar-alt"></i></span></div>
+                                                                            <input type="text" class="form-control float-right kjwt-search-date" value="<?php echo $dt6 ?: date('Y-m-d').' ~ '.date('Y-m-d'); ?>" name="dt6">
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 검색범위 -->                                                                                                          
-                                                                </div> 
-                                                                <!-- /.row -->         
+                                                                </div>
                                                             </div> 
-                                                            <!-- /.card-body -->                                                                       
-
-                                                            <!-- Begin card-footer --> 
-                                                            <div class="card-footer text-right">
-                                                                <button type="submit" value="on" class="btn btn-primary" name="bt61">검색</button>
-                                                            </div>
-                                                            <!-- /.card-footer -->   
-                                                        </form>             
+                                                        </div> 
+                                                        <div class="card-footer text-right">
+                                                            <button type="submit" value="on" class="btn btn-primary" name="bt61">검색</button>
+                                                        </div>
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div>  
+                                                </form>             
+                                            </div>
 
-                                            <!-- 결과!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample62" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample62">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">결과</h1>
-                                                    </a>
-                                                    <!-- Card Content - Collapse -->
-                                                    <div class="collapse show" id="collapseCardExample62">
-                                                        <div class="card-body table-responsive p-2">    
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample62" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample62">
+                                                    <h1 class="h6 m-0 font-weight-bold text-primary">결과</h1>
+                                                </a>
+                                                <div class="collapse show" id="collapseCardExample62">
+                                                    <div class="card-body p-2">
+                                                        <div class="d-md-none">
+                                                            <?php foreach($search_results_tab6 as $res): ?>
+                                                            <div class="card mb-2">
+                                                                <div class="card-body p-3">
+                                                                    <div class="h6 font-weight-bold text-secondary mb-2"><?= $res['EQUIPMENT_NAME'] ?></div>
+                                                                    <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">설비번호</div><div class="col-8 small"><?= $res['EQUIPMENT_NUM'] ?></div></div>
+                                                                    <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">내용</div><div class="col-8 small"><?= $res['NOTE'] ?></div></div>
+                                                                    <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">수리비용</div><div class="col-8 small"><?= $res['COST'] ?></div></div>
+                                                                    <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">기록자</div><div class="col-8 small"><?= $res['RECORDER'] ?></div></div>
+                                                                    <div class="row mb-0"><div class="col-4 small font-weight-bold text-gray-600">기록일</div><div class="col-8 small"><?= date_format($res['RECORD_DATE'], "Y-m-d H:i:s") ?></div></div>
+                                                                </div>
+                                                            </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+
+                                                        <div class="table-responsive d-none d-md-block">    
                                                             <table class="table table-bordered table-hover text-nowrap" id="table1">
                                                                 <thead>
-                                                                    <tr>
-                                                                        <th>설비번호</th>
-                                                                        <th>설비명</th>
-                                                                        <th>내용</th>
-                                                                        <th>수리비용</th>  
-                                                                        <th>기록자</th>   
-                                                                        <th>기록일</th>   
-                                                                    </tr>
+                                                                    <tr><th>설비번호</th><th>설비명</th><th>내용</th><th>수리비용</th><th>기록자</th><th>기록일</th></tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    <?php 
-                                                                        for($i=1; $i<=$Count_RecordSelect; $i++)
-                                                                        {		
-                                                                            $Data_RecordSelect = sqlsrv_fetch_array($Result_RecordSelect);
-                                                                    ?>
+                                                                    <?php foreach($search_results_tab6 as $res): ?>
                                                                     <tr>
-                                                                        <td><?php echo $Data_RecordSelect['EQUIPMENT_NUM']; ?></td>  
-                                                                        <td><?php echo $Data_RecordSelect['EQUIPMENT_NAME']; ?></td>  
-                                                                        <td><?php echo $Data_RecordSelect['NOTE']; ?></td>  
-                                                                        <td><?php echo $Data_RecordSelect['COST']; ?></td> 
-                                                                        <td><?php echo $Data_RecordSelect['RECORDER']; ?></td>   
-                                                                        <td><?php echo date_format($Data_RecordSelect['RECORD_DATE'], "Y-m-d H:i:s") ; ?></td>  
+                                                                        <td><?= $res['EQUIPMENT_NUM'] ?></td>  
+                                                                        <td><?= $res['EQUIPMENT_NAME'] ?></td>  
+                                                                        <td><?= $res['NOTE'] ?></td>  
+                                                                        <td><?= $res['COST'] ?></td> 
+                                                                        <td><?= $res['RECORDER'] ?></td>   
+                                                                        <td><?= date_format($res['RECORD_DATE'], "Y-m-d H:i:s") ?></td>  
                                                                     </tr> 
-                                                                    <?php 
-                                                                            if($Data_RecordSelect == false) {
-                                                                                exit;
-                                                                            }
-                                                                        }
-                                                                    ?>       
+                                                                    <?php endforeach; ?>       
                                                                 </tbody>
                                                             </table>                                     
                                                         </div>
-                                                        <!-- /.card-body -->
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
                                                 </div>
-                                                <!-- /.card -->
                                             </div> 
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>   
-
-                        <!-- end !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-                    
                     </div>
-                    <!-- /.row -->
                 </div>
-                <!-- /.container-fluid -->
             </div>
-            <!-- End of Main Content -->
         </div>
-        <!-- End of Content Wrapper -->
     </div>
-    <!-- End of Page Wrapper -->
 
-    <!-- 팝업창 HTML -->
     <div class="popup-background" id="popupBackground"></div>
     <div class="popup" id="popup">
         <button class="close-btn" onclick="closePopup()"><i class="fa-solid fa-xmark"></i></button>
@@ -745,11 +790,50 @@
         </div>   
     </div>
 
-    <!-- Bootstrap core JavaScript-->
+    <div class="popup-background" id="popupEquipmentBackground"></div>
+    <div class="popup" id="popupEquipment">
+        <button class="close-btn" onclick="closeEquipmentPopup()"><i class="fa-solid fa-xmark"></i></button>
+        <p>설비 선택</p>
+        <select id="equipmentInput" class="input-field" onkeydown="if(event.keyCode==13) submitEquipmentInput();">
+            <option value="" selected disabled>선택하세요</option>
+            <option value="1">1. X-RAY</option>
+            <option value="3">3. Z-FOLDING</option>
+            <option value="4">4. SEAT BACK 전후 작동내구 시험기</option>
+            <option value="5">5. 복합환경내구시험기</option>
+            <option value="6">6. 시트 진동내구 시험기</option>
+            <option value="7">7. ROBOT 승강내구1</option>
+            <option value="8">8. ROBOT 승강내구2</option>
+            <option value="9">9. BENDING1</option>
+            <option value="10">10. BENDING２</option>
+            <option value="11">11. BENDING３</option>
+            <option value="12">12. ＵＴＭ</option>
+            <option value="13">13. LIFE CYCLE</option>
+            <option value="14">14. KNEE TEST1</option>
+            <option value="15">15. KNEE TEST2</option>
+            <option value="16">16. KNEE TEST3</option>
+            <option value="17">17. DRY OVEN</option>
+            <option value="18">18. 항온항습기1</option>
+            <option value="19">19. 항온항습기2</option>
+            <option value="20">20. 항온항습기3</option>
+            <option value="21">21. 먼지 시험기</option>
+            <option value="22">22. 열충격 시험기</option>
+            <option value="24">24. 풍량 시험기</option>
+            <option value="25">25. 반무향실</option>
+            <option value="26">26. 워크인챔버1</option>
+            <option value="27">27. 워크인챔버2</option>
+            <option value="28">28. 워크인챔버3</option>
+            <option value="29">29. 염수분무시험기</option>
+            <option value="30">30. 연소성 시험기</option>
+        </select>
+        <div class="popup-buttons">
+            <button class="confirm-btn" onclick="submitEquipmentInput()">확인</button>
+            <button class="close-btn-popup" onclick="closeEquipmentPopup()">닫기</button>
+        </div>   
+    </div>
+
     <?php include '../plugin_lv1.php'; ?>
 
     <script>
-        // tab-five 클릭 시 textarea에 포커스
         $(document).ready(function() {
             $('a[href="#tab5"]').on('shown.bs.tab', function (e) {
                 $('#contentTextarea').focus();
@@ -760,9 +844,6 @@
 </html>
 
 <?php 
-    //MARIA DB 메모리 회수
     if (isset($connect4)) { mysqli_close($connect4); }	
-
-    //MSSQL 메모리 회수
     if(isset($connect)) { sqlsrv_close($connect); }
 ?>

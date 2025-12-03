@@ -1,11 +1,20 @@
 <?php 
     // =============================================
-	// Author:		<KWON SUNG KUN - sealclear@naver.com>	
-	// Create date: <21.10.07>
-	// Description:	<하이패스 리뉴얼>	
+    // Author:      <KWON SUNG KUN - sealclear@naver.com>   
+    // Create date: <21.10.07>
+    // Description: <하이패스 리뉴얼>   
     // Last Modified: <25.09.29> - Refactored for PHP 8.x and security.
-	// =============================================
+    // Last Modified: <Current Date> - UI Compact & Visual Separation
+    // =============================================
     include 'hipass_status.php'; 
+
+    // 모바일 뷰 반복 출력을 위한 데이터 배열 생성
+    $mobile_view_data = [
+        ['row' => $row1, 'user_row' => $user_row1, 'dt_row' => $dt_row1],
+        ['row' => $row2, 'user_row' => $user_row2, 'dt_row' => $dt_row2],
+        ['row' => $row3, 'user_row' => $user_row3, 'dt_row' => $dt_row3],
+        ['row' => $row4, 'user_row' => $user_row4, 'dt_row' => $dt_row4],
+    ];
 ?>
 
 
@@ -13,27 +22,18 @@
 <html lang="ko">
 
 <head>
-    <!-- 헤드 -->
     <?php include '../head_lv1.php' ?>
 </head>
 
 <body id="page-top">
 
-    <!-- Page Wrapper -->
     <div id="wrapper">
 
-        <!-- 메뉴 -->
         <?php include '../nav.php' ?>
 
-        <!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-
-        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
-            <!-- Main Content -->
             <div id="content">
-                <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3" title="sidebartop_button">
                             <i class="fa fa-bars"></i>
@@ -41,10 +41,7 @@
                         <h1 class="h3 mb-0 text-gray-800" style="padding-top:1em; display:inline-block; vertical-align:-4px;">하이패스</h1>
                     </div>               
 
-                    <!-- Begin row -->
                     <div class="row"> 
-
-                        <!-- 탭 시작 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
 
                         <div class="col-lg-12"> 
                             <div class="card card-primary card-tabs">
@@ -61,10 +58,9 @@
                                         </li>
                                     </ul>
                                 </div>
-                                <div class="card-body">
+                                <div class="card-body p-2">
                                     <div class="tab-content" id="custom-tabs-one-tabContent">
-                                        <!-- 1번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                        <div class="tab-pane fade" id="tab1" role="tabpanel" aria-labelledby="tab-one">
+                                        <div class="tab-pane fade p-2" id="tab1" role="tabpanel" aria-labelledby="tab-one">
                                             [목표]<BR>
                                             - 하이패스카드 출납 및 내역 전산화<BR><BR>   
 
@@ -81,96 +77,113 @@
                                             [제작일]<BR>
                                             - 21.10.07<br><br> 
                                         </div>
-                                        <!-- 2번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                                         <div class="tab-pane fade <?php echo htmlspecialchars($tab2_text ?? '', ENT_QUOTES, 'UTF-8');?>" id="tab2" role="tabpanel" aria-labelledby="tab-two">
-                                            <!-- 충전 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample21">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">충전</h6>
-                                                    </a>
-                                                    <form method="POST" autocomplete="off" action="hipass.php"> 
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample21">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row">    
-                                                                    <!-- Begin 카드선택 -->     
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>카드선택</label>
-                                                                            <select name="hipasscard" class="form-control select2" style="width: 100%;">
-                                                                                <option value="" selected="selected">선택</option>
-                                                                                <option value="1">개인출장1</option>
-                                                                                <option value="2">개인출장2</option>
-                                                                                <option value="3">개인출장3</option>
-                                                                                <option value="4">개인출장4</option>
-                                                                            </select>
-                                                                        </div>
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse"
+                                                    role="button" aria-expanded="true" aria-controls="collapseCardExample21">
+                                                    <h1 class="h6 m-0 font-weight-bold text-primary">충전</h6>
+                                                </a>
+                                                <form method="POST" autocomplete="off" action="hipass.php"> 
+                                                    <div class="collapse show" id="collapseCardExample21">                                    
+                                                        <div class="card-body">
+                                                            <div class="row">    
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>카드선택</label>
+                                                                        <select name="hipasscard" class="form-control select2" style="width: 100%;">
+                                                                            <option value="" selected="selected">선택</option>
+                                                                            <option value="1">개인출장1</option>
+                                                                            <option value="2">개인출장2</option>
+                                                                            <option value="3">개인출장3</option>
+                                                                            <option value="4">개인출장4</option>
+                                                                        </select>
                                                                     </div>
-                                                                    <!-- end 카드선택 -->
-                                                                    <!-- Begin 충전금액 -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>충전금액</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-dollar-sign"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="text" class="form-control" name="card_sum" required onKeyup="this.value=this.value.replace(/[^0-9]/g,'');">
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>충전금액</label>
+                                                                        <div class="input-group">                                                
+                                                                            <div class="input-group-prepend">
+                                                                                <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
                                                                             </div>
+                                                                            <input type="text" class="form-control" name="card_sum" required onKeyup="this.value=this.value.replace(/[^0-9]/g,'');">
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 충전금액 -->
-                                                                    <!-- Begin 패스워드 -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>패스워드</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-key"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="password" class="form-control" name="card_admin" required>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>패스워드</label>
+                                                                        <div class="input-group">                                                
+                                                                            <div class="input-group-prepend">
+                                                                                <span class="input-group-text"><i class="fas fa-key"></i></span>
                                                                             </div>
+                                                                            <input type="password" class="form-control" name="card_admin" required>
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 패스워드 -->                                             
-                                                                </div> 
-                                                                <!-- /.row -->         
+                                                                </div>
                                                             </div> 
-                                                            <!-- /.card-body -->                                                                       
-
-                                                            <!-- Begin card-footer --> 
-                                                            <div class="card-footer text-right">
-                                                                <button type="submit" value="on" class="btn btn-primary" name="bt2">충전</button>
-                                                            </div>
-                                                            <!-- /.card-footer -->   
-                                                        </form>             
+                                                        </div> 
+                                                        <div class="card-footer text-right">
+                                                            <button type="submit" value="on" class="btn btn-primary" name="bt2">충전</button>
+                                                        </div>
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div> 
+                                                </form>             
+                                            </div>
 
-                                            <!-- 현황!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->                    
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample22" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample22">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">현황</h6>
-                                                    </a>
-                                                    <!-- Card Content - Collapse -->
-                                                    <div class="collapse show" id="collapseCardExample22">
-                                                        <div class="card-body table-responsive p-2">
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample22" class="d-block card-header py-3" data-toggle="collapse"
+                                                    role="button" aria-expanded="true" aria-controls="collapseCardExample22">
+                                                    <h1 class="h6 m-0 font-weight-bold text-primary">현황</h6>
+                                                </a>
+                                                <div class="collapse show" id="collapseCardExample22">
+                                                    <div class="card-body p-2">
+                                                        <div class="d-md-none">
+                                                            <?php foreach ($mobile_view_data as $data): 
+                                                                $r = $data['row']; $u = $data['user_row']; $dt = $data['dt_row'];
+                                                                $renter = (isset($r) && $r->CARD_CONDITION=='OUT') ? $r->USER : "없음";
+                                                                $date = (isset($dt) && $dt->RETURN_DATE==NULL) ? $dt->RECORD_DATE : ($dt->RETURN_DATE ?? '');
+
+                                                                // 색상 로직 적용 (모바일)
+                                                                $kind_color = "text-secondary";
+                                                                if (isset($r)) {
+                                                                    if ($r->CARD_CONDITION == 'IN') $kind_color = "text-success"; // 초록색
+                                                                    elseif ($r->CARD_CONDITION == 'OUT') $kind_color = "text-danger"; // 빨간색
+                                                                }
+                                                            ?>
+                                                            <div class="card mb-2"> <div class="card-body p-3">
+                                                                <div class="row no-gutters align-items-center">
+                                                                    <div class="col mr-2">
+                                                                        <div class="h6 font-weight-bold <?= $kind_color ?> text-uppercase mb-2">
+                                                                            <?= htmlspecialchars($r->KIND ?? '', ENT_QUOTES, 'UTF-8') ?>
+                                                                        </div>
+                                                                        <div class="row mb-1">
+                                                                            <div class="col-4 font-weight-bold small text-gray-600">현황</div>
+                                                                            <div class="col-8 small"><?= htmlspecialchars($r->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></div>
+                                                                        </div>
+                                                                        <div class="row mb-1">
+                                                                            <div class="col-4 font-weight-bold small text-gray-600">잔액</div>
+                                                                            <div class="col-8 small"><?= htmlspecialchars($r->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></div>
+                                                                        </div>
+                                                                        <div class="row mb-1">
+                                                                            <div class="col-4 font-weight-bold small text-gray-600">대여자</div>
+                                                                            <div class="col-8 small"><?= htmlspecialchars($renter, ENT_QUOTES, 'UTF-8') ?></div>
+                                                                        </div>
+                                                                        <div class="row mb-1">
+                                                                            <div class="col-4 font-weight-bold small text-gray-600">마지막사용</div>
+                                                                            <div class="col-8 small"><?= htmlspecialchars($u->USER ?? '', ENT_QUOTES, 'UTF-8') ?></div>
+                                                                        </div>
+                                                                        <div class="row mb-0">
+                                                                            <div class="col-4 font-weight-bold small text-gray-600">날짜</div>
+                                                                            <div class="col-8 small"><?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8') ?></div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+
+                                                        <div class="table-responsive d-none d-md-block">
                                                             <table class="table table-bordered table-hover text-nowrap" id="dataTable">
                                                                 <thead>
                                                                     <tr>
@@ -183,213 +196,193 @@
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
+                                                                    <?php foreach ($mobile_view_data as $data): 
+                                                                        $r = $data['row']; $u = $data['user_row']; $dt = $data['dt_row'];
+                                                                        $renter = (isset($r) && $r->CARD_CONDITION=='OUT') ? $r->USER : "없음";
+                                                                        $date = (isset($dt) && $dt->RETURN_DATE==NULL) ? $dt->RECORD_DATE : ($dt->RETURN_DATE ?? '');
+
+                                                                        // [추가] 웹상 현황 색상 로직
+                                                                        $status_class = "";
+                                                                        if (isset($r)) {
+                                                                            if ($r->CARD_CONDITION == 'IN') $status_class = "text-success font-weight-bold";
+                                                                            elseif ($r->CARD_CONDITION == 'OUT') $status_class = "text-danger font-weight-bold";
+                                                                        }
+                                                                    ?>
                                                                     <tr>
-                                                                        <td><?= htmlspecialchars($row1->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($user_row1->USER ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($row1) && $row1->CARD_CONDITION=='OUT') {echo htmlspecialchars($row1->USER, ENT_QUOTES, 'UTF-8');} else {echo "없음";} ?></td>
-                                                                        <td><?= htmlspecialchars($row1->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($row1->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($dt_row1) && $dt_row1->RETURN_DATE==NULL) {echo htmlspecialchars($dt_row1->RECORD_DATE, ENT_QUOTES, 'UTF-8');} else {echo htmlspecialchars($dt_row1->RETURN_DATE ?? '', ENT_QUOTES, 'UTF-8');} ?></td>
+                                                                        <td><?= htmlspecialchars($r->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                                                        <td><?= htmlspecialchars($u->USER ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                                                        <td><?= htmlspecialchars($renter, ENT_QUOTES, 'UTF-8') ?></td>
+                                                                        <td class="<?= $status_class ?>"><?= htmlspecialchars($r->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                                                        <td><?= htmlspecialchars($r->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                                                        <td><?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8') ?></td>
                                                                     </tr>
-                                                                    <tr>
-                                                                        <td><?= htmlspecialchars($row2->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($user_row2->USER ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($row2) && $row2->CARD_CONDITION=='OUT') {echo htmlspecialchars($row2->USER, ENT_QUOTES, 'UTF-8');} else {echo "없음";} ?></td>
-                                                                        <td><?= htmlspecialchars($row2->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($row2->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($dt_row2) && $dt_row2->RETURN_DATE==NULL) {echo htmlspecialchars($dt_row2->RECORD_DATE, ENT_QUOTES, 'UTF-8');} else {echo htmlspecialchars($dt_row2->RETURN_DATE ?? '', ENT_QUOTES, 'UTF-8');} ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td><?= htmlspecialchars($row3->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($user_row3->USER ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($row3) && $row3->CARD_CONDITION=='OUT') {echo htmlspecialchars($row3->USER, ENT_QUOTES, 'UTF-8');} else {echo "없음";} ?></td>
-                                                                        <td><?= htmlspecialchars($row3->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($row3->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($dt_row3) && $dt_row3->RETURN_DATE==NULL) {echo htmlspecialchars($dt_row3->RECORD_DATE, ENT_QUOTES, 'UTF-8');} else {echo htmlspecialchars($dt_row3->RETURN_DATE ?? '', ENT_QUOTES, 'UTF-8');} ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td><?= htmlspecialchars($row4->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($user_row4->USER ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($row4) && $row4->CARD_CONDITION=='OUT') {echo htmlspecialchars($row4->USER, ENT_QUOTES, 'UTF-8');} else {echo "없음";} ?></td>
-                                                                        <td><?= htmlspecialchars($row4->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($row4->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($dt_row4) && $dt_row4->RETURN_DATE==NULL) {echo htmlspecialchars($dt_row4->RECORD_DATE, ENT_QUOTES, 'UTF-8');} else {echo htmlspecialchars($dt_row4->RETURN_DATE ?? '', ENT_QUOTES, 'UTF-8');} ?></td>
-                                                                    </tr>      
+                                                                    <?php endforeach; ?>
                                                                 </tbody>
                                                             </table>                                     
                                                         </div>
-                                                        <!-- /.card-body -->
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
                                                 </div>
-                                                <!-- /.card -->
                                             </div> 
                                         </div>  
 
-                                        <!-- 3번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->         
                                         <div class="tab-pane fade <?php echo htmlspecialchars($tab3_text ?? '', ENT_QUOTES, 'UTF-8');?>" id="tab3" role="tabpanel" aria-labelledby="tab-three">
-                                            <!-- 대여 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample31" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample31">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">대여</h6>
-                                                    </a>
-                                                    <form method="POST" autocomplete="off" action="hipass.php"> 
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample31">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row">    
-                                                                    <!-- Begin 카드선택 -->     
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>카드선택</label>
-                                                                            <select name="hipasscard31" class="form-control select2" style="width: 100%;">
-                                                                                <option value="" selected="selected">선택</option>
-                                                                                <?php foreach ( $in_hipass as $option ) : ?>
-                                                                                    <option value="<?= htmlspecialchars($option->NO ?? '', ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($option->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></option>
-                                                                                <?php endforeach; ?>
-                                                                            </select>
-                                                                        </div>
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample31" class="d-block card-header py-3" data-toggle="collapse"
+                                                    role="button" aria-expanded="true" aria-controls="collapseCardExample31">
+                                                    <h1 class="h6 m-0 font-weight-bold text-primary">대여</h6>
+                                                </a>
+                                                <form method="POST" autocomplete="off" action="hipass.php"> 
+                                                    <div class="collapse show" id="collapseCardExample31">                                    
+                                                        <div class="card-body">
+                                                            <div class="row">    
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>카드선택</label>
+                                                                        <select name="hipasscard31" class="form-control select2" style="width: 100%;">
+                                                                            <option value="" selected="selected">선택</option>
+                                                                            <?php foreach ( $in_hipass as $option ) : ?>
+                                                                                <option value="<?= htmlspecialchars($option->NO ?? '', ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($option->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></option>
+                                                                            <?php endforeach; ?>
+                                                                        </select>
                                                                     </div>
-                                                                    <!-- end 카드선택 -->
-                                                                    <!-- Begin 사용자 -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>사용자</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-user"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="text" class="form-control" name="user3" required>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>사용자</label>
+                                                                        <div class="input-group">                                                
+                                                                            <div class="input-group-prepend">
+                                                                                <span class="input-group-text"><i class="fas fa-user"></i></span>
                                                                             </div>
+                                                                            <input type="text" class="form-control" name="user3" required>
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 사용자 -->
-                                                                    <!-- Begin 패스워드 -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>패스워드</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-key"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="password" class="form-control" name="password31" required>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>패스워드</label>
+                                                                        <div class="input-group">                                                
+                                                                            <div class="input-group-prepend">
+                                                                                <span class="input-group-text"><i class="fas fa-key"></i></span>
                                                                             </div>
+                                                                            <input type="password" class="form-control" name="password31" required>
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 패스워드 -->                                            
-                                                                </div> 
-                                                                <!-- /.row -->         
+                                                                </div>
                                                             </div> 
-                                                            <!-- /.card-body -->                                                                       
-
-                                                            <!-- Begin card-footer --> 
-                                                            <div class="card-footer text-right">
-                                                                <button type="submit" value="on" class="btn btn-primary" name="bt31">대여</button>
-                                                            </div>
-                                                            <!-- /.card-footer -->   
-                                                        </form>             
+                                                        </div> 
+                                                        <div class="card-footer text-right">
+                                                            <button type="submit" value="on" class="btn btn-primary" name="bt31">대여</button>
+                                                        </div>
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div> 
+                                                </form>             
+                                            </div>
 
-                                            <!-- 반납 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample32" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample32">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">반납</h6>
-                                                    </a>
-                                                    <form method="POST" autocomplete="off" action="hipass.php"> 
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample32">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row">    
-                                                                    <!-- Begin 카드선택 -->     
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>카드선택</label>
-                                                                            <select name="hipasscard32" class="form-control select2" style="width: 100%;">
-                                                                                <option value="" selected="selected">선택</option>
-                                                                                <?php foreach ( $out_hipass as $option ) : ?>
-                                                                                    <option value="<?= htmlspecialchars($option->NO ?? '', ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($option->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></option>
-                                                                                <?php endforeach; ?>
-                                                                            </select>
-                                                                        </div>
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample32" class="d-block card-header py-3" data-toggle="collapse"
+                                                    role="button" aria-expanded="true" aria-controls="collapseCardExample32">
+                                                    <h1 class="h6 m-0 font-weight-bold text-primary">반납</h6>
+                                                </a>
+                                                <form method="POST" autocomplete="off" action="hipass.php"> 
+                                                    <div class="collapse show" id="collapseCardExample32">                                    
+                                                        <div class="card-body">
+                                                            <div class="row">    
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>카드선택</label>
+                                                                        <select name="hipasscard32" class="form-control select2" style="width: 100%;">
+                                                                            <option value="" selected="selected">선택</option>
+                                                                            <?php foreach ( $out_hipass as $option ) : ?>
+                                                                                <option value="<?= htmlspecialchars($option->NO ?? '', ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($option->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></option>
+                                                                            <?php endforeach; ?>
+                                                                        </select>
                                                                     </div>
-                                                                    <!-- end 카드선택 -->
-                                                                    <!-- Begin 카드잔액 -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>카드잔액</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-dollar-sign"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="text" class="form-control" name="card_balance" required onKeyup="this.value=this.value.replace(/[^0-9]/g,'');">
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>카드잔액</label>
+                                                                        <div class="input-group">                                                
+                                                                            <div class="input-group-prepend">
+                                                                                <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
                                                                             </div>
+                                                                            <input type="text" class="form-control" name="card_balance" required onKeyup="this.value=this.value.replace(/[^0-9]/g,'');">
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 카드잔액 -->                                          
-                                                                    <!-- Begin 패스워드 -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>패스워드</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-key"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="password" class="form-control" name="password32" required>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>패스워드</label>
+                                                                        <div class="input-group">                                                
+                                                                            <div class="input-group-prepend">
+                                                                                <span class="input-group-text"><i class="fas fa-key"></i></span>
                                                                             </div>
+                                                                            <input type="password" class="form-control" name="password32" required>
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 패스워드 --> 
-                                                                </div> 
-                                                                <!-- /.row -->         
+                                                                </div>
                                                             </div> 
-                                                            <!-- /.card-body -->                                                                       
-
-                                                            <!-- Begin card-footer --> 
-                                                            <div class="card-footer text-right">
-                                                                <button type="submit" value="on" class="btn btn-primary" name="bt32">반납</button>
-                                                            </div>
-                                                            <!-- /.card-footer -->   
-                                                        </form>             
+                                                        </div> 
+                                                        <div class="card-footer text-right">
+                                                            <button type="submit" value="on" class="btn btn-primary" name="bt32">반납</button>
+                                                        </div>
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div> 
+                                                </form>             
+                                            </div>
 
-                                            <!-- 현황!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->                    
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample33" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample33">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">현황</h6>
-                                                    </a>
-                                                    <!-- Card Content - Collapse -->
-                                                    <div class="collapse show" id="collapseCardExample33">
-                                                        <div class="card-body table-responsive p-2">
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample33" class="d-block card-header py-3" data-toggle="collapse"
+                                                    role="button" aria-expanded="true" aria-controls="collapseCardExample33">
+                                                    <h1 class="h6 m-0 font-weight-bold text-primary">현황</h6>
+                                                </a>
+                                                <div class="collapse show" id="collapseCardExample33">
+                                                    <div class="card-body p-2">
+                                                        <div class="d-md-none">
+                                                            <?php foreach ($mobile_view_data as $data): 
+                                                                $r = $data['row']; $u = $data['user_row']; $dt = $data['dt_row'];
+                                                                $renter = (isset($r) && $r->CARD_CONDITION=='OUT') ? $r->USER : "없음";
+                                                                $date = (isset($dt) && $dt->RETURN_DATE==NULL) ? $dt->RECORD_DATE : ($dt->RETURN_DATE ?? '');
+
+                                                                // 색상 로직 적용 (모바일)
+                                                                $kind_color = "text-secondary";
+                                                                if (isset($r)) {
+                                                                    if ($r->CARD_CONDITION == 'IN') $kind_color = "text-success"; // 초록색
+                                                                    elseif ($r->CARD_CONDITION == 'OUT') $kind_color = "text-danger"; // 빨간색
+                                                                }
+                                                            ?>
+                                                            <div class="card mb-2">
+                                                                <div class="card-body p-3">
+                                                                    <div class="row no-gutters align-items-center">
+                                                                        <div class="col mr-2">
+                                                                            <div class="h6 font-weight-bold <?= $kind_color ?> text-uppercase mb-2">
+                                                                                <?= htmlspecialchars($r->KIND ?? '', ENT_QUOTES, 'UTF-8') ?>
+                                                                            </div>
+                                                                            <div class="row mb-1">
+                                                                                <div class="col-4 font-weight-bold small text-gray-600">현황</div>
+                                                                                <div class="col-8 small"><?= htmlspecialchars($r->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></div>
+                                                                            </div>
+                                                                            <div class="row mb-1">
+                                                                                <div class="col-4 font-weight-bold small text-gray-600">잔액</div>
+                                                                                <div class="col-8 small"><?= htmlspecialchars($r->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></div>
+                                                                            </div>
+                                                                            <div class="row mb-1">
+                                                                                <div class="col-4 font-weight-bold small text-gray-600">대여자</div>
+                                                                                <div class="col-8 small"><?= htmlspecialchars($renter, ENT_QUOTES, 'UTF-8') ?></div>
+                                                                            </div>
+                                                                            <div class="row mb-1">
+                                                                                <div class="col-4 font-weight-bold small text-gray-600">마지막사용</div>
+                                                                                <div class="col-8 small"><?= htmlspecialchars($u->USER ?? '', ENT_QUOTES, 'UTF-8') ?></div>
+                                                                            </div>
+                                                                            <div class="row mb-0">
+                                                                                <div class="col-4 font-weight-bold small text-gray-600">날짜</div>
+                                                                                <div class="col-8 small"><?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8') ?></div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+
+                                                        <div class="table-responsive d-none d-md-block">
                                                             <table class="table table-bordered table-hover text-nowrap" id="dataTable">
                                                                 <thead>
                                                                     <tr>
@@ -402,46 +395,32 @@
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
+                                                                    <?php foreach ($mobile_view_data as $data): 
+                                                                        $r = $data['row']; $u = $data['user_row']; $dt = $data['dt_row'];
+                                                                        $renter = (isset($r) && $r->CARD_CONDITION=='OUT') ? $r->USER : "없음";
+                                                                        $date = (isset($dt) && $dt->RETURN_DATE==NULL) ? $dt->RECORD_DATE : ($dt->RETURN_DATE ?? '');
+
+                                                                        // [추가] 웹상 현황 색상 로직
+                                                                        $status_class = "";
+                                                                        if (isset($r)) {
+                                                                            if ($r->CARD_CONDITION == 'IN') $status_class = "text-success font-weight-bold";
+                                                                            elseif ($r->CARD_CONDITION == 'OUT') $status_class = "text-danger font-weight-bold";
+                                                                        }
+                                                                    ?>
                                                                     <tr>
-                                                                        <td><?= htmlspecialchars($row1->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($user_row1->USER ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($row1) && $row1->CARD_CONDITION=='OUT') {echo htmlspecialchars($row1->USER, ENT_QUOTES, 'UTF-8');} else {echo "없음";} ?></td>
-                                                                        <td><?= htmlspecialchars($row1->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($row1->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($dt_row1) && $dt_row1->RETURN_DATE==NULL) {echo htmlspecialchars($dt_row1->RECORD_DATE, ENT_QUOTES, 'UTF-8');} else {echo htmlspecialchars($dt_row1->RETURN_DATE ?? '', ENT_QUOTES, 'UTF-8');} ?></td>
+                                                                        <td><?= htmlspecialchars($r->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                                                        <td><?= htmlspecialchars($u->USER ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                                                        <td><?= htmlspecialchars($renter, ENT_QUOTES, 'UTF-8') ?></td>
+                                                                        <td class="<?= $status_class ?>"><?= htmlspecialchars($r->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                                                        <td><?= htmlspecialchars($r->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                                                        <td><?= htmlspecialchars($date, ENT_QUOTES, 'UTF-8') ?></td>
                                                                     </tr>
-                                                                    <tr>
-                                                                        <td><?= htmlspecialchars($row2->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($user_row2->USER ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($row2) && $row2->CARD_CONDITION=='OUT') {echo htmlspecialchars($row2->USER, ENT_QUOTES, 'UTF-8');} else {echo "없음";} ?></td>
-                                                                        <td><?= htmlspecialchars($row2->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($row2->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($dt_row2) && $dt_row2->RETURN_DATE==NULL) {echo htmlspecialchars($dt_row2->RECORD_DATE, ENT_QUOTES, 'UTF-8');} else {echo htmlspecialchars($dt_row2->RETURN_DATE ?? '', ENT_QUOTES, 'UTF-8');} ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td><?= htmlspecialchars($row3->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($user_row3->USER ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($row3) && $row3->CARD_CONDITION=='OUT') {echo htmlspecialchars($row3->USER, ENT_QUOTES, 'UTF-8');} else {echo "없음";} ?></td>
-                                                                        <td><?= htmlspecialchars($row3->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($row3->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($dt_row3) && $dt_row3->RETURN_DATE==NULL) {echo htmlspecialchars($dt_row3->RECORD_DATE, ENT_QUOTES, 'UTF-8');} else {echo htmlspecialchars($dt_row3->RETURN_DATE ?? '', ENT_QUOTES, 'UTF-8');} ?></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td><?= htmlspecialchars($row4->KIND ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($user_row4->USER ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($row4) && $row4->CARD_CONDITION=='OUT') {echo htmlspecialchars($row4->USER, ENT_QUOTES, 'UTF-8');} else {echo "없음";} ?></td>
-                                                                        <td><?= htmlspecialchars($row4->CARD_CONDITION ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?= htmlspecialchars($row4->SUM ?? '', ENT_QUOTES, 'UTF-8') ?></td>
-                                                                        <td><?php if(isset($dt_row4) && $dt_row4->RETURN_DATE==NULL) {echo htmlspecialchars($dt_row4->RECORD_DATE, ENT_QUOTES, 'UTF-8');} else {echo htmlspecialchars($dt_row4->RETURN_DATE ?? '', ENT_QUOTES, 'UTF-8');} ?></td>
-                                                                    </tr>      
+                                                                    <?php endforeach; ?>
                                                                 </tbody>
                                                             </table>                                     
                                                         </div>
-                                                        <!-- /.card-body -->
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
                                                 </div>
-                                                <!-- /.card -->
                                             </div>
                                         </div>                                          
                                     </div>
@@ -449,20 +428,12 @@
                             </div>
                         </div>     
 
-                        <!-- end !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-                    
                     </div>
-                    <!-- /.row -->
                 </div>
-                <!-- /.container-fluid -->
             </div>
-            <!-- End of Main Content -->
         </div>
-        <!-- End of Content Wrapper -->
     </div>
-    <!-- End of Page Wrapper -->
 
-    <!-- Scroll to Top Button-->
     <a class="scroll-to-top rounded" href="#page-top">
         <i class="fas fa-angle-up"></i>
     </a>

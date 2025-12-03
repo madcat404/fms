@@ -13,3 +13,7 @@ scss/
 vendor/
 kjwt_video/
 *.json
+PHPMailer-master/
+css/
+font/
+js/
