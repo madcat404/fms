@@ -17,7 +17,7 @@
     
 
     //★매뉴 진입 시 실행
-    $query_schedule = "SELECT * FROM t_sc_sch WHERE mcal_seq = ? AND use_yn = 'Y'";
+    $query_schedule = "SELECT * FROM t_sc_sch WHERE mcal_seq = ? AND use_yn = 'Y' ORDER BY START_DATE DESC";
     $mcal_seq = '119';
     $stmt = $connect3->prepare($query_schedule);
     $stmt->bind_param('s', $mcal_seq);

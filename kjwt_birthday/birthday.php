@@ -3,33 +3,60 @@
 	// Author: <KWON SUNG KUN - sealclear@naver.com>	
 	// Create date: <24.07.18>
 	// Description:	<이달의 생일자>
-    // Last Modified: <25.09.23> - Refactored for PHP 8.x, Security, and Performance
+    // Last Modified: <Current Date> - Mobile Search Fixed (Method: GET)
 	// =============================================
     include_once __DIR__ . '/birthday_status.php';
+
+    // XSS 방지 함수
+    function h($string) {
+        return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
+    }
+
+    // [데이터 전처리] 결과 데이터를 배열로 저장 (모바일/PC 공용)
+    $birthday_list = [];
+    if (isset($Result_birthday) && $Result_birthday) {
+        while ($row = sqlsrv_fetch_array($Result_birthday, SQLSRV_FETCH_ASSOC)) {
+            if (!empty($row['NM_KOR'])) {
+                $birthday_list[] = $row;
+            }
+        }
+    }
 ?>
 <!DOCTYPE html>
 <html lang="ko">
 
 <head>
-    <!-- 헤드 -->
     <?php include_once __DIR__ . '/../head_lv1.php'; ?>    
+    <style>
+        /* [수정] 모바일 검색창 스타일 (사각형, 흰색 배경) */
+        .mobile-search-input {
+            height: 50px;
+            font-size: 1.1rem;
+            border-radius: 0; /* 사각형 */
+            background-color: #ffffff !important; /* 배경 흰색 */
+            color: #495057; /* 텍스트 어두운 회색 */
+            border: 1px solid #d1d3e2; /* 테두리 */
+        }
+        .mobile-search-input::placeholder {
+            color: #858796;
+        }
+        .mobile-search-btn {
+            width: 60px;
+            border-radius: 0; /* 사각형 */
+            /* btn-primary 클래스로 인해 파란색 유지 */
+        }
+    </style>
 </head>
 
 <body id="page-top">
 
-    <!-- Page Wrapper -->
     <div id="wrapper">      
         
-        <!-- 메뉴 -->
         <?php include_once __DIR__ . '/../nav.php'; ?>
 
-        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
-            <!-- Main Content -->
             <div id="content">
-                <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3" title="sidebartop_button">
                             <i class="fa fa-bars"></i>
@@ -37,10 +64,8 @@
                         <h1 class="h3 mb-0 text-gray-800" style="padding-top:1em; display:inline-block; vertical-align:-4px;">생년월일</h1>
                     </div>               
 
-                    <!-- Begin row -->
                     <div class="row"> 
 
-                        <!-- 탭 시작 -->
                         <div class="col-lg-12"> 
                             <div class="card card-primary card-tabs">
                                 <div class="card-header p-0 pt-1">
@@ -53,10 +78,9 @@
                                         </li>    
                                     </ul>
                                 </div>
-                                <div class="card-body">
+                                <div class="card-body p-2">
                                     <div class="tab-content" id="custom-tabs-one-tabContent">
-                                        <!-- 1번째 탭: 공지 --> 
-                                        <div class="tab-pane fade" id="tab1" role="tabpanel" aria-labelledby="tab-one">
+                                        <div class="tab-pane fade p-2" id="tab1" role="tabpanel" aria-labelledby="tab-one">
                                             [목표]<br>
                                             - 직원 생일 알림<br><br>
 
@@ -70,15 +94,56 @@
                                             [제작일]<br>
                                             - 24.07.18<br><br>
                                         </div>
-                                        <!-- 2번째 탭: 목록 -->         
+                                        
                                         <div class="tab-pane fade <?php echo htmlspecialchars($tab2_text ?? '', ENT_QUOTES, 'UTF-8'); ?>" id="tab2" role="tabpanel" aria-labelledby="tab-two">               
-                                            <div class="col-lg-12"> 
-                                                <div class="card shadow mb-4">
-                                                    <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample21">
-                                                        <h6 class="m-0 font-weight-bold text-primary">명단</h6>
-                                                    </a>
-                                                    <div class="collapse show" id="collapseCardExample21">
-                                                        <div class="card-body table-responsive p-2">
+                                            
+                                            <div class="card shadow mb-3 d-block d-md-none border-0 bg-transparent">
+                                                <form method="GET" action="birthday.php">
+                                                    <div class="input-group shadow-sm">
+                                                        <input type="text" class="form-control mobile-search-input" name="search_keyword" placeholder="이름 검색" value="<?= h($search_keyword) ?>">
+                                                        <div class="input-group-append">
+                                                            <button class="btn btn-primary mobile-search-btn" type="submit">
+                                                                <i class="fas fa-search"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample21">
+                                                    <h6 class="m-0 font-weight-bold text-primary">명단</h6>
+                                                </a>
+                                                <div class="collapse show" id="collapseCardExample21">
+                                                    <div class="card-body p-2">
+                                                        
+                                                        <div class="d-md-none">
+                                                            <?php foreach ($birthday_list as $row): ?>
+                                                            <div class="card mb-2">
+                                                                <div class="card-body p-3">
+                                                                    <div class="d-flex justify-content-between align-items-center">
+                                                                        <h6 class="font-weight-bold text-primary mb-0">
+                                                                            <?= h($row['NM_KOR']) ?>
+                                                                        </h6>
+                                                                        <span class="small text-gray-600 font-weight-bold">
+                                                                            <?= h(substr($row['NO_RES'] ?? '', 2, 4)) ?>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <?php endforeach; ?>
+                                                            <?php if(empty($birthday_list)): ?>
+                                                                <div class="text-center p-3 text-gray-500">
+                                                                    <?php if($search_keyword): ?>
+                                                                        검색 결과가 없습니다.
+                                                                    <?php else: ?>
+                                                                        이번 달 생일자가 없습니다.
+                                                                    <?php endif; ?>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        </div>
+
+                                                        <div class="table-responsive d-none d-md-block">
                                                             <table class="table table-bordered table-striped" id="table1">
                                                                 <thead>
                                                                     <tr>
@@ -87,20 +152,12 @@
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    <?php 
-                                                                        if (isset($Result_birthday) && $Result_birthday) {
-                                                                            while ($Data_birthday = sqlsrv_fetch_array($Result_birthday, SQLSRV_FETCH_ASSOC)) {
-                                                                                if (!empty($Data_birthday['NM_KOR'])) {
-                                                                    ?>
+                                                                    <?php foreach ($birthday_list as $row): ?>
                                                                     <tr> 
-                                                                        <td><?php echo htmlspecialchars($Data_birthday['NM_KOR'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                        <td><?php echo htmlspecialchars(substr($Data_birthday['NO_RES'] ?? '', 2, 4), ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                        <td><?php echo h($row['NM_KOR']); ?></td>
+                                                                        <td><?php echo h(substr($row['NO_RES'] ?? '', 2, 4)); ?></td>
                                                                     </tr>
-                                                                    <?php
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    ?>
+                                                                    <?php endforeach; ?>
                                                                 </tbody>
                                                             </table>
                                                         </div> 
@@ -115,13 +172,8 @@
                     </div>
                 </div>
             </div>
-            <!-- End of Main Content -->
+            </div>
         </div>
-        <!-- End of Content Wrapper -->
-    </div>
-    <!-- End of Page Wrapper -->
-
-    <!-- Bootstrap core JavaScript-->
     <?php include_once __DIR__ . '/../plugin_lv1.php'; ?>
 </body>
 </html>
