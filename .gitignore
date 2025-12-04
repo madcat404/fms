@@ -8,6 +8,7 @@ ssl/
 *.pptx
 *.ppt
 *.mp4
+*.webm
 plugins/
 scss/
 vendor/

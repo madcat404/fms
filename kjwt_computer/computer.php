@@ -58,7 +58,7 @@
                                         </li>
                                     </ul>
                                 </div>
-                                <div class="card-body">
+                                <div class="card-body p-2">
                                     <div class="tab-content" id="custom-tabs-one-tabContent">
                                         <!-- 1번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                                         <div class="tab-pane fade" id="tab1" role="tabpanel" aria-labelledby="tab-one"> 
