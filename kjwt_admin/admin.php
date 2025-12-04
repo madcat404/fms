@@ -12,6 +12,15 @@
         $condition = filter_var($condition, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
         return $condition ? "<td style='text-align: center; background-color: red;'>비정상</td>" : "<td style='text-align: center;'>정상</td>";
     }
+
+    function getStatusInfo($condition) {
+        $is_abnormal = filter_var($condition, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($is_abnormal) {
+            return ['text' => '비정상', 'class' => 'text-danger font-weight-bold'];
+        } else {
+            return ['text' => '정상', 'class' => 'text-success font-weight-bold'];
+        }
+    }
 ?>
 
 <!DOCTYPE html>
@@ -19,6 +28,30 @@
 <head>
     <!-- 헤드 -->
     <?php include_once realpath('../head_lv1.php'); ?> 
+    <style>
+        /* 모바일 최적화: 작은 화면에서 테이블 글자 크기 축소 */
+        @media (max-width: 576px) {
+            .table td, .table th {
+                font-size: 0.85rem;
+                padding: 0.5rem; /* 셀 패딩 축소 */
+            }
+        }
+        .mobile-search-input {
+            height: 50px;
+            font-size: 1.1rem;
+            border-radius: 0; /* 사각형 */
+            background-color: #ffffff !important; /* 배경 흰색 */
+            color: #495057; /* 텍스트 어두운 회색 */
+            border: 1px solid #d1d3e2; /* 테두리 */
+        }
+        .mobile-search-input::placeholder {
+            color: #858796;
+        }
+        .mobile-search-btn {
+            width: 60px;
+            border-radius: 0; /* 사각형 */
+        }
+    </style>
 </head>
 
 <body id="page-top">
@@ -70,17 +103,58 @@
 
                                         <!-- 2번째 탭 -->
                                         <div class="tab-pane fade <?php echo $tab2_text; ?>" id="tab2" role="tabpanel" aria-labelledby="tab-two">               
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample21">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">체크리스트</h1>
-                                                    </a>
+                                            <div class="row">    
+                                                <div class="col-lg-12"> 
+                                                    <!-- Collapsable Card Example -->
+                                                    <div class="card shadow mb-4">
+                                                        <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample21">
+                                                            <h1 class="h6 m-0 font-weight-bold text-primary">체크리스트</h1>
+                                                        </a>
 
-                                                    <form method="POST" autocomplete="off" action="admin.php">
                                                         <div class="collapse show" id="collapseCardExample21">
                                                             <div class="card-body table-responsive p-2"> 
-                                                                <div id="table" class="table-editable">
+                                                                
+                                                                <!-- Mobile Search -->
+                                                                <div class="d-md-none mb-3">
+                                                                    <div class="input-group">
+                                                                        <input type="text" id="mobile-search-input" class="form-control mobile-search-input" placeholder="결과 내 검색...">
+                                                                        <div class="input-group-append">
+                                                                            <button class="btn btn-primary mobile-search-btn" type="button">
+                                                                                <i class="fas fa-search"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <?php 
+                                                                    $statuses = [
+                                                                        ['분류' => '홈페이지', '설명' => '홈페이지 접속확인', '상태' => homepage('https://www.iwin.kr/index') < 200 || homepage('https://www.iwin.kr/index') >= 400],
+                                                                        ['분류' => 'API', '설명' => '휘발유, 경유, LPG 가격 데이터 획득 여부', '상태' => empty($oilGasolineData) || empty($oilDieselData) || empty($oilLpgData) || ($oilGasolineData['PRICE'] < $oilDieselData['PRICE'])],
+                                                                        ['분류' => '현장', '설명' => '데이터 출력 속도 증가를 위한 DB의 전일 데이터 이동 유무 (검사-베트남)', '상태' => $Count_FieldVietnam > 0],
+                                                                        ['분류' => '', '설명' => '데이터 출력 속도 증가를 위한 DB의 전일 데이터 이동 유무 (검사-한국)', '상태' => $Count_FieldKorea > 0],
+                                                                        ['분류' => '', '설명' => '데이터 출력 속도 증가를 위한 DB의 전일 데이터 이동 유무 (완성품 입고)', '상태' => $Count_FieldInput > 0],
+                                                                        ['분류' => '', '설명' => '데이터 출력 속도 증가를 위한 DB의 전일 데이터 이동 유무 (완성품 출하)', '상태' => $Count_FieldOutput > 0],
+                                                                        ['분류' => '레포트', '설명' => '수도 비용 업데이트 유무', '상태' => $Data_Fee['WATER'] == ''],
+                                                                        ['분류' => '', '설명' => '가스 비용 업데이트 유무', '상태' => $Data_Fee['GAS'] == ''],
+                                                                        ['분류' => '', '설명' => '전기 비용 업데이트 유무', '상태' => $Data_Fee['ELECTRICITY'] == ''],
+                                                                        ['분류' => '', '설명' => '급여 비용 업데이트 유무', '상태' => $Data_Fee['PAY'] == ''],
+                                                                        ['분류' => '', '설명' => '도급비 비용 업데이트 유무', '상태' => $Data_Fee['PAY2'] == ''],
+                                                                        ['분류' => '', '설명' => '선박이름 비용 업데이트 유무', '상태' => $Data_Fee['vessel'] == ''],
+                                                                        ['분류' => '온습도', '설명' => '현장', '상태' => $humidityCounts['f_count'] == ''],
+                                                                        ['분류' => '', '설명' => '자재창고', '상태' => $humidityCounts['m_count'] == ''],
+                                                                        ['분류' => '', '설명' => '바이백창고', '상태' => $humidityCounts['b_count'] == ''],
+                                                                        ['분류' => '', '설명' => '완성품창고', '상태' => $humidityCounts['fs_count'] == ''],
+                                                                        ['분류' => '', '설명' => 'ECU창고', '상태' => $humidityCounts['e_count'] == ''],
+                                                                        ['분류' => '', '설명' => '마스크창고', '상태' => $humidityCounts['ms_count'] == ''],
+                                                                        ['분류' => '', '설명' => '전산실', '상태' => $humidityCounts['srv_count'] == ''],
+                                                                        ['분류' => '', '설명' => '시험실A구역', '상태' => $humidityCounts['testA_count'] == ''],
+                                                                        ['분류' => '', '설명' => '시험실B구역', '상태' => $humidityCounts['testB_count'] == ''],
+                                                                        ['분류' => '', '설명' => '수입검사실', '상태' => $humidityCounts['qc_count'] == ''],
+                                                                    ];
+                                                                ?>
+
+                                                                <!-- Desktop Table -->
+                                                                <div class="d-none d-md-block">
                                                                     <table class="table table-bordered" id="table1">
                                                                         <thead>
                                                                             <tr>
@@ -91,32 +165,6 @@
                                                                         </thead>
                                                                         <tbody> 
                                                                         <?php 
-                                                                            $statuses = [
-                                                                                ['분류' => '홈페이지', '설명' => '홈페이지 접속확인', '상태' => homepage('https://www.iwin.kr/index') < 200 || homepage('https://www.iwin.kr/index') >= 400],
-                                                                                ['분류' => 'API', '설명' => '휘발유, 경유, LPG 가격 데이터 획득 여부', '상태' => empty($oilGasolineData) || empty($oilDieselData) || empty($oilLpgData) || ($oilGasolineData['PRICE'] < $oilDieselData['PRICE'])],
-                                                                                ['분류' => '현장', '설명' => '데이터 출력 속도 증가를 위한 DB의 전일 데이터 이동 유무 (검사-베트남)', '상태' => $Count_FieldVietnam > 0],
-                                                                                ['분류' => '', '설명' => '데이터 출력 속도 증가를 위한 DB의 전일 데이터 이동 유무 (검사-한국)', '상태' => $Count_FieldKorea > 0],
-                                                                                ['분류' => '', '설명' => '데이터 출력 속도 증가를 위한 DB의 전일 데이터 이동 유무 (완성품 입고)', '상태' => $Count_FieldInput > 0],
-                                                                                ['분류' => '', '설명' => '데이터 출력 속도 증가를 위한 DB의 전일 데이터 이동 유무 (완성품 출하)', '상태' => $Count_FieldOutput > 0],
-                                                                                ['분류' => '레포트', '설명' => '수도 비용 업데이트 유무', '상태' => $Data_Fee['WATER'] == ''],
-                                                                                ['분류' => '', '설명' => '가스 비용 업데이트 유무', '상태' => $Data_Fee['GAS'] == ''],
-                                                                                ['분류' => '', '설명' => '전기 비용 업데이트 유무', '상태' => $Data_Fee['ELECTRICITY'] == ''],
-                                                                                ['분류' => '', '설명' => '급여 비용 업데이트 유무', '상태' => $Data_Fee['PAY'] == ''],
-                                                                                ['분류' => '', '설명' => '도급비 비용 업데이트 유무', '상태' => $Data_Fee['PAY2'] == ''],
-                                                                                ['분류' => '', '설명' => '선박이름 비용 업데이트 유무', '상태' => $Data_Fee['vessel'] == ''],
-                                                                                ['분류' => '온습도', '설명' => '현장', '상태' => $humidityCounts['f_count'] == ''],
-                                                                                ['분류' => '', '설명' => '자재창고', '상태' => $humidityCounts['m_count'] == ''],
-                                                                                ['분류' => '', '설명' => '바이백창고', '상태' => $humidityCounts['b_count'] == ''],
-                                                                                ['분류' => '', '설명' => '완성품창고', '상태' => $humidityCounts['fs_count'] == ''],
-                                                                                ['분류' => '', '설명' => 'ECU창고', '상태' => $humidityCounts['e_count'] == ''],
-                                                                                ['분류' => '', '설명' => '마스크창고', '상태' => $humidityCounts['ms_count'] == ''],
-                                                                                ['분류' => '', '설명' => '전산실', '상태' => $humidityCounts['srv_count'] == ''],
-                                                                                ['분류' => '', '설명' => '시험실A구역', '상태' => $humidityCounts['testA_count'] == ''],
-                                                                                ['분류' => '', '설명' => '시험실B구역', '상태' => $humidityCounts['testB_count'] == ''],
-                                                                                ['분류' => '', '설명' => '수입검사실', '상태' => $humidityCounts['qc_count'] == ''],
-                                                                                // Add more rows as needed...
-                                                                            ];
-
                                                                             foreach ($statuses as $status) {
                                                                                 echo "<tr>";
                                                                                 if($status['분류']=='현장') {
@@ -138,12 +186,36 @@
                                                                             ?>     
                                                                         </tbody>
                                                                     </table>
-                                                                </div> 
+                                                                </div>
+
+                                                                <!-- Mobile Card View -->
+                                                                <div class="d-md-none" id="mobile-card-container">
+                                                                    <?php
+                                                                        $current_category = '';
+                                                                        foreach ($statuses as $status) {
+                                                                            if (!empty($status['분류'])) {
+                                                                                $current_category = $status['분류'];
+                                                                            }
+                                                                            $status_info = getStatusInfo($status['상태']);
+                                                                    ?>
+                                                                    <div class="card shadow-sm mb-3 mobile-card">
+                                                                        <div class="card-body p-3">
+                                                                            <p class="text-xs font-weight-bold text-primary text-uppercase mb-1"><?php echo htmlspecialchars($current_category, ENT_QUOTES, 'UTF-8'); ?></p>
+                                                                            <p class="card-text mb-2"><?php echo htmlspecialchars($status['설명'], ENT_QUOTES, 'UTF-8'); ?></p>
+                                                                            <p class="card-text mb-0 d-flex justify-content-between">
+                                                                                <strong class="text-gray-600">체크:</strong> 
+                                                                                <span class="<?php echo $status_info['class']; ?>"><?php echo $status_info['text']; ?></span>
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <?php } ?>
+                                                                </div>
+
                                                             </div>
                                                         </div>
-                                                    </form> 
-                                                </div>
-                                            </div>                                          
+                                                    </div>
+                                                </div>   
+                                            </div>                                       
                                         </div>
                                     </div>
                                 </div>
@@ -157,6 +229,27 @@
 
     <!-- Bootstrap core JavaScript-->
     <?php include_once realpath('../plugin_lv1.php'); ?>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('mobile-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('keyup', function() {
+                    const filter = searchInput.value.toUpperCase();
+                    const cards = document.querySelectorAll('#mobile-card-container .mobile-card');
+                    
+                    cards.forEach(function(card) {
+                        const text = card.textContent || card.innerText;
+                        if (text.toUpperCase().indexOf(filter) > -1) {
+                            card.style.display = "";
+                        } else {
+                            card.style.display = "none";
+                        }
+                    });
+                });
+            }
+        });
+    </script>
 </body>
 </html>
 

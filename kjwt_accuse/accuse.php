@@ -69,13 +69,39 @@
 
 <head>
     <!-- 헤드 -->
-    <?php include '../head_lv1.php' ?>    
+    <?php include '../head_lv1.php' ?>
+    <style>
+        /* 모바일 최적화: 작은 화면에서 글자 크기 조정 */
+        @media (max-width: 768px) {
+            .h3 {
+                font-size: 1.25rem;
+            }
+            .h5 {
+                font-size: 1rem;
+            }
+            .card-body, .form-control, .input-group-text, .btn {
+                font-size: 0.9rem;
+            }
+            textarea.form-control {
+                font-size: 0.85rem;
+            }
+            .text-sm {
+                font-size: 0.8rem;
+            }
+            .table {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
 </head>
 
 <body id="page-top">
 
     <!-- Page Wrapper -->
     <div id="wrapper">
+
+        <!-- 메뉴 -->
+        <?php include '../nav.php'; ?>
 
         <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
@@ -259,7 +285,7 @@
                                                                 <!-- Begin row -->
                                                                 <div class="row">                                               
                                                                     <!-- Begin 사용자 -->
-                                                                    <div class="col-md-4">
+                                                                    <div class="col-lg-4">
                                                                         <div class="form-group">
                                                                             <label>이름 (익명가능)<font color='red'> *</font></label>
                                                                             <div class="input-group">                                                
@@ -274,7 +300,7 @@
                                                                     </div>
                                                                     <!-- end 사용자 -->
                                                                     <!-- Begin 이메일 -->
-                                                                    <div class="col-md-4">
+                                                                    <div class="col-lg-4">
                                                                         <div class="form-group">
                                                                             <label>이메일<font color='red'> *</font></label>
                                                                             <div class="input-group">                                                
@@ -289,7 +315,7 @@
                                                                     </div>
                                                                     <!-- end 이메일 -->
                                                                     <!-- Begin 핸드폰번호 -->
-                                                                    <div class="col-md-4">
+                                                                    <div class="col-lg-4">
                                                                         <div class="form-group">
                                                                             <label>핸드폰번호</label>
                                                                             <div class="input-group">                                                
@@ -352,7 +378,7 @@
                                                                     <div class="col-md-12">
                                                                         <div class="form-group">
                                                                             <label>개인정보 수집 동의</label>
-                                                                            <div class="input-group">  
+                                                                            <div class="table-responsive">
                                                                                 <table class="table table-bordered">
                                                                                     <thead>
                                                                                         <tr>
@@ -373,7 +399,10 @@
                                                                                         </tr>                                                                                                         
                                                                                     </tbody>
                                                                                 </table> 
-                                                                                <input type="radio" name="radio21" value="1" required>&nbsp&nbsp동의함
+                                                                            </div>
+                                                                            <div class="form-check mt-2">
+                                                                                <input class="form-check-input" type="radio" name="radio21" value="1" id="agree_privacy" required>
+                                                                                <label class="form-check-label" for="agree_privacy">동의함</label>
                                                                             </div>
                                                                         </div>
                                                                     </div>

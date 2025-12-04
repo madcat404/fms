@@ -54,6 +54,9 @@ $cards = [
 <head>  
     <!-- 헤드 -->
     <?php include 'head_root.php' ?>
+    
+
+    
 </head>
 
 <body id="page-top">

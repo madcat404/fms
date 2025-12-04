@@ -85,9 +85,69 @@
                                             - 22.06.10<br><br> 
                                         </div>
                                         <!-- 2번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->         
-                                        <div class="tab-pane fade <?=$tab2_text;?>" id="tab2" role="tabpanel" aria-labelledby="tab-two">               
+                                        <div class="tab-pane fade <?=$tab2_text;?>" id="tab2" role="tabpanel" aria-labelledby="tab-two"> 
+                                            <P>※ERP 사원등록 메뉴에서 경영팀이 데이터 입력을 한 상태</P>
+                                            <!-- 입력 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                                             <div class="col-lg-12"> 
-                                                <P>※ERP 사원등록 메뉴에서 경영팀이 데이터 입력을 한 상태</P>
+                                                <!-- Collapsable Card Example -->
+                                                <div class="card shadow mb-4">
+                                                    <!-- Card Header - Accordion -->
+                                                    <a href="#collapseCardExample22" class="d-block card-header py-3" data-toggle="collapse"
+                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample22">
+                                                        <h1 class="h6 m-0 font-weight-bold text-primary">입력</h6>
+                                                    </a>
+                                                    <form method="POST" autocomplete="off" action="gate.php"> 
+                                                        <!-- Card Content - Collapse -->
+                                                        <div class="collapse show" id="collapseCardExample22">                                    
+                                                            <div class="card-body">
+                                                                <!-- Begin row -->
+                                                                <div class="row">                                                                        
+                                                                    <!-- Begin 선택 -->     
+                                                                    <div class="col-md-6">
+                                                                        <div class="form-group">
+                                                                            <label>선택</label>
+                                                                            <select name="inout22" class="form-control select2" style="width: 100%;">
+                                                                                <option value="OUT" selected="selected">출문</option>
+                                                                                <option value="IN">입문</option>
+                                                                            </select>
+                                                                        </div>
+                                                                    </div>
+                                                                    <!-- end 선택 -->                                                                      
+                                                                    <!-- Begin 이름 -->
+                                                                    <div class="col-md-6">
+                                                                        <div class="form-group">
+                                                                            <label>이름</label>
+                                                                            <div class="input-group">                                                
+                                                                                <div class="input-group-prepend">
+                                                                                    <span class="input-group-text">
+                                                                                    <i class="fas fa-user"></i>
+                                                                                    </span>
+                                                                                </div>
+                                                                                <input type="text" class="form-control" name="name22" autofocus>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <!-- end 이름 -->                                        
+                                                                </div> 
+                                                                <!-- /.row -->         
+                                                            </div> 
+                                                            <!-- /.card-body -->                                                                       
+
+                                                            <!-- Begin card-footer --> 
+                                                            <div class="card-footer text-right">
+                                                                <button type="submit" value="on" class="btn btn-primary" name="bt22">입력</button>
+                                                            </div>
+                                                            <!-- /.card-footer -->   
+                                                        </div>
+                                                        <!-- /.Card Content - Collapse -->
+                                                    </form>     
+                                                </div>
+                                                <!-- /.card -->
+                                            </div> 
+
+                                            
+
+                                            <div class="col-lg-12">                                                 
                                                 <!-- Collapsable Card Example -->
                                                 <div class="card shadow mb-4">
                                                     <!-- Card Header - Accordion -->

@@ -3,7 +3,7 @@
 	// Author: <KWON SUNG KUN - sealclear@naver.com>	
 	// Create date: <21.11.15>
 	// Description:	<자산 리뉴얼>	
-    // Last Modified: <25.09.29> - Refactored for PHP 8.x and security.
+    // Last Modified: <25.09.29> - Refactored for PHP 8.x, Security, and Performance
     // Optimization: Mobile responsive & Unified Category Colors
 	// =============================================
     include 'asset_status.php';   
@@ -22,6 +22,21 @@
                 font-size: 0.85rem;
                 padding: 0.5rem; /* 셀 패딩 축소 */
             }
+        }
+        .mobile-search-input {
+            height: 50px;
+            font-size: 1.1rem;
+            border-radius: 0; /* 사각형 */
+            background-color: #ffffff !important; /* 배경 흰색 */
+            color: #495057; /* 텍스트 어두운 회색 */
+            border: 1px solid #d1d3e2; /* 테두리 */
+        }
+        .mobile-search-input::placeholder {
+            color: #858796;
+        }
+        .mobile-search-btn {
+            width: 60px;
+            border-radius: 0; /* 사각형 */
         }
     </style>
 </head>
@@ -59,8 +74,10 @@
                                         </li> 
                                     </ul>
                                 </div>
+
                                 <div class="card-body p-2">
                                     <div class="tab-content" id="custom-tabs-one-tabContent">
+                                        <!-- 1번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                                         <div class="tab-pane fade" id="tab1" role="tabpanel" aria-labelledby="tab-one">
                                             [목표]<BR>
                                             - 자산정보 공유<BR><BR>
@@ -73,6 +90,7 @@
                                             - 21.11.15<br><br>                                            
                                         </div>
                                         
+                                        <!-- 2번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->         
                                         <div class="tab-pane fade <?php echo $tab2_text;?>" id="tab2" role="tabpanel" aria-labelledby="tab-two">    
                                             <h1 class="h5 mb-0 text-gray-800 pt-3 pb-3 d-inline-block align-middle">1. H/W</h1>               
                                             <div class="row"> 
@@ -420,14 +438,14 @@
                                                                     <div class="row">                                                                        
                                                                         <div class="col-md-12">
                                                                             <div class="form-group">
-                                                                                <label>사용자 이름 또는 자산번호</label>
+                                                                                <label>사용자 이름, 자산번호, all</label>
                                                                                 <div class="input-group">  
                                                                                     <div class="input-group-prepend">
                                                                                         <span class="input-group-text">
                                                                                         <i class="fas fa-qrcode"></i>
                                                                                         </span>
                                                                                     </div>
-                                                                                    <input type="text" class="form-control" name="user31">
+                                                                                    <input type="text" class="form-control" name="user31" required>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -448,56 +466,122 @@
                                                             <h1 class="h6 m-0 font-weight-bold text-primary">결과</h6>
                                                         </a>
                                                         <div class="collapse show" id="collapseCardExample32">
-                                                            <div class="card-body table-responsive p-2">   
-                                                                <table class="table table-bordered table-hover text-nowrap" id="table3">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th>자산번호</th>
-                                                                            <th>사용자</th>
-                                                                            <th>자산종류</th>   
-                                                                            <th>IP</th> 
-                                                                            <th class="d-none d-md-table-cell">서브넷마스크</th>
-                                                                            <th class="d-none d-md-table-cell">게이트웨이</th>
-                                                                            <th class="d-none d-md-table-cell">DNS</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        <?php
-                                                                            if (isset($Result_SearchAsset)) {
-                                                                                while($Data_SearchAsset = sqlsrv_fetch_array($Result_SearchAsset, SQLSRV_FETCH_ASSOC)) {
-                                                                                    $assetNum = htmlspecialchars($Data_SearchAsset['ASSET_NUM'], ENT_QUOTES, 'UTF-8');
-                                                                                    $user = htmlspecialchars($Data_SearchAsset['KJWT_USER'], ENT_QUOTES, 'UTF-8');
-                                                                                    $kind = htmlspecialchars($Data_SearchAsset['KIND'], ENT_QUOTES, 'UTF-8');
-                                                                                    $ip = htmlspecialchars($Data_SearchAsset['IP'], ENT_QUOTES, 'UTF-8');
-                                                                                    
-                                                                                    $gateway = '';
-                                                                                    if (strpos($ip, '192.168.0.') === 0) {
-                                                                                        $gateway = '192.168.0.1';
-                                                                                    } elseif (strpos($ip, '192.168.2.') === 0) {
-                                                                                        $gateway = '192.168.2.1';
-                                                                                    } elseif (strpos($ip, '192.168.3.') === 0) {
-                                                                                        $gateway = '192.168.3.1';
+                                                            <div class="card-body table-responsive p-2">
+                                                                
+                                                                <!-- Mobile Search -->
+                                                                <div class="d-md-none mb-3">
+                                                                    <div class="input-group">
+                                                                        <input type="text" id="mobile-search-input" class="form-control mobile-search-input" placeholder="결과 내 검색...">
+                                                                        <div class="input-group-append">
+                                                                            <button class="btn btn-primary mobile-search-btn" type="button">
+                                                                                <i class="fas fa-search"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Desktop Table -->
+                                                                <div class="d-none d-md-block">
+                                                                    <table class="table table-bordered table-hover text-nowrap" id="table3">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th>자산번호</th>
+                                                                                <th>사용자</th>
+                                                                                <th>자산종류</th>   
+                                                                                <th>IP</th> 
+                                                                                <th>서브넷마스크</th>
+                                                                                <th>게이트웨이</th>
+                                                                                <th>DNS</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            <?php
+                                                                                $search_results = [];
+                                                                                if (isset($Result_SearchAsset)) {
+                                                                                    while($row = sqlsrv_fetch_array($Result_SearchAsset, SQLSRV_FETCH_ASSOC)) {
+                                                                                        $search_results[] = $row;
                                                                                     }
-                                                                        ?>
-                                                                        <tr>
-                                                                            <td><?php echo $assetNum; ?></td>  
-                                                                            <td><?php echo $user; ?></td>  
-                                                                            <td><?php echo $kind; ?></td>   
-                                                                            <td><?php echo $ip; ?></td>  
-                                                                            <td class="d-none d-md-table-cell">255.255.255.0</td>  
-                                                                            <td class="d-none d-md-table-cell"><?php echo $gateway; ?></td>  
-                                                                            <td class="d-none d-md-table-cell">192.168.100.8</td>  
-                                                                        </tr> 
-                                                                        <?php
                                                                                 }
+
+                                                                                if (!empty($search_results)) {
+                                                                                    foreach($search_results as $Data_SearchAsset) {
+                                                                                        $assetNum = htmlspecialchars($Data_SearchAsset['ASSET_NUM'], ENT_QUOTES, 'UTF-8');
+                                                                                        $user = htmlspecialchars($Data_SearchAsset['KJWT_USER'], ENT_QUOTES, 'UTF-8');
+                                                                                        $kind = htmlspecialchars($Data_SearchAsset['KIND'], ENT_QUOTES, 'UTF-8');
+                                                                                        $ip = htmlspecialchars($Data_SearchAsset['IP'], ENT_QUOTES, 'UTF-8');
+                                                                                        
+                                                                                        $gateway = '';
+                                                                                        if (strpos($ip, '192.168.0.') === 0) {
+                                                                                            $gateway = '192.168.0.1';
+                                                                                        } elseif (strpos($ip, '192.168.2.') === 0) {
+                                                                                            $gateway = '192.168.2.1';
+                                                                                        } elseif (strpos($ip, '192.168.3.') === 0) {
+                                                                                            $gateway = '192.168.3.1';
+                                                                                        }
+                                                                            ?>
+                                                                            <tr>
+                                                                                <td><?php echo $assetNum; ?></td>  
+                                                                                <td><?php echo $user; ?></td>  
+                                                                                <td><?php echo $kind; ?></td>   
+                                                                                <td><?php echo $ip; ?></td>  
+                                                                                <td>255.255.255.0</td>  
+                                                                                <td><?php echo $gateway; ?></td>  
+                                                                                <td>192.168.100.8</td>  
+                                                                            </tr> 
+                                                                            <?php
+                                                                                    }
+                                                                                }
+                                                                            ?>       
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+
+                                                                <!-- Mobile Card View -->
+                                                                <div class="d-md-none" id="mobile-card-container">
+                                                                <?php
+                                                                    if (!empty($search_results)) {
+                                                                        foreach($search_results as $Data_SearchAsset) {
+                                                                            $assetNum = htmlspecialchars($Data_SearchAsset['ASSET_NUM'], ENT_QUOTES, 'UTF-8');
+                                                                            $user = htmlspecialchars($Data_SearchAsset['KJWT_USER'], ENT_QUOTES, 'UTF-8');
+                                                                            $kind = htmlspecialchars($Data_SearchAsset['KIND'], ENT_QUOTES, 'UTF-8');
+                                                                            $ip = htmlspecialchars($Data_SearchAsset['IP'], ENT_QUOTES, 'UTF-8');
+                                                                            
+                                                                            $gateway = '';
+                                                                            if (strpos($ip, '192.168.0.') === 0) {
+                                                                                $gateway = '192.168.0.1';
+                                                                            } elseif (strpos($ip, '192.168.2.') === 0) {
+                                                                                $gateway = '192.168.2.1';
+                                                                            } elseif (strpos($ip, '192.168.3.') === 0) {
+                                                                                $gateway = '192.168.3.1';
                                                                             }
-                                                                        ?>       
-                                                                    </tbody>
-                                                                </table>                                     
-                                                            </div>
+                                                                ?>
+                                                                    <div class="card shadow-sm mb-3 mobile-card">
+                                                                        <div class="card-body p-3">
+                                                                            <div class="row no-gutters align-items-center mb-2">
+                                                                                <div class="col">
+                                                                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">자산번호</div>
+                                                                                    <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $assetNum; ?></div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <p class="card-text mb-1"><strong class="text-gray-600">사용자:</strong> <?php echo $user; ?></p>
+                                                                            <p class="card-text mb-1"><strong class="text-gray-600">자산종류:</strong> <?php echo $kind; ?></p>
+                                                                            <p class="card-text mb-1"><strong class="text-gray-600">IP:</strong> <?php echo $ip; ?></p>
+                                                                            <p class="card-text mb-1"><strong class="text-gray-600">서브넷마스크:</strong> 255.255.255.0</p>
+                                                                            <p class="card-text mb-1"><strong class="text-gray-600">게이트웨이:</strong> <?php echo $gateway; ?></p>
+                                                                            <p class="card-text mb-0"><strong class="text-gray-600">DNS:</strong> 192.168.100.8</p>
+                                                                        </div>
+                                                                    </div>
+                                                                <?php
+                                                                        }
+                                                                    } else if (isset($bt31)) {
+                                                                        echo "<div class='text-center p-5 text-gray-500'>검색 결과가 없습니다.</div>";
+                                                                    }
+                                                                ?>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
+                                                </div>
                                             </div>
                                         </div> 
                                     </div>
@@ -514,6 +598,28 @@
     </a>
 
     <?php include '../plugin_lv1.php'; ?>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('mobile-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('keyup', function() {
+                    const filter = searchInput.value.toUpperCase();
+                    const cards = document.querySelectorAll('#mobile-card-container .mobile-card');
+                    
+                    cards.forEach(function(card) {
+                        const text = card.textContent || card.innerText;
+                        if (text.toUpperCase().indexOf(filter) > -1) {
+                            card.style.display = "";
+                        } else {
+                            card.style.display = "none";
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+
 </body>
 </html>
 

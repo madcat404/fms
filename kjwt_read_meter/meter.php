@@ -70,6 +70,17 @@
 <head>
     <!-- 헤드 -->
     <?php include '../head_lv1.php' ?>    
+    <style>
+        /* 모바일 최적화: 작은 화면에서 글자 크기 조정 */
+        @media (max-width: 768px) {
+            .h3 { font-size: 1.25rem; }
+            .card-body, .form-control, .input-group-text, .btn { font-size: 0.9rem; }
+            .table { font-size: 0.8rem; }
+        }
+        .mobile-search-input { height: 50px; font-size: 1.1rem; border-radius: 0; background-color: #ffffff !important; color: #495057; border: 1px solid #d1d3e2; }
+        .mobile-search-input::placeholder { color: #858796; }
+        .mobile-search-btn { width: 60px; border-radius: 0; }
+    </style>
 </head>
 
 <body id="page-top">
@@ -116,7 +127,8 @@
                                         </li>
                                     </ul>
                                 </div>
-                                <div class="card-body">
+
+                                <div class="card-body p-2">
                                     <div class="tab-content" id="custom-tabs-one-tabContent">
                                         <!-- 1번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                                         <div class="tab-pane fade" id="tab1" role="tabpanel" aria-labelledby="tab-one">
@@ -139,285 +151,313 @@
 
                                         <!-- 2번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->         
                                         <div class="tab-pane fade <?php echo $tab2_text;?>" id="tab2" role="tabpanel" aria-labelledby="tab-two">               
-                                            <!-- 상단정보 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <div class="row">
-                                                    <!-- 보드 시작 -->
-                                                    <?php 
-                                                        // meter_status.php에서 변경된 변수명($data_today_meter)을 사용하고, null일 경우를 대비하여 ?? 0으로 기본값을 설정합니다.
-                                                        $water_iwin = $data_today_meter['WATER_IWIN'] ?? 0;
-                                                        $water_malle = $data_today_meter['WATER_MALLE'] ?? 0;
-                                                        $gas = $data_today_meter['GAS'] ?? 0;
-                                                        $electricity = $data_today_meter['ELECTRICITY'] ?? 0;
+                                            <div class="row">
+                                                <!-- 보드 시작 -->
+                                                <?php 
+                                                    // meter_status.php에서 변경된 변수명($data_today_meter)을 사용하고, null일 경우를 대비하여 ?? 0으로 기본값을 설정합니다.
+                                                    $water_iwin = $data_today_meter['WATER_IWIN'] ?? 0;
+                                                    $water_malle = $data_today_meter['WATER_MALLE'] ?? 0;
+                                                    $gas = $data_today_meter['GAS'] ?? 0;
+                                                    $electricity = $data_today_meter['ELECTRICITY'] ?? 0;
 
-                                                        BOARD(3, "primary", "상수도-아이윈(㎥)", $water_iwin, "fas fa-tint");
-                                                        BOARD(3, "primary", "상수도-말레(㎥)", $water_malle, "fas fa-tint");
-                                                        BOARD(3, "danger", "가스(㎥)", $gas, "fas fa-fire-alt");
-                                                        BOARD(3, "warning", "전기(kWh)", $electricity, "fas fa-bolt");
-                                                    ?>
-                                                </div>
-
-                                            </div>
-                                        
-                                            <!-- 업로드 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample21">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">업로드</h6>
-                                                    </a>
-                                                    <form method="POST" autocomplete="off" action="meter.php" enctype="multipart/form-data"> 
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample21">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row">    
-                                                                    <!-- Begin 수도 아이윈 -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>상수도 사용량 - 아이윈(㎥)</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-tint"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="number" class="form-control" name="note21_a" required>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <!-- end 수도 아이윈 -->  
-                                                                    <!-- Begin 수도 말레 -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>상수도 사용량 - 말레(㎥)</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-tint"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="number"  class="form-control" name="note21_b" required>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <!-- end 수도 말레 --> 
-                                                                    <!-- Begin 가스 -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>보정 가스 사용량(㎥)</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-burn"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="number" class="form-control" name="note21_c" required>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <!-- end 가스 --> 
-                                                                </div> 
-                                                                <!-- /.row -->         
-                                                            </div> 
-                                                            <!-- /.card-body -->                                                                       
-
-                                                            <!-- Begin card-footer --> 
-                                                            <div class="card-footer text-right">
-                                                                <button type="submit" value="on" class="btn btn-primary" name="bt21">입력</button>
-                                                            </div>
-                                                            <!-- /.card-footer -->    
-                                                        </form>             
-                                                    </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div>  
+                                                    BOARD(3, "primary", "상수도-아이윈(㎥)", $water_iwin, "fas fa-tint");
+                                                    BOARD(3, "primary", "상수도-말레(㎥)", $water_malle, "fas fa-tint");
+                                                    BOARD(3, "danger", "가스(㎥)", $gas, "fas fa-fire-alt");
+                                                    BOARD(3, "warning", "전기(kWh)", $electricity, "fas fa-bolt");
+                                                ?>
                                             
-                                            <!-- 차트 - 수도 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample22" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample22">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">수도사용량-아이윈(㎥)</h6>
-                                                    </a>
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample22">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row">    
-                                                                    <div class="chart" style="height: 30vh; width: 100%;">
-                                                                        <canvas id="barChart"></canvas>
-                                                                    </div>
+                                                <!-- 업로드 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
+                                                <div class="col-lg-12"> 
+                                                    <!-- Collapsable Card Example -->
+                                                    <div class="card shadow mb-4">
+                                                        <!-- Card Header - Accordion -->
+                                                        <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse"
+                                                            role="button" aria-expanded="true" aria-controls="collapseCardExample21">
+                                                            <h1 class="h6 m-0 font-weight-bold text-primary">업로드</h6>
+                                                        </a>
+                                                        <form method="POST" autocomplete="off" action="meter.php" enctype="multipart/form-data"> 
+                                                            <!-- Card Content - Collapse -->
+                                                            <div class="collapse show" id="collapseCardExample21">                                    
+                                                                <div class="card-body">
+                                                                    <!-- Begin row -->
+                                                                    <div class="row">    
+                                                                        <!-- Begin 수도 아이윈 -->
+                                                                        <div class="col-lg-4">
+                                                                            <div class="form-group">
+                                                                                <label>상수도 사용량 - 아이윈(㎥)</label>
+                                                                                <div class="input-group">                                                
+                                                                                    <div class="input-group-prepend">
+                                                                                        <span class="input-group-text">
+                                                                                        <i class="fas fa-tint"></i>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <input type="number" class="form-control" name="note21_a" required>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <!-- end 수도 아이윈 -->  
+                                                                        <!-- Begin 수도 말레 -->
+                                                                        <div class="col-lg-4">
+                                                                            <div class="form-group">
+                                                                                <label>상수도 사용량 - 말레(㎥)</label>
+                                                                                <div class="input-group">                                                
+                                                                                    <div class="input-group-prepend">
+                                                                                        <span class="input-group-text">
+                                                                                        <i class="fas fa-tint"></i>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <input type="number"  class="form-control" name="note21_b" required>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <!-- end 수도 말레 --> 
+                                                                        <!-- Begin 가스 -->
+                                                                        <div class="col-lg-4">
+                                                                            <div class="form-group">
+                                                                                <label>보정 가스 사용량(㎥)</label>
+                                                                                <div class="input-group">                                                
+                                                                                    <div class="input-group-prepend">
+                                                                                        <span class="input-group-text">
+                                                                                        <i class="fas fa-burn"></i>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <input type="number" class="form-control" name="note21_c" required>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <!-- end 가스 --> 
+                                                                    </div> 
+                                                                    <!-- /.row -->         
                                                                 </div> 
-                                                                <!-- /.row -->         
-                                                            </div> 
-                                                            <!-- /.card-body -->              
-                                                    </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div> 
+                                                                <!-- /.card-body -->                                                                       
 
-                                            <!-- 차트 - 가스 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample23" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample23">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">가스사용량(㎥)</h6>
-                                                    </a>
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample23">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row">    
-                                                                    <div class="chart" style="height: 30vh; width: 100%;">
-                                                                        <canvas id="barChart2"></canvas>
-                                                                    </div>
-                                                                </div> 
-                                                                <!-- /.row -->         
-                                                            </div> 
-                                                            <!-- /.card-body -->              
+                                                                <!-- Begin card-footer --> 
+                                                                <div class="card-footer text-right">
+                                                                    <button type="submit" value="on" class="btn btn-primary" name="bt21">입력</button>
+                                                                </div>
+                                                                <!-- /.card-footer -->    
+                                                            </form>             
+                                                        </div>
+                                                        <!-- /.Card Content - Collapse -->
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div> 
+                                                    <!-- /.card -->
+                                                </div>  
+                                                
+                                                <!-- 차트 - 수도 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
+                                                <div class="col-lg-12"> 
+                                                    <!-- Collapsable Card Example -->
+                                                    <div class="card shadow mb-4">
+                                                        <!-- Card Header - Accordion -->
+                                                        <a href="#collapseCardExample22" class="d-block card-header py-3" data-toggle="collapse"
+                                                            role="button" aria-expanded="true" aria-controls="collapseCardExample22">
+                                                            <h1 class="h6 m-0 font-weight-bold text-primary">수도사용량-아이윈(㎥)</h6>
+                                                        </a>
+                                                            <!-- Card Content - Collapse -->
+                                                            <div class="collapse show" id="collapseCardExample22">                                    
+                                                                <div class="card-body">
+                                                                    <!-- Begin row -->
+                                                                    <div class="row">    
+                                                                        <div class="chart" style="height: 30vh; width: 100%;">
+                                                                            <canvas id="barChart"></canvas>
+                                                                        </div>
+                                                                    </div> 
+                                                                    <!-- /.row -->         
+                                                                </div> 
+                                                                <!-- /.card-body -->              
+                                                        </div>
+                                                        <!-- /.Card Content - Collapse -->
+                                                    </div>
+                                                    <!-- /.card -->
+                                                </div> 
 
-                                            <!-- 차트 - 전기 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample24" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample24">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">전기사용량(KWH)</h6>
-                                                    </a>
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample24">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row">    
-                                                                    <div class="chart" style="height: 30vh; width: 100%;">
-                                                                        <canvas id="barChart3"></canvas>
-                                                                    </div>
+                                                <!-- 차트 - 가스 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
+                                                <div class="col-lg-12"> 
+                                                    <!-- Collapsable Card Example -->
+                                                    <div class="card shadow mb-4">
+                                                        <!-- Card Header - Accordion -->
+                                                        <a href="#collapseCardExample23" class="d-block card-header py-3" data-toggle="collapse"
+                                                            role="button" aria-expanded="true" aria-controls="collapseCardExample23">
+                                                            <h1 class="h6 m-0 font-weight-bold text-primary">가스사용량(㎥)</h6>
+                                                        </a>
+                                                            <!-- Card Content - Collapse -->
+                                                            <div class="collapse show" id="collapseCardExample23">                                    
+                                                                <div class="card-body">
+                                                                    <!-- Begin row -->
+                                                                    <div class="row">    
+                                                                        <div class="chart" style="height: 30vh; width: 100%;">
+                                                                            <canvas id="barChart2"></canvas>
+                                                                        </div>
+                                                                    </div> 
+                                                                    <!-- /.row -->         
                                                                 </div> 
-                                                                <!-- /.row -->         
-                                                            </div> 
-                                                            <!-- /.card-body -->              
+                                                                <!-- /.card-body -->              
+                                                        </div>
+                                                        <!-- /.Card Content - Collapse -->
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
+                                                    <!-- /.card -->
+                                                </div> 
+
+                                                <!-- 차트 - 전기 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
+                                                <div class="col-lg-12"> 
+                                                    <!-- Collapsable Card Example -->
+                                                    <div class="card shadow mb-4">
+                                                        <!-- Card Header - Accordion -->
+                                                        <a href="#collapseCardExample24" class="d-block card-header py-3" data-toggle="collapse"
+                                                            role="button" aria-expanded="true" aria-controls="collapseCardExample24">
+                                                            <h1 class="h6 m-0 font-weight-bold text-primary">전기사용량(KWH)</h6>
+                                                        </a>
+                                                            <!-- Card Content - Collapse -->
+                                                            <div class="collapse show" id="collapseCardExample24">                                    
+                                                                <div class="card-body">
+                                                                    <!-- Begin row -->
+                                                                    <div class="row">    
+                                                                        <div class="chart" style="height: 30vh; width: 100%;">
+                                                                            <canvas id="barChart3"></canvas>
+                                                                        </div>
+                                                                    </div> 
+                                                                    <!-- /.row -->         
+                                                                </div> 
+                                                                <!-- /.card-body -->              
+                                                        </div>
+                                                        <!-- /.Card Content - Collapse -->
+                                                    </div>
+                                                    <!-- /.card -->
+                                                </div> 
                                             </div> 
                                         </div> 
 
                                         <!-- 3번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->         
                                         <div class="tab-pane fade <?php echo $tab3_text;?>" id="tab3" role="tabpanel" aria-labelledby="tab-three">
-                                            <!-- 검색 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample31" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample31">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">검색</h6>
-                                                    </a>
-                                                    <form method="POST" autocomplete="off" action="meter.php"> 
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample31">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row">                                                                        
-                                                                    <!-- Begin 검색범위 -->
-                                                                    <div class="col-md-12">
-                                                                        <div class="form-group">
-                                                                            <label>검색범위</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="far fa-calendar-alt"></i>
-                                                                                    </span>
+                                            <div class="row">   
+                                        
+                                                <!-- 검색 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
+                                                <div class="col-lg-12"> 
+                                                    <!-- Collapsable Card Example -->
+                                                    <div class="card shadow mb-4">
+                                                        <!-- Card Header - Accordion -->
+                                                        <a href="#collapseCardExample31" class="d-block card-header py-3" data-toggle="collapse"
+                                                            role="button" aria-expanded="true" aria-controls="collapseCardExample31">
+                                                            <h1 class="h6 m-0 font-weight-bold text-primary">검색</h6>
+                                                        </a>
+                                                        <form method="POST" autocomplete="off" action="meter.php"> 
+                                                            <!-- Card Content - Collapse -->
+                                                            <div class="collapse show" id="collapseCardExample31">                                    
+                                                                <div class="card-body">
+                                                                    <!-- Begin row -->
+                                                                    <div class="row">                                                                        
+                                                                        <!-- Begin 검색범위 -->
+                                                                        <div class="col-md-12">
+                                                                            <div class="form-group">
+                                                                                <label>검색범위</label>
+                                                                                <div class="input-group">                                                
+                                                                                    <div class="input-group-prepend">
+                                                                                        <span class="input-group-text">
+                                                                                        <i class="far fa-calendar-alt"></i>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <input type="text" class="form-control float-right kjwt-search-date" name="dt3" value="<?php echo isset($dt3_raw) ? htmlspecialchars($dt3_raw) : ''; ?>">
                                                                                 </div>
-                                                                                <input type="text" class="form-control float-right kjwt-search-date" name="dt3" value="<?php echo isset($dt3_raw) ? htmlspecialchars($dt3_raw) : ''; ?>">
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                    <!-- end 검색범위 -->                                       
+                                                                        <!-- end 검색범위 -->                                       
+                                                                    </div> 
+                                                                    <!-- /.row -->         
                                                                 </div> 
-                                                                <!-- /.row -->         
-                                                            </div> 
-                                                            <!-- /.card-body -->                                                                       
+                                                                <!-- /.card-body -->                                                                       
 
-                                                            <!-- Begin card-footer --> 
-                                                            <div class="card-footer text-right">
-                                                                <button type="submit" value="on" class="btn btn-primary" name="bt31">검색</button>
-                                                            </div>
-                                                            <!-- /.card-footer -->    
-                                                        </form>             
+                                                                <!-- Begin card-footer --> 
+                                                                <div class="card-footer text-right">
+                                                                    <button type="submit" value="on" class="btn btn-primary" name="bt31">검색</button>
+                                                                </div>
+                                                                <!-- /.card-footer -->    
+                                                            </form>             
+                                                        </div>
+                                                        <!-- /.Card Content - Collapse -->
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div>  
+                                                    <!-- /.card -->
+                                                </div>  
 
-                                            <!-- 결과!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample32" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample32">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">결과</h6>
-                                                    </a>
-                                                    <form method="POST" action="meter.php"> 
+                                                <!-- 결과!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+                                                <div class="col-lg-12"> 
+                                                    <!-- Collapsable Card Example -->
+                                                    <div class="card shadow mb-4">
+                                                        <!-- Card Header - Accordion -->
+                                                        <a href="#collapseCardExample32" class="d-block card-header py-3" data-toggle="collapse"
+                                                            role="button" aria-expanded="true" aria-controls="collapseCardExample32">
+                                                            <h1 class="h6 m-0 font-weight-bold text-primary">결과</h6>
+                                                        </a>
                                                         <!-- Card Content - Collapse -->
                                                         <div class="collapse show" id="collapseCardExample32">
-                                                            <div class="card-body table-responsive p-2">
-                                                                <table class="table table-bordered table-hover text-nowrap" id="table3">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th>날짜</th>
-                                                                            <th>상수도-아이윈(㎥)</th>
-                                                                            <th>상수도-말레(㎥)</th>
-                                                                            <th>가스(㎥)</th>
-                                                                            <th>전기(kWh)</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        <?php
-                                                                            // meter_status.php에서 변경된 변수명($result_read_meter)을 사용합니다.
-                                                                            // 또한, 더 안정적인 while 루프를 사용하여 결과를 표시합니다.
-                                                                            if (isset($result_read_meter) && $result_read_meter) {
-                                                                                while ($Data_ReadMeter = sqlsrv_fetch_array($result_read_meter, SQLSRV_FETCH_ASSOC)) {
-                                                                        ?>
-                                                                        <tr> 
-                                                                            <td><?php echo $Data_ReadMeter['SORTING_DATE']->format("Y-m-d"); ?></td>  
-                                                                            <td><?php echo $Data_ReadMeter['WATER_IWIN']; ?></td>  
-                                                                            <td><?php echo $Data_ReadMeter['WATER_MALLE']; ?></td>   
-                                                                            <td><?php echo $Data_ReadMeter['GAS']; ?></td>  
-                                                                            <td><?php echo $Data_ReadMeter['ELECTRICITY']; ?></td>  
-                                                                        </tr> 
-                                                                        <?php 
-                                                                                }
-                                                                            }
-                                                                        ?>       
-                                                                    </tbody>
-                                                                </table>                                     
+                                                            <?php
+                                                                // Pre-fetch data for both views
+                                                                $meter_history = [];
+                                                                if (isset($result_read_meter) && $result_read_meter) {
+                                                                    while ($row = sqlsrv_fetch_array($result_read_meter, SQLSRV_FETCH_ASSOC)) {
+                                                                        $meter_history[] = $row;
+                                                                    }
+                                                                }
+                                                            ?>
+                                                            <div class="card-body p-2">
+                                                                <!-- Mobile Search -->
+                                                                <div class="d-md-none mb-3">
+                                                                    <div class="input-group">
+                                                                        <input type="text" id="mobile-search-history" class="form-control mobile-search-input" placeholder="날짜 또는 수치로 검색...">
+                                                                        <div class="input-group-append">
+                                                                            <button class="btn btn-primary mobile-search-btn" type="button"><i class="fas fa-search"></i></button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Desktop Table -->
+                                                                <div class="d-none d-md-block table-responsive">
+                                                                    <table class="table table-bordered table-hover text-nowrap" id="table3">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th>날짜</th>
+                                                                                <th>상수도-아이윈(㎥)</th>
+                                                                                <th>상수도-말레(㎥)</th>
+                                                                                <th>가스(㎥)</th>
+                                                                                <th>전기(kWh)</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            <?php foreach($meter_history as $Data_ReadMeter): ?>
+                                                                            <tr> 
+                                                                                <td><?php echo $Data_ReadMeter['SORTING_DATE']->format("Y-m-d"); ?></td>  
+                                                                                <td><?php echo number_format((float)($Data_ReadMeter['WATER_IWIN'] ?? 0)); ?></td>  
+                                                                                <td><?php echo number_format((float)($Data_ReadMeter['WATER_MALLE'] ?? 0)); ?></td>   
+                                                                                <td><?php echo number_format((float)($Data_ReadMeter['GAS'] ?? 0)); ?></td>  
+                                                                                <td><?php echo number_format((float)($Data_ReadMeter['ELECTRICITY'] ?? 0)); ?></td>  
+                                                                            </tr> 
+                                                                            <?php endforeach; ?>       
+                                                                        </tbody>
+                                                                    </table>      
+                                                                </div>
+
+                                                                <!-- Mobile Card View -->
+                                                                <div class="d-md-none" id="mobile-card-container-history">
+                                                                    <?php foreach($meter_history as $Data_ReadMeter): ?>
+                                                                    <div class="card shadow-sm mb-3 mobile-card">
+                                                                        <div class="card-header py-3">
+                                                                            <h6 class="m-0 font-weight-bold text-primary"><?php echo $Data_ReadMeter['SORTING_DATE']->format("Y-m-d"); ?></h6>
+                                                                        </div>
+                                                                        <div class="card-body p-3">
+                                                                            <p class="card-text mb-1 d-flex justify-content-between"><strong>상수도-아이윈(㎥):</strong> <span><?php echo number_format((float)($Data_ReadMeter['WATER_IWIN'] ?? 0)); ?></span></p>
+                                                                            <p class="card-text mb-1 d-flex justify-content-between"><strong>상수도-말레(㎥):</strong> <span><?php echo number_format((float)($Data_ReadMeter['WATER_MALLE'] ?? 0)); ?></span></p>
+                                                                            <p class="card-text mb-1 d-flex justify-content-between"><strong>가스(㎥):</strong> <span><?php echo number_format((float)($Data_ReadMeter['GAS'] ?? 0)); ?></span></p>
+                                                                            <p class="card-text mb-0 d-flex justify-content-between"><strong>전기(kWh):</strong> <span><?php echo number_format((float)($Data_ReadMeter['ELECTRICITY'] ?? 0)); ?></span></p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <?php endforeach; ?>
+                                                                </div>
                                                             </div>
                                                             <!-- /.card-body -->
                                                         </div>
                                                         <!-- /.Card Content - Collapse -->
-                                                    </form>
-                                                </div>
-                                                <!-- /.card -->
-                                            </div>   
+                                                    </div>
+                                                    <!-- /.card -->
+                                                </div>   
+                                            </div> 
                                         </div> 
                                     </div>
                                 </div>
@@ -618,6 +658,25 @@
       options: barChartOptions
     }) 
   })
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('mobile-search-history');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const filter = searchInput.value.toUpperCase();
+                const cards = document.querySelectorAll('#mobile-card-container-history .mobile-card');
+                
+                cards.forEach(function(card) {
+                    const text = card.textContent || card.innerText;
+                    if (text.toUpperCase().indexOf(filter) > -1) {
+                        card.style.display = "";
+                    } else {
+                        card.style.display = "none";
+                    }
+                });
+            });
+        }
+    });
 </script>
 
 </body>
