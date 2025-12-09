@@ -645,7 +645,7 @@
         }
         //수기입력 삭제인 경우
         elseif($cd_item2b2 !='') {
-            $Query_SelectRecord = "SELECT * FROM CONNECT.dbo.FIELD_PROCESS_FINISH WHERE CD_ITEM='$cd_item2b2' AND SORTING_DATE ='$Hyphen_today' AND BARCODE LIKE 'handwrite%'";              
+            $Query_SelectRecord = "SELECT * FROM CONNECT.dbo.FIELD_PROCESS_FINISH WHERE CD_ITEM='$cd_item2b2' AND SORTING_DATE ='$Hyphen_today'";              
             $Result_SelectRecord = sqlsrv_query($connect, $Query_SelectRecord, $params, $options);
             $Data_SelectRecord = sqlsrv_fetch_array($Result_SelectRecord);  
 

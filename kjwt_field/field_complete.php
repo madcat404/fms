@@ -206,8 +206,8 @@
                                                 <form method="POST" autocomplete="off" action="field_complete.php">
                                                     <div class="collapse" id="collapseCardExample21b2">
                                                         <div class="card-body p-3">
-                                                            <div class="form-group mb-2"><label>라벨스캔</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-qrcode"></i></span></div><input type="text" class="form-control" name="item2b" pattern="[a-zA-Z0-9^_()_-]+"></div></div>
-                                                            <div class="form-group mb-0"><label>품번(수기입력 삭제)</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-signature"></i></span></div><input type="text" class="form-control" name="item2b2"></div></div>
+                                                            <div class="form-group mb-2"><label>라벨(작업지시번호)</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-qrcode"></i></span></div><input type="text" class="form-control" name="item2b" pattern="[a-zA-Z0-9^_()_-]+"></div></div>
+                                                            <div class="form-group mb-0"><label>품번</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-signature"></i></span></div><input type="text" class="form-control" name="item2b2"></div></div>
                                                         </div>
                                                         <div class="card-footer text-right"><button type="submit" value="on" class="btn btn-primary" name="bt21b">입력</button></div>
                                                     </div>

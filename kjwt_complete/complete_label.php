@@ -502,9 +502,11 @@
                                                                         <input name="re_no<?php ECHO $i; ?>" value="<?php echo h($row['NO']); ?>" type="hidden">
                                                                         <td data-label="국가">
                                                                             <?php 
-                                                                                if($row['COUNTRY']=='K') echo "한국";
-                                                                                elseif($row['COUNTRY']=='V') echo "베트남";
-                                                                                elseif($row['COUNTRY']=='C') echo "중국";
+                                                                                $country_code = isset($row['COUNTRY']) ? trim(strtoupper($row['COUNTRY'])) : '';
+
+                                                                                if($country_code=='K') echo "한국";
+                                                                                elseif($country_code=='V') echo "베트남";
+                                                                                elseif($country_code=='C') echo "중국";
                                                                             ?>
                                                                         </td>  
                                                                         <td data-label="품번"><?php echo h($row['CD_ITEM']); ?></td>  
