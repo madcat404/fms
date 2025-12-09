@@ -2,38 +2,189 @@
     // =============================================
 	// Author: <KWON SUNG KUN - sealclear@naver.com>	
 	// Create date: <21.11.23>
-	// Description:	<지그 리뉴얼>	
-    // Last Modified: <25.10.13> - Refactored for PHP 8.x
+	// Description:	<지그 리뉴얼 - 대시보드 카드 필터링 기능 추가>	
+    // Last Modified: <25.10.13>
 	// =============================================
+    
+    // 로직 파일 포함
     include 'inspect_jig_status.php';
-?>
 
+    // XSS 방지 및 데이터 전처리
+    function h($string) {
+        return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
+    }
+
+    // 파라미터 받기 (검색어, 필터상태)
+    $search_keyword = isset($_GET['search_keyword']) ? $_GET['search_keyword'] : '';
+    $filter_status  = isset($_GET['filter_status']) ? $_GET['filter_status'] : ''; // red, orange, or empty
+
+    // [Tab 2] 지그 현황 데이터 배열 저장 및 필터링 적용
+    $jig_list = [];
+    if (isset($result)) {
+        while ($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)) {
+            $limit = $row['LIMIT_QTY'] ?? 0;
+            $current = $row['CURRENT_QTY'] ?? 0;
+            
+            // 1. 상태 필터링 (카드 클릭 시)
+            $is_included = true;
+            if ($filter_status === 'red') {
+                // 점검필요 (Red): 현재값 >= 기준값
+                if ($current < $limit) $is_included = false;
+            } elseif ($filter_status === 'orange') {
+                // 점검도래 (Orange): 80% 이상 ~ 100% 미만 (Red 제외)
+                if ($current < ($limit * 0.8) || $current >= $limit) $is_included = false;
+            }
+
+            // 2. 검색어 필터링 (AND 조건)
+            if ($is_included && $search_keyword) {
+                if (strpos($row['JIG_ID'], $search_keyword) === false && 
+                    strpos($row['JIG_SEQ'], $search_keyword) === false) {
+                    $is_included = false;
+                }
+            }
+
+            // 조건 만족 시 리스트에 추가
+            if ($is_included) {
+                $jig_list[] = $row;
+            }
+        }
+    }
+
+    // [Tab 3] 지그 변경 이력 데이터 배열 저장 및 검색 필터링
+    $history_list = [];
+    if (isset($result_out)) {
+        while ($row_out = sqlsrv_fetch_array($result_out, SQLSRV_FETCH_ASSOC)) {
+            if ($search_keyword) {
+                if (strpos($row_out['JIG_ID'], $search_keyword) !== false || 
+                    strpos($row_out['JIG_SEQ'], $search_keyword) !== false ||
+                    strpos($row_out['NOTE'], $search_keyword) !== false ||
+                    strpos($row_out['UPDT_USER_ID'], $search_keyword) !== false) {
+                    $history_list[] = $row_out;
+                }
+            } else {
+                $history_list[] = $row_out;
+            }
+        }
+    }
+?>
 
 <!DOCTYPE html>
 <html lang="ko">
 
 <head>
-    <!-- 헤드 -->
     <?php include '../head_lv1.php' ?>
+
+    <style>
+        /* 모바일 검색창 스타일 */
+        .mobile-search-input {
+            height: 50px;
+            font-size: 1.1rem;
+            border-radius: 0;
+            background-color: #ffffff !important;
+            color: #495057;
+            border: 1px solid #d1d3e2;
+        }
+        .mobile-search-input::placeholder {
+            color: #858796;
+        }
+        .mobile-search-btn {
+            width: 60px;
+            border-radius: 0;
+        }
+
+        /* 카드에 클릭 커서 표시 */
+        .clickable-card {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .clickable-card:hover {
+            transform: scale(1.02);
+        }
+
+        /* 모바일 화면 전용 스타일 */
+        @media screen and (max-width: 768px) {
+            
+            /* DataTables 하단 페이지 번호 간소화 */
+            .dataTables_paginate .page-item {
+                display: none !important;
+            }
+            .dataTables_paginate .page-item.previous,
+            .dataTables_paginate .page-item.next,
+            .dataTables_paginate .page-item.active {
+                display: block !important;
+            }
+            .dataTables_paginate ul.pagination {
+                justify-content: center !important;
+                margin-top: 10px;
+            }
+
+            /* DataTables 버튼 및 기능 숨김 */
+            .dt-buttons, 
+            .dataTables_filter, 
+            .dataTables_length {
+                display: none !important;
+            }
+
+            /* 테이블 카드 뷰 변환 */
+            .mobile-responsive-table thead {
+                display: none;
+            }
+            .mobile-responsive-table tr {
+                display: block;
+                margin-bottom: 1rem;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                background-color: #fff;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .mobile-responsive-table td {
+                display: block;
+                text-align: right;
+                font-size: 0.9rem;
+                border-bottom: 1px solid #eee;
+                position: relative;
+                padding-left: 50%;
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+            .mobile-responsive-table td:last-child {
+                border-bottom: 0;
+            }
+            .mobile-responsive-table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 15px;
+                width: 45%;
+                font-weight: 700;
+                text-align: left;
+                color: #4e73df;
+            }
+
+            /* 데이터 없음 행 스타일 (중앙 정렬) */
+            .mobile-responsive-table td.no-data {
+                text-align: center !important;
+                padding-left: 0.75rem !important;
+                color: #858796;
+                padding-top: 1.5rem !important;
+                padding-bottom: 1.5rem !important;
+            }
+            .mobile-responsive-table td.no-data::before {
+                content: none !important;
+            }
+        }
+    </style>
 </head>
 
 <body id="page-top">
 
-    <!-- Page Wrapper -->
     <div id="wrapper">      
         
-        <!-- 메뉴 -->
         <?php include '../nav.php' ?>
 
-        <!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-
-        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
-            <!-- Main Content -->
             <div id="content">
-                <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <!-- Page Heading -->
+                    
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3" title="sidebartop_button">
                             <i class="fa fa-bars"></i>
@@ -41,10 +192,7 @@
                         <h1 class="h3 mb-0 text-gray-800" style="padding-top:1em; display:inline-block; vertical-align:-4px;">지그</h1>
                     </div>               
 
-                    <!-- Begin row -->
                     <div class="row"> 
-
-                        <!-- 탭 시작 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
 
                         <div class="col-lg-12"> 
                             <div class="card card-primary card-tabs">
@@ -54,17 +202,17 @@
                                             <a class="nav-link" id="tab-one" data-toggle="pill" href="#tab1">공지</a>
                                         </li>
                                         <li class="nav-item">
-                                            <a class="nav-link <?php echo htmlspecialchars($tab2, ENT_QUOTES, 'UTF-8');?>" id="tab-two" data-toggle="pill" href="#tab2">지그</a>
+                                            <a class="nav-link <?php echo h($tab2 ?? ''); ?>" id="tab-two" data-toggle="pill" href="#tab2">지그</a>
                                         </li>  
                                         <li class="nav-item">
-                                            <a class="nav-link <?php echo htmlspecialchars($tab3, ENT_QUOTES, 'UTF-8');?>" id="custom-tabs-one-1th-tab" data-toggle="pill" href="#custom-tabs-one-1th">지그변경이력</a>
+                                            <a class="nav-link <?php echo h($tab3 ?? ''); ?>" id="custom-tabs-one-1th-tab" data-toggle="pill" href="#custom-tabs-one-1th">지그변경이력</a>
                                         </li>                                          
                                     </ul>
                                 </div>
-                                <div class="card-body">
+                                <div class="card-body p-2">
                                     <div class="tab-content" id="custom-tabs-one-tabContent">
-                                        <!-- 1번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                        <div class="tab-pane fade" id="tab1" role="tabpanel" aria-labelledby="tab-one">
+                                        
+                                        <div class="tab-pane fade p-2" id="tab1" role="tabpanel" aria-labelledby="tab-one">
                                             [목표]<BR>
                                             - 지그 변경 및 이력관리 전산화<BR><BR>   
 
@@ -84,344 +232,286 @@
                                             - 빨간색: 점검필요<br><br> 
                                             
                                             [제작일]<BR>
-                                            - 21.11.23<br><br>                                             
+                                            - 21.11.23<br><br>                                              
                                         </div>
-                                        <!-- 2번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                        <div class="tab-pane fade <?php echo htmlspecialchars($tab2_text, ENT_QUOTES, 'UTF-8');?>" id="tab2" role="tabpanel" aria-labelledby="tab-two">
-                                            <!-- 등록 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample21">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">등록</h6>
-                                                    </a>
-                                                    <form method="POST" autocomplete="off" action="inspect_jig.php"> 
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse" id="collapseCardExample21">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row"> 
-                                                                    <!-- Begin 지그ID -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>지그ID</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-car"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="text" class="form-control" name="jigid21" required>
-                                                                            </div>
+
+                                        <div class="tab-pane fade <?php echo h($tab2_text ?? ''); ?>" id="tab2" role="tabpanel" aria-labelledby="tab-two">
+                                            
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample21">
+                                                    <h6 class="m-0 font-weight-bold text-primary">등록</h6>
+                                                </a>
+                                                <form method="POST" autocomplete="off" action="inspect_jig.php"> 
+                                                    <div class="collapse" id="collapseCardExample21">                                    
+                                                        <div class="card-body p-3">
+                                                            <div class="row"> 
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>지그ID</label>
+                                                                        <div class="input-group">                                                
+                                                                            <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car"></i></span></div>
+                                                                            <input type="text" class="form-control" name="jigid21" required>
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 지그ID -->
-                                                                    <!-- Begin 지그번호 -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>지그번호</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-map-marker-alt"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="text" class="form-control" name="jignum21" required>
-                                                                            </div>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>지그번호</label>
+                                                                        <div class="input-group">                                                
+                                                                            <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span></div>
+                                                                            <input type="text" class="form-control" name="jignum21" required>
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 지그번호 -->
-                                                                    <!-- Begin 점검기준값 -->
-                                                                    <div class="col-md-4">
-                                                                        <div class="form-group">
-                                                                            <label>점검기준값</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="fas fa-map-marker-alt"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="text" class="form-control" name="val21" value="10000" required onKeyup="this.value=this.value.replace(/[^0-9]/g,'');">
-                                                                            </div>
+                                                                </div>
+                                                                <div class="col-md-4">
+                                                                    <div class="form-group">
+                                                                        <label>점검기준값</label>
+                                                                        <div class="input-group">                                                
+                                                                            <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span></div>
+                                                                            <input type="text" class="form-control" name="val21" value="10000" required onKeyup="this.value=this.value.replace(/[^0-9]/g,'');">
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 점검기준값 -->                                              
-                                                                </div> 
-                                                                <!-- /.row -->         
+                                                                </div>                                              
                                                             </div> 
-                                                            <!-- /.card-body -->                                                                       
-
-                                                            <!-- Begin card-footer --> 
-                                                            <div class="card-footer text-right">
-                                                                <button type="submit" value="on" class="btn btn-primary" name="bt21">입력</button>
-                                                            </div>
-                                                            <!-- /.card-footer -->   
-                                                        </form>             
-                                                    </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div>  
-                                        
-                                        
-                                            <!-- 현황!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample22" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample22">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">현황</h6>
-                                                    </a>
-                                                    <!-- Card Content - Collapse -->
-                                                    <div class="collapse show" id="collapseCardExample22">
-                                                        <div class="card-body table-responsive p-2">
-                                                            <!-- 보드 시작 -->
-                                                            <div class="row">
-                                                                <!-- 보드1 -->
-                                                                <div class="col-xl-4 col-md-6 mb-2">
-                                                                    <div class="card border-left-info shadow h-100 py-2">
-                                                                        <div class="card-body">
-                                                                            <div class="row no-gutters align-items-center">
-                                                                                <div class="col mr-2">
-                                                                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">지그수량</div>
-                                                                                    <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo htmlspecialchars($c_JigCount, ENT_QUOTES, 'UTF-8'); ?></div>
-                                                                                </div>
-                                                                                <div class="col-auto">
-                                                                                    <i class="fas fa-boxes fa-2x text-gray-300"></i>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <!-- 보드2 -->
-                                                                <div class="col-xl-4 col-md-6 mb-2">
-                                                                    <div class="card border-left-danger shadow h-100 py-2">
-                                                                        <div class="card-body">
-                                                                            <div class="row no-gutters align-items-center">
-                                                                                <div class="col mr-2">
-                                                                                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">점검필요</div>
-                                                                                    <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo htmlspecialchars($c_JigInspectNeed, ENT_QUOTES, 'UTF-8'); ?></div>
-                                                                                </div>
-                                                                                <div class="col-auto">
-                                                                                    <i class="fas fa-boxes fa-2x text-gray-300"></i>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <!-- 보드3 -->
-                                                                <div class="col-xl-4 col-md-6 mb-2">
-                                                                    <div class="card border-left-warning shadow h-100 py-2">
-                                                                        <div class="card-body">
-                                                                            <div class="row no-gutters align-items-center">
-                                                                                <div class="col mr-2">
-                                                                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">점검도래</div>
-                                                                                    <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo htmlspecialchars($c_JigInspectSoon, ENT_QUOTES, 'UTF-8'); ?></div>
-                                                                                </div>
-                                                                                <div class="col-auto">
-                                                                                    <i class="fas fa-puzzle-piece fa-2x text-gray-300"></i>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <!-- 보드 끝 -->
-
-                                                            <div id="table" class="table-editable">
-                                                                <table class="table table-bordered table-striped" id="table1">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th>지그ID</th>
-                                                                            <th>지그번호</th>
-                                                                            <th>점검 기준값</th>
-                                                                            <th>현재값</th>
-                                                                            <th>누적값</th>
-                                                                            <th>등록자</th>
-                                                                            <th>둥록일</th>
-                                                                            <th>사용자</th>
-                                                                            <th>사용일</th>
-                                                                            <th>변경자</th>
-                                                                            <th>변경일</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        <?php 
-                                                                            while($row = sqlsrv_fetch_array($result, SQLSRV_FETCH_ASSOC)):
-                                                                        ?>
-                                                                        <tr data-toggle="modal" data-target="#editJigModal"
-                                                                            data-jig-id="<?php echo htmlspecialchars($row['JIG_ID'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                            data-jig-seq="<?php echo htmlspecialchars($row['JIG_SEQ'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                            data-limit-qty="<?php echo htmlspecialchars($row['LIMIT_QTY'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                            data-current-qty="<?php echo htmlspecialchars($row['CURRENT_QTY'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                            data-total-qty="<?php echo htmlspecialchars($row['TOTAL_QTY'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                                            style="cursor: pointer;" onMouseOver="this.style.backgroundColor='#ffedbf';" onMouseOut="this.style.backgroundColor='';">
-                                                                            <td><?php echo htmlspecialchars($row['JIG_ID'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                            <td><?php echo htmlspecialchars($row['JIG_SEQ'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                            <td><?php echo htmlspecialchars($row['LIMIT_QTY'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                            <?php 
-                                                                                $cell_style = '';
-                                                                                if($row['CURRENT_QTY'] >= $row['LIMIT_QTY']) {
-                                                                                    $cell_style = 'style="background-color: red;"';
-                                                                                }
-                                                                                elseif($row['CURRENT_QTY'] >= ($row['LIMIT_QTY'] * 0.8)) {
-                                                                                    $cell_style = 'style="background-color: orange;"';
-                                                                                }
-                                                                            ?>
-                                                                            <td <?php echo $cell_style; ?>><?php echo htmlspecialchars($row['CURRENT_QTY'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                            <td><?php echo htmlspecialchars($row['TOTAL_QTY'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                            <td><?php echo htmlspecialchars($row['INSRT_USER_ID'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                            <td><?php echo htmlspecialchars($row['INSRT_DT'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                            <td><?php echo htmlspecialchars($row['UPDT_USER_ID'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                            <td><?php echo htmlspecialchars($row['UPDT_DT'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                            <td><?php echo htmlspecialchars($row['LAST_UPDATE_USER'], ENT_QUOTES, 'UTF-8'); ?></td> 
-                                                                            <td><?php echo htmlspecialchars($row['LAST_UPDATE_DATE'], ENT_QUOTES, 'UTF-8'); ?></td>                                   
-                                                                        </tr> 
-                                                                        <?php endwhile; ?>
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>                                     
+                                                        </div> 
+                                                        <div class="card-footer text-right">
+                                                            <button type="submit" value="on" class="btn btn-primary" name="bt21">입력</button>
                                                         </div>
-                                                        <!-- /.card-body -->
-                                                    </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div> 
-                                        </div>  
+                                                    </div>   
+                                                </form>             
+                                            </div>
 
-                                        <!-- 3번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->         
-                                        <div class="tab-pane fade <?php echo htmlspecialchars($tab3_text, ENT_QUOTES, 'UTF-8');?>" id="custom-tabs-one-1th" role="tabpanel" aria-labelledby="custom-tabs-one-1th-tab">
-                                            <!-- 검색 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample31" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample31">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">검색</h6>
-                                                    </a>
-                                                    <form method="POST" autocomplete="off" action="inspect_jig.php"> 
-                                                        <!-- Card Content - Collapse -->
-                                                        <div class="collapse show" id="collapseCardExample31">                                    
-                                                            <div class="card-body">
-                                                                <!-- Begin row -->
-                                                                <div class="row">                                                                        
-                                                                    <!-- Begin 검색범위 -->
-                                                                    <div class="col-md-12">
-                                                                        <div class="form-group">
-                                                                            <label>검색범위</label>
-                                                                            <div class="input-group">                                                
-                                                                                <div class="input-group-prepend">
-                                                                                    <span class="input-group-text">
-                                                                                    <i class="far fa-calendar-alt"></i>
-                                                                                    </span>
-                                                                                </div>
-                                                                                <input type="text" class="form-control float-right kjwt-search-date" value="<?php echo htmlspecialchars($dt3 ?: date('Y-m-d').' ~ '.date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" name="dt3">
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample22" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample22">
+                                                    <h6 class="m-0 font-weight-bold text-primary">현황</h6>
+                                                </a>
+                                                <div class="collapse show" id="collapseCardExample22">
+                                                    <div class="card-body p-2">
+                                                        
+                                                        <div class="row">
+                                                            <div class="col-xl-4 col-md-6 mb-2">
+                                                                <div class="card border-left-info shadow h-100 py-2 clickable-card" onclick="location.href='inspect_jig.php?tab=tab2'">
+                                                                    <div class="card-body">
+                                                                        <div class="row no-gutters align-items-center">
+                                                                            <div class="col mr-2">
+                                                                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">지그수량 (전체)</div>
+                                                                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo h($c_JigCount ?? '0'); ?></div>
+                                                                            </div>
+                                                                            <div class="col-auto">
+                                                                                <i class="fas fa-boxes fa-2x text-gray-300"></i>
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                    <!-- end 검색범위 -->                                         
-                                                                </div> 
-                                                                <!-- /.row -->         
-                                                            </div> 
-                                                            <!-- /.card-body -->                                                                       
-
-                                                            <!-- Begin card-footer --> 
-                                                            <div class="card-footer text-right">
-                                                                <button type="submit" value="on" class="btn btn-primary" name="bt31">검색</button>
+                                                                </div>
                                                             </div>
-                                                            <!-- /.card-footer -->   
-                                                        </form>             
-                                                    </div>
-                                                    <!-- /.Card Content - Collapse -->
-                                                </div>
-                                                <!-- /.card -->
-                                            </div>  
 
-                                            <!-- 결과!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
-                                            <div class="col-lg-12"> 
-                                                <!-- Collapsable Card Example -->
-                                                <div class="card shadow mb-4">
-                                                    <!-- Card Header - Accordion -->
-                                                    <a href="#collapseCardExample32" class="d-block card-header py-3" data-toggle="collapse"
-                                                        role="button" aria-expanded="true" aria-controls="collapseCardExample32">
-                                                        <h1 class="h6 m-0 font-weight-bold text-primary">결과</h6>
-                                                    </a>
-                                                    <!-- Card Content - Collapse -->
-                                                    <div class="collapse show" id="collapseCardExample32">
-                                                        <div class="card-body table-responsive p-2">
-                                                            <table class="table table-bordered table-striped" id="table3">
+                                                            <div class="col-xl-4 col-md-6 mb-2">
+                                                                <div class="card border-left-danger shadow h-100 py-2 clickable-card" onclick="location.href='inspect_jig.php?tab=tab2&filter_status=red'">
+                                                                    <div class="card-body">
+                                                                        <div class="row no-gutters align-items-center">
+                                                                            <div class="col mr-2">
+                                                                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">점검필요</div>
+                                                                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo h($c_JigInspectNeed ?? '0'); ?></div>
+                                                                            </div>
+                                                                            <div class="col-auto">
+                                                                                <i class="fas fa-boxes fa-2x text-gray-300"></i>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-xl-4 col-md-6 mb-2">
+                                                                <div class="card border-left-warning shadow h-100 py-2 clickable-card" onclick="location.href='inspect_jig.php?tab=tab2&filter_status=orange'">
+                                                                    <div class="card-body">
+                                                                        <div class="row no-gutters align-items-center">
+                                                                            <div class="col mr-2">
+                                                                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">점검도래</div>
+                                                                                <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo h($c_JigInspectSoon ?? '0'); ?></div>
+                                                                            </div>
+                                                                            <div class="col-auto">
+                                                                                <i class="fas fa-puzzle-piece fa-2x text-gray-300"></i>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-12 d-block d-md-none mb-3 mt-2">
+                                                                <form method="GET" action="inspect_jig.php">
+                                                                    <?php if($filter_status): ?>
+                                                                        <input type="hidden" name="filter_status" value="<?php echo h($filter_status); ?>">
+                                                                    <?php endif; ?>
+                                                                    <div class="input-group shadow-sm">
+                                                                        <input type="text" class="form-control mobile-search-input" name="search_keyword" placeholder="지그ID/번호 검색" value="<?= h($search_keyword) ?>">
+                                                                        <div class="input-group-append">
+                                                                            <button class="btn btn-primary mobile-search-btn" type="submit">
+                                                                                <i class="fas fa-search"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                        <div id="table" class="table-editable mt-1">
+                                                            <table class="table table-bordered table-striped mobile-responsive-table" id="table1">
                                                                 <thead>
                                                                     <tr>
                                                                         <th>지그ID</th>
                                                                         <th>지그번호</th>
-                                                                        <th>사용횟수</th>
-                                                                        <th>조치사항</th>
-                                                                        <th>내용</th>
-                                                                        <th>담당자</th>
+                                                                        <th>점검 기준값</th>
+                                                                        <th>현재값</th>
+                                                                        <th>누적값</th>
+                                                                        <th>등록자</th>
+                                                                        <th>둥록일</th>
+                                                                        <th>사용자</th>
+                                                                        <th>사용일</th>
+                                                                        <th>변경자</th>
                                                                         <th>변경일</th>
-                                                                        <th>기록일</th>   
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    <?php 
-                                                                        if (isset($result_out)) {
-                                                                            while($row_out = sqlsrv_fetch_array($result_out, SQLSRV_FETCH_ASSOC)):
-                                                                    ?>
-                                                                    <tr>
-                                                                        <td><?php echo htmlspecialchars($row_out['JIG_ID'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                        <td><?php echo htmlspecialchars($row_out['JIG_SEQ'], ENT_QUOTES, 'UTF-8'); ?></td>                               
-                                                                        <td><?php echo htmlspecialchars($row_out['USAGE_COUNT'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                        <td><?php echo htmlspecialchars($row_out['JUDGMENT'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                        <td><?php echo htmlspecialchars($row_out['NOTE'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                        <td><?php echo htmlspecialchars($row_out['UPDT_USER_ID'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                        <td><?php echo htmlspecialchars($row_out['UPDT_DT'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                        <td><?php echo htmlspecialchars($row_out['INSERT_DT'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                                    </tr> 
-                                                                    <?php 
-                                                                            endwhile;
+                                                                    <?php foreach ($jig_list as $row): 
+                                                                        $limit = $row['LIMIT_QTY'] ?? 0;
+                                                                        $current = $row['CURRENT_QTY'] ?? 0;
+                                                                        $qtyStyle = ''; 
+
+                                                                        if ($limit > 0) {
+                                                                            if($current >= $limit) {
+                                                                                $qtyStyle = 'background-color: red; color: white;';
+                                                                            }
+                                                                            elseif($current >= ($limit * 0.8)) {
+                                                                                $qtyStyle = 'background-color: orange; color: black;';
+                                                                            }
                                                                         }
-                                                                    ?>                   
+                                                                    ?>
+                                                                    <tr data-toggle="modal" data-target="#editJigModal"
+                                                                        data-jig-id="<?php echo h($row['JIG_ID']); ?>"
+                                                                        data-jig-seq="<?php echo h($row['JIG_SEQ']); ?>"
+                                                                        data-limit-qty="<?php echo h($row['LIMIT_QTY']); ?>"
+                                                                        data-current-qty="<?php echo h($row['CURRENT_QTY']); ?>"
+                                                                        data-total-qty="<?php echo h($row['TOTAL_QTY']); ?>"
+                                                                        style="cursor: pointer;" onMouseOver="this.style.backgroundColor='#ffedbf';" onMouseOut="this.style.backgroundColor='';">
+                                                                        
+                                                                        <td data-label="지그ID"><?php echo h($row['JIG_ID']); ?></td>
+                                                                        <td data-label="지그번호"><?php echo h($row['JIG_SEQ']); ?></td>
+                                                                        <td data-label="점검 기준값"><?php echo h($row['LIMIT_QTY']); ?></td>
+                                                                        <td data-label="현재값" style="<?php echo $qtyStyle; ?>"><?php echo h($row['CURRENT_QTY']); ?></td>
+                                                                        <td data-label="누적값"><?php echo h($row['TOTAL_QTY']); ?></td>
+                                                                        <td data-label="등록자"><?php echo h($row['INSRT_USER_ID']); ?></td>
+                                                                        <td data-label="둥록일"><?php echo h(is_object($row['INSRT_DT']) ? $row['INSRT_DT']->format('Y-m-d') : $row['INSRT_DT']); ?></td>
+                                                                        <td data-label="사용자"><?php echo h($row['UPDT_USER_ID']); ?></td>
+                                                                        <td data-label="사용일"><?php echo h(is_object($row['UPDT_DT']) ? $row['UPDT_DT']->format('Y-m-d') : $row['UPDT_DT']); ?></td>
+                                                                        <td data-label="변경자"><?php echo h($row['LAST_UPDATE_USER']); ?></td> 
+                                                                        <td data-label="변경일"><?php echo h(is_object($row['LAST_UPDATE_DATE']) ? $row['LAST_UPDATE_DATE']->format('Y-m-d') : $row['LAST_UPDATE_DATE']); ?></td>                                   
+                                                                    </tr> 
+                                                                    <?php endforeach; ?>
+                                                                    <?php if(empty($jig_list)): ?>
+                                                                        <tr>
+                                                                            <td colspan="11" class="text-center no-data">데이터가 없습니다.</td>
+                                                                        </tr>
+                                                                    <?php endif; ?>
                                                                 </tbody>
-                                                            </table>                                     
-                                                        </div>
-                                                        <!-- /.card-body -->
+                                                            </table>
+                                                        </div>                                     
                                                     </div>
-                                                    <!-- /.Card Content - Collapse -->
                                                 </div>
-                                                <!-- /.card -->
+                                            </div>
+                                        </div>  
+
+                                        <div class="tab-pane fade <?php echo h($tab3_text ?? ''); ?>" id="custom-tabs-one-1th" role="tabpanel" aria-labelledby="custom-tabs-one-1th-tab">
+                                            
+                                            <div class="card shadow mb-2"> 
+                                                <a href="#collapseCardExample31" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample31">
+                                                    <h6 class="m-0 font-weight-bold text-primary">검색</h6>
+                                                </a>
+                                                <form method="POST" autocomplete="off" action="inspect_jig.php"> 
+                                                    <div class="collapse show" id="collapseCardExample31">                                    
+                                                        <div class="card-body p-3">
+                                                            <div class="form-group mb-0">
+                                                                <label>검색범위</label>
+                                                                <div class="input-group">                                                
+                                                                    <div class="input-group-prepend">
+                                                                        <span class="input-group-text"><i class="far fa-calendar-alt"></i></span>
+                                                                    </div>
+                                                                    <input type="text" class="form-control float-right kjwt-search-date" value="<?php echo h($dt3 ?: date('Y-m-d').' ~ '.date('Y-m-d')); ?>" name="dt3">
+                                                                </div>
+                                                            </div>
+                                                        </div> 
+                                                        <div class="card-footer text-right">
+                                                            <button type="submit" value="on" class="btn btn-primary" name="bt31">검색</button>
+                                                        </div>
+                                                    </div>
+                                                </form>             
+                                            </div>
+
+                                            <div class="card shadow mb-2">
+                                                <a href="#collapseCardExample32" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample32">
+                                                    <h6 class="m-0 font-weight-bold text-primary">결과</h6>
+                                                </a>
+                                                <div class="collapse show" id="collapseCardExample32">
+                                                    <div class="card-body table-responsive p-2">
+
+                                                        <div class="d-block d-md-none mb-3 mt-2">
+                                                            <form method="GET" action="inspect_jig.php">
+                                                                <input type="hidden" name="tab" value="history"> 
+                                                                <div class="input-group shadow-sm">
+                                                                    <input type="text" class="form-control mobile-search-input" name="search_keyword" placeholder="지그ID/번호/내용 검색" value="<?= h($search_keyword) ?>">
+                                                                    <div class="input-group-append">
+                                                                        <button class="btn btn-primary mobile-search-btn" type="submit">
+                                                                            <i class="fas fa-search"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+
+                                                        <table class="table table-bordered table-striped mobile-responsive-table" id="table3">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>지그ID</th>
+                                                                    <th>지그번호</th>
+                                                                    <th>사용횟수</th>
+                                                                    <th>조치사항</th>
+                                                                    <th>내용</th>
+                                                                    <th>담당자</th>
+                                                                    <th>변경일</th>
+                                                                    <th>기록일</th>   
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <?php foreach ($history_list as $row_out): ?>
+                                                                <tr>
+                                                                    <td data-label="지그ID"><?php echo h($row_out['JIG_ID']); ?></td>
+                                                                    <td data-label="지그번호"><?php echo h($row_out['JIG_SEQ']); ?></td>                               
+                                                                    <td data-label="사용횟수"><?php echo h($row_out['USAGE_COUNT']); ?></td>
+                                                                    <td data-label="조치사항"><?php echo h($row_out['JUDGMENT']); ?></td>
+                                                                    <td data-label="내용"><?php echo h($row_out['NOTE']); ?></td>
+                                                                    <td data-label="담당자"><?php echo h($row_out['UPDT_USER_ID']); ?></td>
+                                                                    <td data-label="변경일"><?php echo h(is_object($row_out['UPDT_DT']) ? $row_out['UPDT_DT']->format('Y-m-d') : $row_out['UPDT_DT']); ?></td>
+                                                                    <td data-label="기록일"><?php echo h(is_object($row_out['INSERT_DT']) ? $row_out['INSERT_DT']->format('Y-m-d') : $row_out['INSERT_DT']); ?></td>
+                                                                </tr> 
+                                                                <?php endforeach; ?>
+                                                                <?php if(empty($history_list)): ?>
+                                                                    <tr>
+                                                                        <td colspan="8" class="text-center no-data">데이터가 없습니다.</td>
+                                                                    </tr>
+                                                                <?php endif; ?>                 
+                                                            </tbody>
+                                                        </table>                                     
+                                                    </div>
+                                                </div>
                                             </div>                                            
                                         </div>  
                                     </div>
                                 </div>
                             </div>
                         </div>   
-
-                        <!-- end !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
                     
-                    </div>
-                    <!-- /.row -->
-                </div>
-                <!-- /.container-fluid -->
-            </div>
-            <!-- End of Main Content -->
-        </div>
-        <!-- End of Content Wrapper -->
-    </div>
-    <!-- End of Page Wrapper -->
-
-    <!-- Scroll to Top Button-->
-    <a class="scroll-to-top rounded" href="#page-top">
+                    </div> </div> </div> </div> </div> <a class="scroll-to-top rounded" href="#page-top">
         <i class="fas fa-angle-up"></i>
     </a>
 
-    <!-- 지그 수정 Modal -->
     <div class="modal fade" id="editJigModal" tabindex="-1" role="dialog" aria-labelledby="editJigModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
@@ -485,22 +575,35 @@
         </div>
     </div>
 
-    <!-- Bootstrap core JavaScript-->
     <?php include '../plugin_lv1.php'; ?>
 
     <script>
     $(document).ready(function() {
-        // 모달이 열릴 때 이벤트 처리
+        
+        // 검색 실행 시 탭 유지
+        var searchParam = new URLSearchParams(window.location.search).get('search_keyword');
+        var tabParam = new URLSearchParams(window.location.search).get('tab');
+        var filterParam = new URLSearchParams(window.location.search).get('filter_status');
+        
+        // 검색어, 필터, 탭 파라미터가 있으면 탭 유지 로직 실행
+        if (searchParam || filterParam || tabParam) {
+            if (tabParam === 'history') {
+                $('#custom-tabs-one-1th-tab').tab('show');
+            } else {
+                $('#tab-two').tab('show');
+            }
+        }
+
+        // 모달 데이터 바인딩
         $('#editJigModal').on('show.bs.modal', function (event) {
-            var button = $(event.relatedTarget); // 모달을 트리거한 <tr> 엘리먼트
-            // data-* 속성에서 데이터 추출
+            var button = $(event.relatedTarget);
+            
             var jigId = button.data('jig-id');
             var jigSeq = button.data('jig-seq');
             var limitQty = button.data('limit-qty');
             var currentQty = button.data('current-qty');
             var totalQty = button.data('total-qty');
 
-            // 모달의 입력 필드에 데이터 채우기
             var modal = $(this);
             modal.find('.modal-body input[name="NM1"]').val(jigId);
             modal.find('.modal-body input[name="NM2"]').val(jigSeq);
@@ -508,7 +611,7 @@
             modal.find('.modal-body input[name="QTY2"]').val(currentQty);
             modal.find('.modal-body input[name="QTY3"]').val(totalQty);
 
-            // 변경일 기본값을 오늘 날짜로 설정
+            // 오늘 날짜 기본 설정
             document.getElementById('modal_dt').valueAsDate = new Date();
         });
     });
@@ -518,9 +621,7 @@
 </html>
 
 <?php 
-    //MARIA DB 메모리 회수
+    // DB 자원 해제
     if(isset($connect4)) { mysqli_close($connect4); }	
-
-    //MSSQL 메모리 회수
     if(isset($connect)) { sqlsrv_close($connect); }	
 ?>

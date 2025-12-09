@@ -135,12 +135,14 @@
             <span>차량</span>
         </a>
     </li>
+    
     <li class="nav-item">
         <a class="nav-link collapsed" href="https://fms.iwin.kr/index_field.php" aria-expanded="true" aria-controls="collapseTwo2">
-            <i class="fas fa-cog"></i>
+            <i class="fas fa-screwdriver"></i>
             <span>현장</span>
         </a>
     </li>
+
     <li class="nav-item">
         <a class="nav-link collapsed" href="https://fms.iwin.kr/index_warehouse.php" aria-expanded="true" aria-controls="collapseTwo8">
             <i class="fas fa-boxes"></i>
@@ -177,11 +179,18 @@
             <span>로그아웃</span>
         </a>
     </li>
-   
+
+    <li class="nav-item mt-auto mb-3">
+        <a class="nav-link" href="https://fms.iwin.kr/my_page.php" title="설정">
+            <i class="fas fa-cog"></i>
+            <span>설정</span>
+        </a>
+    </li>
     <div class="text-center d-none d-md-inline mobile-toggler">
         <button class="rounded-circle border-0" id="sidebarToggle" title="SidebarTOGGLE"></button>
     </div>   
 </ul>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         var sidebar = document.getElementById('accordionSidebar');

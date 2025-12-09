@@ -12,10 +12,12 @@
     
     //★변수정의 및 초기화
     $bt21 = $_POST['bt21'] ?? null;
+    $dt3 = $_POST['dt3'] ?? null;
     $bt31 = $_POST['bt31'] ?? null;
     $menu41 = $_POST['menu41'] ?? null;
     $bt41 = $_POST['bt41'] ?? null;
     $bt51 = $_POST['bt51'] ?? null;
+    $dt5 = $_POST['dt5'] ?? null;
 
     // 쿼리 실행을 위한 파라미터 및 옵션 초기화
     // sqlsrv_num_rows를 사용하려면 'Scrollable' 옵션이 필요합니다.
@@ -30,13 +32,37 @@
     //★버튼 클릭 시 실행
     if ($bt21 === "on") {
         $tab_sequence = 2;
-        //ERP 그룹코드 변경 로그
-        $Query_Grant = "SELECT * from NEOE.NEOE.MA_EMP where CD_COMPANY='1000' AND NO_EMP LIKE 'F%' ORDER BY NM_KOR ASC";              
+        
+        $Query_Grant = "SELECT * from NEOE.NEOE.MA_USER where CD_COMPANY='1000' AND NO_EMP LIKE 'F%' AND USR_GBN='INT'";
+
+        // 날짜 범위 처리
+        if (!empty($dt3)) {
+            $dates = explode(' ~ ', $dt3);
+            if (count($dates) == 2) {
+                $start_date = $dates[0]; // YYYY-MM-DD
+                $end_date = $dates[1];   // YYYY-MM-DD
+                
+                // 날짜 유효성 검사 (정규식 사용)
+                if (preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $start_date) &&
+                    preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $end_date)) 
+                {
+                    // DTS_INSERT는 YYYYMMDDHHIISS 형식의 문자열이므로, 비교를 위해 변환
+                    $start_timestamp_str = str_replace('-', '', $start_date) . '000000';
+                    $end_timestamp_str = str_replace('-', '', $end_date) . '235959';
+                    
+                    $Query_Grant .= " AND DTS_INSERT BETWEEN ? AND ?";
+                    $params = [$start_timestamp_str, $end_timestamp_str];
+                }
+            }
+        }
+        
+        $Query_Grant .= " ORDER BY ID_USER ASC";
+        
         $Result_Grant = sqlsrv_query($connect, $Query_Grant, $params, $options);
         if ($Result_Grant) {
             $Count_Grant = sqlsrv_num_rows($Result_Grant); 
         }
-    } 
+    }
     elseif ($bt31 === "on") {
         $tab_sequence = 3;
         //ERP 회계 계정등록 로그
@@ -82,6 +108,27 @@
     }
     elseif ($bt51 === "on") {
         $tab_sequence = 5;
+        
+        $where_clause = "WHERE NO_EMP LIKE 'F%'";
+        // 날짜 범위 처리
+        if (!empty($dt5)) {
+            $dates = explode(' ~ ', $dt5);
+            if (count($dates) == 2) {
+                $start_date = $dates[0]; // YYYY-MM-DD
+                $end_date = $dates[1];   // YYYY-MM-DD
+                
+                if (preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $start_date) &&
+                    preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $end_date)) 
+                {
+                    $start_timestamp_str = str_replace('-', '', $start_date) . '000000';
+                    $end_timestamp_str = str_replace('-', '', $end_date) . '235959';
+                    
+                    $where_clause .= " AND dts_update BETWEEN ? AND ?";
+                    $params = [$start_timestamp_str, $end_timestamp_str];
+                }
+            }
+        }
+
         //ERP 퇴사자 권한 보유
         $Query_Grant4 = "WITH CTE_RETIRE AS (
                             SELECT
@@ -91,7 +138,7 @@
                                 COALESCE(note, '') as note,
                                 ROW_NUMBER() OVER(PARTITION BY nm_kor ORDER BY dts_update DESC) as rn
                             FROM CONNECT.DBO.ERP_RETIRE
-                            WHERE NO_EMP LIKE 'F%'
+                            {$where_clause}
                         )
                         SELECT
                             nm_kor AS NM_KOR,
@@ -100,7 +147,8 @@
                             note AS NOTE
                         FROM CTE_RETIRE
                         WHERE rn = 1";
-        $Result_Grant4 = sqlsrv_query($connect, $Query_Grant4);
+
+        $Result_Grant4 = sqlsrv_query($connect, $Query_Grant4, $params, $options);
     } 
 
     // ★매뉴 진입 시 탭활성화 (선택된 탭으로 설정)

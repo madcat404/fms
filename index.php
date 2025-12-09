@@ -38,7 +38,8 @@ $cards = [
         ["./index_finance.php", ["fa-won-sign"], "재무관리"],
         ["./index_custom.php", ["fa-hammer"], "커스텀"],
         ["./index_auto.php", ["fa-microchip"], "자동화"],
-        ["./index_global.php", ["fa-globe-asia"], "Việt Nam"]
+        ["./index_global.php", ["fa-globe-asia"], "Việt Nam"],
+        ["./kjwt_wiki/wiki_view.php", ["fa-bolt"], "공사중) wiki"]
     ],
     '실험실' => [
         ["./ocp.php", ["fa-flask"], "캐시관리"] 

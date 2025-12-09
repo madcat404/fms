@@ -14,6 +14,28 @@
 <head>
     <!-- 헤드 -->
     <?php include '../head_lv1.php' ?>    
+    <style>
+        /* 모바일 최적화: 작은 화면에서 글자 크기 조정 */
+        @media (max-width: 768px) {
+            .h3 { font-size: 1.25rem; }
+            .card-body, .form-control, .input-group-text, .btn { font-size: 0.9rem; }
+            .table { font-size: 0.8rem; }
+        }
+        .mobile-search-input { height: 50px; font-size: 1.1rem; border-radius: 0; background-color: #ffffff !important; color: #495057; border: 1px solid #d1d3e2; }
+        .mobile-search-input::placeholder { color: #858796; }
+        .mobile-search-btn { width: 60px; border-radius: 0; }
+    </style>
+    <style>
+        /* 모바일 최적화: 작은 화면에서 글자 크기 조정 */
+        @media (max-width: 768px) {
+            .h3 { font-size: 1.25rem; }
+            .card-body, .form-control, .input-group-text, .btn { font-size: 0.9rem; }
+            .table { font-size: 0.8rem; }
+        }
+        .mobile-search-input { height: 50px; font-size: 1.1rem; border-radius: 0; background-color: #ffffff !important; color: #495057; border: 1px solid #d1d3e2; }
+        .mobile-search-input::placeholder { color: #858796; }
+        .mobile-search-btn { width: 60px; border-radius: 0; }
+    </style>
 </head>
 
 <body id="page-top">
@@ -69,7 +91,7 @@
                                         </li>                                          
                                     </ul>
                                 </div>
-                                <div class="card-body">
+                                <div class="card-body p-2">
                                     <div class="tab-content" id="custom-tabs-one-tabContent">
                                         <!-- 1번째 탭 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                                         <div class="tab-pane fade" id="tab1" role="tabpanel" aria-labelledby="tab-one">
