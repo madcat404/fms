@@ -340,8 +340,32 @@ $(function () {
         // 모든 날짜 선택기 초기화
         initAllDatePickers() {
             // 검색용 날짜 선택기
-            $('.kjwt-search-date').each((index, element) => {
-                this.initSearchDatePicker(element);
+            $('.kjwt-search-date').daterangepicker({
+                "locale": {
+                    "format": "YYYY-MM-DD",      // 날짜 형식
+                    "separator": " ~ ",            // 날짜 구분자
+                    "applyLabel": "확인",          // 적용 버튼 텍스트
+                    "cancelLabel": "취소",         // 취소 버튼 텍스트
+                    "fromLabel": "From",
+                    "toLabel": "To",
+                    "customRangeLabel": "사용자 지정", // Custom Range 텍스트
+                    "weekLabel": "W",
+                    "daysOfWeek": ["일", "월", "화", "수", "목", "금", "토"],
+                    "monthNames": ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"],
+                    "firstDay": 0                   // 일요일부터 시작
+                },
+                "ranges": {
+                    '오늘': [moment(), moment()],
+                    '어제': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    '지난 7일': [moment().subtract(6, 'days'), moment()],
+                    '지난 30일': [moment().subtract(29, 'days'), moment()],
+                    '이번 달': [moment().startOf('month'), moment().endOf('month')],
+                    '지난 달': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                },
+                "showDropdowns": true,    // 년/월 선택 드롭다운 활성화 (빠른 이동)
+                "linkedCalendars": false, // 두 달력을 독립적으로 표시 (긴 기간 선택 시 편리)
+                "autoUpdateInput": true,  // 날짜 선택 시 자동으로 input 값 갱신
+                // "maxSpan": { "days": 30 } // 이 옵션이 있다면 반드시 삭제하거나 주석 처리해야 1개월 제한이 풀립니다.
             });
         }
 

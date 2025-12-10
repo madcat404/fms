@@ -17,10 +17,35 @@
 <html lang="ko">
 
 <head>
-    <?php include '../head_lv1.php' ?>   
-    <meta http-equiv="refresh" content="60;"> 
+    <?php include '../head_lv1.php' ?>    
 
     <style>
+        .chk-scale {            
+            /* 확대 시 여백 조절이 필요할 수 있음 */
+            margin: 10px;
+
+            /* 기본 스타일 제거 */
+            appearance: none; 
+            
+            /* 크기 및 테두리 설정 */
+            width: 27px;
+            height: 27px;
+            border: 2px solid #ccc;
+            border-radius: 5px; /* 둥근 모서리 */
+            
+            /* 체크되었을 때 스타일 */
+            &:checked {
+                background-color: #007bff;
+                border-color: #007bff;
+                
+                /* 체크 표시 (이미지나 SVG 사용 가능) */
+                background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+                background-size: 100% 100%;
+                background-position: center;
+                background-repeat: no-repeat;
+            }
+        }
+        
         /* 모바일 검색창 스타일 */
         .mobile-search-input {
             height: 50px;
@@ -402,7 +427,7 @@
                                                                             <td data-label="불량"><?php echo h($Data_VietnamScan['REJECT_GOODS']); ?></td>
                                                                             <td data-label="불량내용"><a href="field_complete.php?VMODAL=on&vmodal_Delivery_ItemCode=<?php echo h($Data_VietnamScan['CD_ITEM']); ?>&vmodal_Delivery_LotDate=<?php echo h($Data_VietnamScan['LOT_DATE']); ?>" class="btn btn-info btn-sm">입력</a></td>
                                                                             <td data-label="실적"><?php echo $Data_VietnamScan['QT_GOODS']-$Data_VietnamScan['REJECT_GOODS']; ?></td>
-                                                                            <td data-label="검사체크"><input type="checkbox" name="V_CB<?php echo $v; ?>" <?php echo ($Data_VietnamScan['INSPECT_YN']=='Y')?'checked':''; ?> <?php echo ($Vmodi!='Y')?'disabled':''; ?>></td>
+                                                                            <td data-label="검사체크"><input type="checkbox" class="chk-scale" name="V_CB<?php echo $v; ?>" <?php echo ($Data_VietnamScan['INSPECT_YN']=='Y')?'checked':''; ?> <?php echo ($Vmodi!='Y')?'disabled':''; ?>></td>
                                                                             <td data-label="구분"><?php if($Vmodi=='Y') { ?><select name="AS_STATUS<?php echo $v; ?>" class="form-control form-control-sm"><option value="N" <?php echo ($Data_VietnamScan['AS_YN']=='N')?'selected':''; ?>>양산</option><option value="Y" <?php echo ($Data_VietnamScan['AS_YN']=='Y')?'selected':''; ?>>A/S</option></select><?php } else { echo ($Data_VietnamScan['AS_YN']=='N')?'양산':'A/S'; } ?></td>
                                                                             <td data-label="비고"><?php if($Vmodi=='Y') { ?><input type="text" class="form-control form-control-sm" name="VNOTE<?php echo $v; ?>" value="<?php echo h($Data_VietnamScan['NOTE']); ?>"><?php } else { echo h($Data_VietnamScan['NOTE']); } ?></td>
                                                                         </tr>

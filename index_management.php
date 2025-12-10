@@ -30,14 +30,13 @@ $cards = [
         ["./index.php", "fa-arrow-left", "뒤로가기"],
         ["./kjwt_gw/gw_attend.php", "fa-id-card", "근태"],
         ["./kjwt_office_duty/duty.php", "fa-user-check", "당직"],
-        ["./kjwt_office_food/food.php", "fa-utensils", "식단표"],
-        ["./kjwt_car/car.php", "fa-car-side", "직원차량"],
+        ["./kjwt_office_food/food.php", "fa-utensils", "식단표"],        
         ["./kjwt_network/network.php", "fa-phone-volume", "비상연락"],
         ["./kjwt_schedule/schedule.php", "fa-user-tie", "방문자"],       
         ["./kjwt_uniform/uniform.php", "fa-tshirt", "유니폼"],
         ["./kjwt_birthday/birthday.php", "fa-birthday-cake", "생년월일"],
         ["./kjwt_sign/sign_select.php", "fa-file-signature", "교육회람"],
-        ["./kjwt_clean/clean.php", "fa-trash-alt", "청소"],
+        
         ["./kjwt_human/human.php", "fa-users", "HR"]
     ],
     '전산' => [
@@ -51,7 +50,8 @@ $cards = [
     'ESG' => [
         ["./index.php", "fa-arrow-left", "뒤로가기"],
         ["./kjwt_esg/esg.php", "fa-solar-panel", "ESG"],    
-        ["./kjwt_accuse/accuse.php", "fa-phone-volume", "제보"]
+        ["./kjwt_accuse/accuse.php", "fa-phone-volume", "제보"],
+        ["./kjwt_clean/clean.php", "fa-trash-alt", "청소"]
     ],
     '경비' => [
         ["./index.php", "fa-arrow-left", "뒤로가기"],

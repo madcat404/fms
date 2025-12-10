@@ -30,6 +30,7 @@ $cards = [
         ["./index.php", "fa-arrow-left", "뒤로가기"],
         ["./kjwt_fms/rental.php", "fa-truck-pickup", "법인차"],
         ["./kjwt_fms/individual.php", "fa-car", "개인차"],
+        ["./kjwt_car/car.php", "fa-car-side", "직원차량"],
         ["./kjwt_fms/hipass.php", "fa-credit-card", "하이패스"]
     ] 
     
