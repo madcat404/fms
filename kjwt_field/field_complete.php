@@ -653,6 +653,63 @@
 
     <?php include '../plugin_lv1.php'; ?>
 
+    <style>
+        /* !important로 부트스트랩 테이블 스타일(table-striped)을 강제로 덮어씌움 */
+        .bg-checked-orange {
+            background-color: #f6b352 !important;
+        }
+    </style>
+
+    <script>
+        $(document).ready(function(){
+            
+            // [기능 1] 배경색 업데이트 함수 (공통 사용)
+            function updateAllRowColors() {
+                // 베트남 탭의 모든 체크박스(V_CB...)를 찾아서 처리
+                $('input[name^="V_CB"]').each(function(){
+                    var $checkbox = $(this);
+                    var $cell = $checkbox.closest('td');
+                    
+                    // td가 없으면 부모 요소 찾기 (안전장치)
+                    if ($cell.length === 0) {
+                        $cell = $checkbox.parent();
+                    }
+
+                    // 체크 여부에 따라 클래스 토글
+                    if($checkbox.is(':checked')){
+                        $cell.addClass('bg-checked-orange');
+                    } else {
+                        $cell.removeClass('bg-checked-orange');
+                    }
+                });
+            }
+
+            // [기능 2] 사용자가 체크박스를 '클릭'할 때 실시간 반응
+            $(document).on('change', 'input[name^="V_CB"]', function(){
+                // 클릭한 그 녀석만 즉시 색상 변경
+                var $cell = $(this).closest('td');
+                if ($cell.length === 0) $cell = $(this).parent();
+
+                if($(this).is(':checked')){
+                    $cell.addClass('bg-checked-orange');
+                } else {
+                    $cell.removeClass('bg-checked-orange');
+                }
+            });
+
+            // [기능 3] 핵심: 테이블이 다시 그려질 때마다(페이지 이동 등) 색상 재적용
+            // 'draw.dt'는 DataTables 라이브러리가 화면을 갱신할 때 발생하는 이벤트입니다.
+            $(document).on('draw.dt', '#table_nosort2', function () {
+                updateAllRowColors();
+            });
+
+            // [기능 4] 최초 페이지 로딩 시 1회 실행
+            setTimeout(function(){
+                updateAllRowColors();
+            }, 100);
+        });
+    </script>
+
     <?php if(isset($_GET['popup']) && $_GET['popup'] == 'select_item'): ?>
         <script>$('#itemSelectionModal').modal('show');</script>
     <?php elseif($kmodal=='on'): ?>      
