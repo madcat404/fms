@@ -132,6 +132,7 @@
         //ERP 퇴사자 권한 보유
         $Query_Grant4 = "WITH CTE_RETIRE AS (
                             SELECT
+                                no_emp,  -- [추가] 조인을 위해 사번을 반드시 가져와야 합니다.
                                 nm_kor,
                                 dt_retire,
                                 dts_update,
@@ -141,12 +142,15 @@
                             {$where_clause}
                         )
                         SELECT
-                            nm_kor AS NM_KOR,
-                            dt_retire AS DT_RETIRE,
-                            dts_update AS DTS_UPDATE,
-                            note AS NOTE
-                        FROM CTE_RETIRE
-                        WHERE rn = 1";
+                            A.nm_kor AS NM_KOR,
+                            A.dt_retire AS DT_RETIRE,
+                            A.dts_update AS DTS_UPDATE,
+                            A.note AS NOTE,
+                            B.cd_group AS CD_GROUP -- [추가] 그룹코드 출력
+                        FROM CTE_RETIRE A
+                        -- [추가] 사번(no_emp) 기준으로 MA_grant 테이블과 조인
+                        LEFT JOIN NEOE.NEOE.MA_grant B ON A.no_emp = B.no_emp 
+                        WHERE A.rn = 1 and B.CD_GROUP <> 'web'";
 
         $Result_Grant4 = sqlsrv_query($connect, $Query_Grant4, $params, $options);
     } 

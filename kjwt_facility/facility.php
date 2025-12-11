@@ -1,6 +1,6 @@
 <?php
 // kjwt_facility/facility.php
-// 시설 관리 페이지 (모바일 최적화: 카드 뷰 적용 + 공유 기능 포함)
+// 시설 관리 페이지 (시간 표시 제거 + 날짜 입력 + 등록 탭 최근 5건)
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -24,71 +24,103 @@ if (empty($_SESSION['csrf_token'])) {
 }
 $csrf_token = $_SESSION['csrf_token'];
 
-// 3. 데이터 조회
+// 3. 탭 활성화 로직
+$active_tab = isset($_POST['btSearch']) ? 'tab4' : (isset($_GET['tab']) ? $_GET['tab'] : 'tab3');
+
+// 4. [기본 데이터 조회] 최근 내역 (등록 탭용)
 $historyList = [];
-$dbError = null;
+$total_cost = 0;
+$total_count = 0;
 
 if (isset($connect) && $connect) {
+    // 등록 탭용 최근 50건 (통계 및 리스트용)
     $sql = "SELECT TOP 50 LogID, Location, IssueDescription, Resolution, RepairCost, PhotoPath, CreatedAt 
             FROM Facility 
             ORDER BY CreatedAt DESC";
     $stmt = sqlsrv_query($connect, $sql);
 
-    if ($stmt === false) {
-        $errors = sqlsrv_errors();
-        $dbError = "데이터 조회 실패: " . ($errors[0]['message'] ?? '알 수 없는 오류');
-    } else {
+    if ($stmt !== false) {
         while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
             $historyList[] = $row;
         }
         sqlsrv_free_stmt($stmt);
     }
-} else {
-    $dbError = "DB 연결 객체(\$connect)가 생성되지 않았습니다.";
+}
+
+// 5. [검색 데이터 조회] 내역 조회 탭용
+$searchList = [];
+$searchDateRange = isset($_POST['dtSearch']) ? $_POST['dtSearch'] : ''; 
+
+if (isset($_POST['btSearch']) && !empty($searchDateRange) && $connect) {
+    $dates = explode(' ~ ', $searchDateRange);
+    
+    if (count($dates) == 2) {
+        $startDate = trim($dates[0]);
+        $endDate = trim($dates[1]);
+        
+        $sql_search = "SELECT LogID, Location, IssueDescription, Resolution, RepairCost, PhotoPath, CreatedAt 
+                       FROM Facility 
+                       WHERE CreatedAt >= ? AND CreatedAt < DATEADD(day, 1, CAST(? AS DATE))
+                       ORDER BY CreatedAt DESC";
+                       
+        $params_search = array($startDate, $endDate);
+        $stmt_search = sqlsrv_query($connect, $sql_search, $params_search);
+        
+        if ($stmt_search !== false) {
+            while ($row = sqlsrv_fetch_array($stmt_search, SQLSRV_FETCH_ASSOC)) {
+                $searchList[] = $row;
+            }
+            sqlsrv_free_stmt($stmt_search);
+        }
+    }
+}
+
+// [공통 함수] 문자열 말줄임 처리
+function truncateText($text, $width = 30) {
+    if (empty($text)) return '';
+    return htmlspecialchars(mb_strimwidth($text, 0, $width, '...', 'UTF-8'));
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <?php include '../head_lv1.php' ?>
     <style>
+        /* 모바일 최적화 스타일 */
+        @media (max-width: 576px) {
+            .table td, .table th {
+                font-size: 0.85rem;
+                padding: 0.5rem;
+            }
+        }
+        .mobile-search-input {
+            height: 50px; font-size: 1.1rem; border-radius: 0;
+            background-color: #ffffff !important; color: #495057; border: 1px solid #d1d3e2;
+        }
+        .mobile-search-input::placeholder { color: #858796; }
+        .mobile-search-btn { width: 60px; border-radius: 0; }
+        
         .photo-thumb {
-            width: 80px; height: 80px;
-            object-fit: cover;
-            border-radius: 5px; border: 1px solid #ddd;
-            cursor: pointer;
-            transition: transform 0.2s;
+            width: 60px; height: 60px;
+            object-fit: cover; border-radius: 4px; border: 1px solid #ddd;
+            cursor: pointer; transition: transform 0.2s;
         }
         .photo-thumb:hover { transform: scale(1.1); }
         .table td { vertical-align: middle; }
         
-        /* [공유 버튼 스타일] */
-        .btn-action { margin-left: 4px; }
+        /* 행 클릭 효과 */
+        .clickable-row { cursor: pointer; }
+        .clickable-row:hover { background-color: #f8f9fc !important; }
 
-        /* [모바일 카드 스타일] */
-        .mobile-card {
-            border-left: 5px solid #4e73df; /* Primary Color Accent */
-            transition: all 0.2s;
-        }
-        .mobile-card:active {
-            transform: scale(0.98);
-            background-color: #f8f9fc;
-        }
-        .mobile-label {
-            font-size: 0.8rem;
-            color: #858796;
-            margin-bottom: 2px;
-        }
-        .mobile-value {
-            font-weight: bold;
-            color: #3a3b45;
-        }
+        /* 모바일 카드 스타일 */
+        .mobile-card { border-left: 5px solid #4e73df; transition: all 0.2s; }
+        .mobile-card:active { transform: scale(0.98); background-color: #f8f9fc; }
     </style>
 
     <script>
         function shareFacilityLink(logID, location, issue) {
-            // 상세 페이지 URL 생성
             let baseUrl = window.location.href.split('?')[0]; 
             if (baseUrl.indexOf('facility.php') !== -1) {
                 baseUrl = baseUrl.replace('facility.php', 'facility_view.php');
@@ -114,28 +146,31 @@ if (isset($connect) && $connect) {
                 tempInput.select();
                 document.execCommand("copy");
                 document.body.removeChild(tempInput);
-                alert("페이지 주소가 복사되었습니다.\n원하는 곳(카카오톡, 그룹웨어)에 붙여넣기(Ctrl+V) 하세요.");
+                alert("페이지 주소가 복사되었습니다.\n원하는 곳에 붙여넣기(Ctrl+V) 하세요.");
             }
+        }
+        
+        function goToView(id) {
+            location.href = 'facility_view.php?LogID=' + id;
         }
     </script>
 </head>
 
 <body id="page-top">
+
     <div id="wrapper">
-        <?php include '../nav.php'; ?>
+
+        <?php include '../nav.php' ?>
 
         <div id="content-wrapper" class="d-flex flex-column">
             <div id="content">
                 <div class="container-fluid">
-
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
                             <i class="fa fa-bars"></i>
                         </button>   
-                        <h1 class="h3 mb-0 text-gray-800" style="padding-top:1em;">
-                            <i class="fas fa-tools text-primary"></i> 시설물 수리 기록
-                        </h1>
-                    </div>
+                        <h1 class="h3 mb-0 text-gray-800" style="padding-top:1em; display:inline-block; vertical-align:-4px;">시설 관리</h1>
+                    </div> 
 
                     <?php if (isset($_GET['status'])): ?>
                         <?php if ($_GET['status'] === 'success'): ?>
@@ -148,207 +183,420 @@ if (isset($connect) && $connect) {
                                 <strong>수정 완료!</strong> 내용이 성공적으로 수정되었습니다.
                                 <button type="button" class="close" data-dismiss="alert">&times;</button>
                             </div>
-                        <?php elseif ($_GET['status'] === 'error'): ?>
-                            <div class="alert alert-danger alert-dismissible fade show">
-                                <strong>오류!</strong> <?= htmlspecialchars($_GET['msg'] ?? '') ?>
-                                <button type="button" class="close" data-dismiss="alert">&times;</button>
-                            </div>
                         <?php endif; ?>
                     <?php endif; ?>
 
-                    <div class="card shadow mb-4">
-                        <a href="#collapseRegister" class="d-block card-header py-3 bg-gradient-primary" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseRegister">
-                            <h6 class="m-0 font-weight-bold text-white">신규 등록 (클릭하여 열기/접기)</h6>
-                        </a>
-                        <div class="collapse show" id="collapseRegister">
-                            <div class="card-body">
-                                <form action="facility_status.php" method="post" enctype="multipart/form-data">
-                                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                                    <input type="hidden" name="mode" value="insert"> <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label>위치 <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" name="location" placeholder="예: 1층 로비" required>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label>비용 (원)</label>
-                                            <input type="number" class="form-control" name="cost" value="0">
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label>고장 내용 <span class="text-danger">*</span></label>
-                                        <textarea class="form-control" name="issue" rows="3" required></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label>조치 내용</label>
-                                        <textarea class="form-control" name="resolution" rows="3"></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label>현장 사진</label>
-                                        <div class="custom-file">
-                                            <input type="file" class="custom-file-input" id="photo" name="photo" accept="image/*">
-                                            <label class="custom-file-label" for="photo">파일 선택...</label>
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        <button type="submit" class="btn btn-primary btn-icon-split btn-lg">
-                                            <span class="text">등록하기</span>
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="row"> 
+                        <div class="col-lg-12"> 
+                            <div class="card card-primary card-tabs">
+                                <div class="card-header p-0 pt-1">
+                                    <ul class="nav nav-tabs" id="custom-tabs-one-tab">
+                                        <li class="nav-item">
+                                            <a class="nav-link <?= ($active_tab == 'tab1') ? 'active' : '' ?>" id="tab-one" data-toggle="pill" href="#tab1">공지</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link <?= ($active_tab == 'tab3') ? 'active' : '' ?>" id="tab-three" data-toggle="pill" href="#tab3">등록</a>
+                                        </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link <?= ($active_tab == 'tab4') ? 'active' : '' ?>" id="tab-four" data-toggle="pill" href="#tab4">내역 조회</a>
+                                        </li>
+                                    </ul>
+                                </div>
 
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-secondary">최근 내역 (50건)</h6>
-                        </div>
-                        <div class="card-body p-2 p-md-4"> <?php if (empty($historyList)): ?>
-                                <div class="text-center text-muted py-5">데이터가 없습니다.</div>
-                            <?php else: ?>
-                                
-                                <div class="d-md-none">
-                                    <?php foreach ($historyList as $row): 
-                                        $logID   = $row['LogID'];
-                                        $js_loc  = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['Location'] ?? ''), ENT_QUOTES);
-                                        $js_iss  = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['IssueDescription'] ?? ''), ENT_QUOTES);
+                                <div class="card-body p-2">
+                                    <div class="tab-content" id="custom-tabs-one-tabContent">
                                         
-                                        $dateStr = isset($row['CreatedAt']) && $row['CreatedAt'] instanceof DateTime 
-                                            ? $row['CreatedAt']->format('Y-m-d') 
-                                            : substr($row['CreatedAt'] ?? '', 0, 10);
-                                    ?>
-                                    <div class="card mobile-card mb-3 shadow-sm">
-                                        <div class="card-body p-3">
-                                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <h5 class="font-weight-bold text-primary mb-0 text-truncate" style="max-width: 70%;">
-                                                    <a href="facility_view.php?LogID=<?= $logID ?>"><?= htmlspecialchars($row['Location']) ?></a>
-                                                </h5>
-                                                <small class="text-muted"><?= $dateStr ?></small>
-                                            </div>
-                                            
-                                            <div class="mb-2">
-                                                <span class="badge badge-danger">고장</span>
-                                                <span class="text-dark ml-1"><?= htmlspecialchars($row['IssueDescription']) ?></span>
-                                            </div>
-                                            
-                                            <?php if($row['Resolution']): ?>
-                                            <div class="mb-2">
-                                                <span class="badge badge-success">조치</span>
-                                                <span class="text-dark ml-1"><?= htmlspecialchars($row['Resolution']) ?></span>
-                                            </div>
-                                            <?php endif; ?>
+                                        <div class="tab-pane fade <?= ($active_tab == 'tab1') ? 'show active' : '' ?>" id="tab1" role="tabpanel">
+                                            [목표]<BR>
+                                            - 시설물 고장 및 수리 현황 공유<BR><BR>
+                                            [참조]<BR>
+                                            - 사진 첨부 시 현장 상황을 더 빠르게 파악할 수 있습니다.<br>
+                                            - '등록' 탭에서 최근 5건을 확인할 수 있습니다.<br>
+                                            - '내역 조회' 탭에서 전체 내역 검색 및 엑셀 다운로드가 가능합니다.<br><br>                                           
+                                        </div>
+                                        
+                                        <div class="tab-pane fade <?= ($active_tab == 'tab3') ? 'show active' : '' ?>" id="tab3" role="tabpanel">
+                                            <div class="row">
+                                                <div class="col-lg-12"> 
+                                                    <div class="card shadow mb-4">
+                                                        <a href="#collapseRegister" class="d-block card-header py-3 bg-gradient-primary" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseRegister">
+                                                            <h6 class="m-0 font-weight-bold text-white">신규 등록</h6>
+                                                        </a>
+                                                        <div class="collapse show" id="collapseRegister">
+                                                            <div class="card-body">
+                                                                <form action="facility_status.php" method="post" enctype="multipart/form-data">
+                                                                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                                                                    <input type="hidden" name="mode" value="insert"> 
+                                                                    
+                                                                    <div class="row">
+                                                                        <div class="col-md-12 mb-3">
+                                                                            <label><strong>작업 일자</strong></label>
+                                                                            <input type="date" class="form-control" name="created_at" value="<?php echo date('Y-m-d'); ?>" required>
+                                                                        </div>
+                                                                    </div>
 
-                                            <div class="d-flex justify-content-between align-items-end mt-3">
-                                                <div style="width: 60px; height: 60px;">
-                                                    <?php if (!empty($row['PhotoPath'])): ?>
-                                                        <a href="../<?= htmlspecialchars($row['PhotoPath']) ?>" target="_blank">
-                                                            <img src="../<?= htmlspecialchars($row['PhotoPath']) ?>" class="w-100 h-100 rounded border" style="object-fit: cover;" alt="사진">
-                                                        </a>
-                                                    <?php else: ?>
-                                                        <div class="w-100 h-100 bg-light rounded border d-flex align-items-center justify-content-center text-gray-400 small">No Img</div>
-                                                    <?php endif; ?>
-                                                </div>
-                                                
-                                                <div class="text-right">
-                                                    <div class="font-weight-bold text-dark mb-2"><?= number_format($row['RepairCost']) ?>원</div>
-                                                    <div>
-                                                        <a href="facility_edit.php?LogID=<?= $logID ?>" class="btn btn-info btn-sm">
-                                                            <i class="fas fa-edit"></i>
-                                                        </a>
-                                                        <button class="btn btn-success btn-sm btn-action" 
-                                                                onclick="shareFacilityLink(<?= $logID ?>, '<?= $js_loc ?>', '<?= $js_iss ?>')">
-                                                            <i class="fas fa-share-alt"></i>
-                                                        </button>
+                                                                    <div class="row">
+                                                                        <div class="col-md-6 mb-3">
+                                                                            <label>위치 <span class="text-danger">*</span></label>
+                                                                            <input type="text" class="form-control" name="location" placeholder="예: 1층 로비" required>
+                                                                        </div>
+                                                                        <div class="col-md-6 mb-3">
+                                                                            <label>비용 (원)</label>
+                                                                            <input type="number" class="form-control" name="cost" value="0">
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label>고장 내용 <span class="text-danger">*</span></label>
+                                                                        <textarea class="form-control" name="issue" rows="3" required></textarea>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label>조치 내용</label>
+                                                                        <textarea class="form-control" name="resolution" rows="3"></textarea>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label>현장 사진</label>
+                                                                        <div class="custom-file">
+                                                                            <input type="file" class="custom-file-input" id="photo" name="photo" accept="image/*">
+                                                                            <label class="custom-file-label" for="photo">파일 선택...</label>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="text-right"><button type="submit" class="btn btn-primary">등록하기</button></div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div> 
+
+                                                <div class="col-lg-12"> 
+                                                    <div class="card shadow mb-4">
+                                                        <div class="card-header py-3">
+                                                            <h6 class="m-0 font-weight-bold text-primary">최근 등록 내역 (5건)</h6>
+                                                        </div>
+                                                        <div class="card-body table-responsive p-2">
+                                                            <?php 
+                                                                $displayList = array_slice($historyList, 0, 5); 
+                                                                $tableId = "table_recent_5";
+                                                            ?>
+                                                            <div class="d-none d-md-block">
+                                                                <table class="table table-bordered table-hover" id="<?= $tableId ?>" width="100%" cellspacing="0">
+                                                                    <thead class="thead-light text-center">
+                                                                        <tr>
+                                                                            <th style="width: 15%">날짜</th>
+                                                                            <th style="width: 15%">위치</th>
+                                                                            <th>내용 / 조치</th>
+                                                                            <th style="width: 10%">비용</th>
+                                                                            <th style="width: 10%">사진</th>
+                                                                            <th style="width: 12%">관리</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        <?php foreach ($displayList as $row): 
+                                                                            $logID = $row['LogID'];
+                                                                            $js_loc = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['Location'] ?? ''), ENT_QUOTES);
+                                                                            $js_iss = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['IssueDescription'] ?? ''), ENT_QUOTES);
+                                                                        ?>
+                                                                        <tr class="clickable-row" onclick="goToView(<?= $logID ?>)">
+                                                                            <td class="text-center small">
+                                                                                <?php 
+                                                                                if (isset($row['CreatedAt']) && $row['CreatedAt'] instanceof DateTime) {
+                                                                                    echo $row['CreatedAt']->format('Y-m-d');
+                                                                                } else { echo substr($row['CreatedAt'] ?? '', 0, 10); }
+                                                                                ?>
+                                                                            </td>
+                                                                            <td class="font-weight-bold text-center"><?= htmlspecialchars($row['Location']) ?></td>
+                                                                            <td>
+                                                                                <div class="mb-1">
+                                                                                    <span class="badge badge-danger">고장</span> 
+                                                                                    <span title="<?= htmlspecialchars($row['IssueDescription']) ?>">
+                                                                                        <?= truncateText($row['IssueDescription'], 30) ?>
+                                                                                    </span>
+                                                                                </div>
+                                                                                <?php if($row['Resolution']): ?>
+                                                                                    <div>
+                                                                                        <span class="badge badge-success">조치</span> 
+                                                                                        <span title="<?= htmlspecialchars($row['Resolution']) ?>">
+                                                                                            <?= truncateText($row['Resolution'], 30) ?>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                <?php endif; ?>
+                                                                            </td>
+                                                                            <td class="text-right"><?= number_format($row['RepairCost']) ?></td>
+                                                                            <td class="text-center" onclick="event.stopPropagation()">
+                                                                                <?php if (!empty($row['PhotoPath'])): ?><a href="../<?= htmlspecialchars($row['PhotoPath']) ?>" target="_blank"><img src="../<?= htmlspecialchars($row['PhotoPath']) ?>" class="photo-thumb"></a><?php else: echo "-"; endif; ?>
+                                                                            </td>
+                                                                            <td class="text-center" onclick="event.stopPropagation()">
+                                                                                <a href="facility_edit.php?LogID=<?= $row['LogID'] ?>" class="btn btn-info btn-sm btn-circle"><i class="fas fa-edit"></i></a>
+                                                                                <button class="btn btn-success btn-sm btn-circle" onclick="shareFacilityLink(<?= $logID ?>, '<?= $js_loc ?>', '<?= $js_iss ?>')"><i class="fas fa-share-alt"></i></button>
+                                                                            </td>
+                                                                        </tr>
+                                                                        <?php endforeach; ?>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                            
+                                                            <div class="d-md-none">
+                                                                <?php foreach ($displayList as $row): 
+                                                                    $logID = $row['LogID'];
+                                                                    $dateStr = isset($row['CreatedAt']) && $row['CreatedAt'] instanceof DateTime ? $row['CreatedAt']->format('Y-m-d') : substr($row['CreatedAt'] ?? '', 0, 10);
+                                                                ?>
+                                                                <div class="card mobile-card mb-3 shadow-sm clickable-row" onclick="goToView(<?= $logID ?>)">
+                                                                    <div class="card-body p-3">
+                                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                            <h5 class="font-weight-bold text-primary mb-0"><?= htmlspecialchars($row['Location']) ?></h5>
+                                                                            <small class="text-muted"><?= $dateStr ?></small>
+                                                                        </div>
+                                                                        <div class="mb-2">
+                                                                            <strong class="text-gray-600">고장:</strong> 
+                                                                            <?= truncateText($row['IssueDescription'], 30) ?>
+                                                                        </div>
+                                                                        <?php if($row['Resolution']): ?>
+                                                                            <div class="mb-2">
+                                                                                <strong class="text-gray-600">조치:</strong> 
+                                                                                <?= truncateText($row['Resolution'], 30) ?>
+                                                                            </div>
+                                                                        <?php endif; ?>
+                                                                        <div class="d-flex justify-content-between align-items-end mt-2">
+                                                                            <div onclick="event.stopPropagation()">
+                                                                                <?php if (!empty($row['PhotoPath'])): ?><img src="../<?= htmlspecialchars($row['PhotoPath']) ?>" style="width:50px; height:50px; object-fit:cover; border-radius:4px;"><?php endif; ?>
+                                                                            </div>
+                                                                            <div class="text-right">
+                                                                                <div class="font-weight-bold mb-1"><?= number_format($row['RepairCost']) ?>원</div>
+                                                                                <div onclick="event.stopPropagation()">
+                                                                                    <a href="facility_edit.php?LogID=<?= $logID ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <?php endforeach; ?>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                    <?php endforeach; ?>
-                                </div>
-                                <div class="table-responsive d-none d-md-block">
-                                    <table class="table table-bordered table-hover" width="100%" cellspacing="0">
-                                        <thead class="thead-light text-center">
-                                            <tr>
-                                                <th style="width: 15%">날짜</th>
-                                                <th style="width: 15%">위치</th>
-                                                <th>내용 / 조치</th>
-                                                <th style="width: 10%">비용</th>
-                                                <th style="width: 10%">사진</th>
-                                                <th style="width: 12%">관리</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach ($historyList as $row): 
-                                                $logID   = $row['LogID'];
-                                                $js_loc  = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['Location'] ?? ''), ENT_QUOTES);
-                                                $js_iss  = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['IssueDescription'] ?? ''), ENT_QUOTES);
-                                            ?>
-                                            <tr>
-                                                <td class="text-center small">
-                                                    <?php 
-                                                    if (isset($row['CreatedAt']) && $row['CreatedAt'] instanceof DateTime) {
-                                                        echo $row['CreatedAt']->format('Y-m-d') . "<br>" . $row['CreatedAt']->format('H:i');
-                                                    } elseif (isset($row['CreatedAt'])) {
-                                                        echo substr($row['CreatedAt'], 0, 16);
-                                                    }
-                                                    ?>
-                                                </td>
-                                                
-                                                <td class="font-weight-bold text-center">
-                                                    <a href="facility_view.php?LogID=<?= $row['LogID'] ?>" class="text-primary text-decoration-none">
-                                                        <?= htmlspecialchars($row['Location']) ?>
-                                                    </a>
-                                                </td>
+                                        </div> 
 
-                                                <td>
-                                                    <a href="facility_view.php?LogID=<?= $row['LogID'] ?>" class="text-dark text-decoration-none" style="display:block;">
-                                                        <div class="mb-2"><span class="badge badge-danger">고장</span> <?= htmlspecialchars($row['IssueDescription']) ?></div>
-                                                        <?php if($row['Resolution']): ?>
-                                                        <div><span class="badge badge-success">조치</span> <?= htmlspecialchars($row['Resolution']) ?></div>
-                                                        <?php endif; ?>
-                                                    </a>
-                                                </td>
-
-                                                <td class="text-right"><?= number_format($row['RepairCost']) ?></td>
-                                                <td class="text-center">
-                                                    <?php if (!empty($row['PhotoPath'])): ?>
-                                                        <a href="../<?= htmlspecialchars($row['PhotoPath']) ?>" target="_blank">
-                                                            <img src="../<?= htmlspecialchars($row['PhotoPath']) ?>" class="photo-thumb" alt="사진">
+                                        <div class="tab-pane fade <?= ($active_tab == 'tab4') ? 'show active' : '' ?>" id="tab4" role="tabpanel">
+                                            <div class="row">
+                                                <div class="col-lg-12"> 
+                                                    <div class="card shadow mb-4">
+                                                        <a href="#collapseSearch" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseSearch">
+                                                            <h6 class="m-0 font-weight-bold text-primary">검색</h6>
                                                         </a>
-                                                    <?php else: ?>
-                                                        <span class="small text-gray-500">-</span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td class="text-center">
-                                                    <a href="facility_edit.php?LogID=<?= $row['LogID'] ?>" class="btn btn-info btn-sm btn-circle" title="수정">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                    <button class="btn btn-success btn-sm btn-circle btn-action" title="공유" 
-                                                            onclick="shareFacilityLink(<?= $logID ?>, '<?= $js_loc ?>', '<?= $js_iss ?>')">
-                                                        <i class="fas fa-share-alt"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <?php endif; ?>
-                        </div>
-                    </div>
+                                                        <form method="POST" autocomplete="off" action="facility.php"> 
+                                                            <div class="collapse show" id="collapseSearch">                                    
+                                                                <div class="card-body">
+                                                                    <div class="row">                                                                        
+                                                                        <div class="col-md-12">
+                                                                            <div class="form-group">
+                                                                                <label>검색범위 (날짜)</label>
+                                                                                <div class="input-group">                                                
+                                                                                    <div class="input-group-prepend"><span class="input-group-text"><i class="far fa-calendar-alt"></i></span></div>
+                                                                                    <input type="text" class="form-control float-right kjwt-search-date" name="dtSearch" 
+                                                                                           value="<?= htmlspecialchars($searchDateRange) ?>" 
+                                                                                           placeholder="<?= date('Y-m-d').' ~ '.date('Y-m-d') ?>">
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div> 
+                                                                </div>                                                                     
+                                                                <div class="card-footer text-right">
+                                                                    <button type="submit" class="btn btn-primary" name="btSearch">검색</button>
+                                                                </div>
+                                                            </div>
+                                                        </form>             
+                                                    </div>
+                                                </div>
 
+                                                <div class="col-lg-12"> 
+                                                    <div class="card shadow mb-4">
+                                                        <a href="#collapseResult" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseResult">
+                                                            <h6 class="m-0 font-weight-bold text-primary">검색 결과</h6>
+                                                        </a>
+                                                        <div class="collapse show" id="collapseResult">
+                                                            <div class="card-body table-responsive p-2">
+                                                                
+                                                                <?php if(empty($searchList) && isset($_POST['btSearch'])): ?>
+                                                                    <div class="text-center p-5 text-gray-500">검색된 데이터가 없습니다.</div>
+                                                                <?php elseif(!empty($searchList)): ?>
+                                                                    
+                                                                    <div class="d-md-none mb-3">
+                                                                        <div class="input-group">
+                                                                            <input type="text" id="mobile-search-history" class="form-control mobile-search-input" placeholder="결과 내 검색...">
+                                                                            <div class="input-group-append"><button class="btn btn-primary mobile-search-btn" type="button"><i class="fas fa-search"></i></button></div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="d-none d-md-block">
+                                                                        <table class="table table-bordered table-hover text-nowrap" id="dataTableResult" width="100%" cellspacing="0">
+                                                                            <thead class="thead-light text-center">
+                                                                                <tr>
+                                                                                    <th style="width: 15%">날짜</th>
+                                                                                    <th style="width: 15%">위치</th>
+                                                                                    <th>내용 / 조치</th>
+                                                                                    <th style="width: 10%">비용</th>
+                                                                                    <th style="width: 10%">사진</th>
+                                                                                    <th style="width: 12%">관리</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                <?php foreach ($searchList as $row): 
+                                                                                    $logID = $row['LogID'];
+                                                                                    $js_loc = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['Location'] ?? ''), ENT_QUOTES);
+                                                                                    $js_iss = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['IssueDescription'] ?? ''), ENT_QUOTES);
+                                                                                ?>
+                                                                                <tr class="clickable-row" onclick="goToView(<?= $logID ?>)">
+                                                                                    <td class="text-center small">
+                                                                                        <?php 
+                                                                                        if (isset($row['CreatedAt']) && $row['CreatedAt'] instanceof DateTime) {
+                                                                                            echo $row['CreatedAt']->format('Y-m-d');
+                                                                                        } else { echo substr($row['CreatedAt'] ?? '', 0, 10); }
+                                                                                        ?>
+                                                                                    </td>
+                                                                                    <td class="font-weight-bold text-center"><?= htmlspecialchars($row['Location']) ?></td>
+                                                                                    <td>
+                                                                                        <div class="mb-1">
+                                                                                            <span class="badge badge-danger">고장</span> 
+                                                                                            <span title="<?= htmlspecialchars($row['IssueDescription']) ?>">
+                                                                                                <?= truncateText($row['IssueDescription'], 40) ?>
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <?php if($row['Resolution']): ?>
+                                                                                            <div>
+                                                                                                <span class="badge badge-success">조치</span> 
+                                                                                                <span title="<?= htmlspecialchars($row['Resolution']) ?>">
+                                                                                                    <?= truncateText($row['Resolution'], 40) ?>
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        <?php endif; ?>
+                                                                                    </td>
+                                                                                    <td class="text-right"><?= number_format($row['RepairCost']) ?></td>
+                                                                                    <td class="text-center" onclick="event.stopPropagation()">
+                                                                                        <?php if (!empty($row['PhotoPath'])): ?><a href="../<?= htmlspecialchars($row['PhotoPath']) ?>" target="_blank"><img src="../<?= htmlspecialchars($row['PhotoPath']) ?>" class="photo-thumb"></a><?php else: echo "-"; endif; ?>
+                                                                                    </td>
+                                                                                    <td class="text-center" onclick="event.stopPropagation()">
+                                                                                        <a href="facility_edit.php?LogID=<?= $row['LogID'] ?>" class="btn btn-info btn-sm btn-circle"><i class="fas fa-edit"></i></a>
+                                                                                        <button class="btn btn-success btn-sm btn-circle" onclick="shareFacilityLink(<?= $logID ?>, '<?= $js_loc ?>', '<?= $js_iss ?>')"><i class="fas fa-share-alt"></i></button>
+                                                                                    </td>
+                                                                                </tr>
+                                                                                <?php endforeach; ?>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+
+                                                                    <div class="d-md-none" id="mobile-card-container-history">
+                                                                        <?php foreach ($searchList as $row): 
+                                                                            $logID = $row['LogID'];
+                                                                            $dateStr = isset($row['CreatedAt']) && $row['CreatedAt'] instanceof DateTime ? $row['CreatedAt']->format('Y-m-d') : substr($row['CreatedAt'] ?? '', 0, 10);
+                                                                        ?>
+                                                                        <div class="card mobile-card mb-3 shadow-sm clickable-row" onclick="goToView(<?= $logID ?>)">
+                                                                            <div class="card-body p-3">
+                                                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                                    <h5 class="font-weight-bold text-primary mb-0"><?= htmlspecialchars($row['Location']) ?></h5>
+                                                                                    <small class="text-muted"><?= $dateStr ?></small>
+                                                                                </div>
+                                                                                <div class="mb-2">
+                                                                                    <strong class="text-gray-600">고장:</strong> 
+                                                                                    <?= truncateText($row['IssueDescription'], 30) ?>
+                                                                                </div>
+                                                                                <?php if($row['Resolution']): ?>
+                                                                                    <div class="mb-2">
+                                                                                        <strong class="text-gray-600">조치:</strong> 
+                                                                                        <?= truncateText($row['Resolution'], 30) ?>
+                                                                                    </div>
+                                                                                <?php endif; ?>
+                                                                                <div class="d-flex justify-content-between align-items-end mt-2">
+                                                                                    <div onclick="event.stopPropagation()">
+                                                                                        <?php if (!empty($row['PhotoPath'])): ?><img src="../<?= htmlspecialchars($row['PhotoPath']) ?>" style="width:50px; height:50px; object-fit:cover; border-radius:4px;"><?php endif; ?>
+                                                                                    </div>
+                                                                                    <div class="text-right">
+                                                                                        <div class="font-weight-bold mb-1"><?= number_format($row['RepairCost']) ?>원</div>
+                                                                                        <div onclick="event.stopPropagation()">
+                                                                                            <a href="facility_edit.php?LogID=<?= $logID ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <?php endforeach; ?>
+                                                                    </div>
+
+                                                                <?php else: ?>
+                                                                    <div class="text-center p-3 small text-muted">검색할 날짜 범위를 선택하고 검색 버튼을 눌러주세요.</div>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div> 
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>   
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <a class="scroll-to-top rounded" href="#page-top"><i class="fas fa-angle-up"></i></a>
+
     <?php include '../plugin_lv1.php'; ?>
+
     <script>
-        $(".custom-file-input").on("change", function() {
-            var fileName = $(this).val().split("\\").pop();
-            $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+        document.addEventListener('DOMContentLoaded', function() {
+            // DataTables 설정
+            if ($.fn.DataTable.isDataTable('#dataTableResult')) {
+                $('#dataTableResult').DataTable().destroy();
+            }
+            
+            var table = $('#dataTableResult').DataTable({
+                "responsive": true,
+                "lengthChange": false, 
+                "autoWidth": false,
+                "buttons": ["copy", "csv", "excel", "pdf", "print", "colvis"], 
+                "order": [[ 0, "desc" ]], 
+                "language": {
+                    "search": "검색:",
+                    "paginate": { "next": "다음", "previous": "이전" },
+                    "info": "_START_ - _END_ (총 _TOTAL_ 건)",
+                    "emptyTable": "데이터가 없습니다."
+                }
+            });
+
+            table.buttons().container().appendTo('#dataTableResult_wrapper .col-md-6:eq(0)');
+
+            // 모바일 검색
+            const searchInput = document.getElementById('mobile-search-history');
+            if (searchInput) {
+                searchInput.addEventListener('keyup', function() {
+                    const filter = searchInput.value.toUpperCase();
+                    const cards = document.querySelectorAll('#mobile-card-container-history .mobile-card');
+                    
+                    cards.forEach(function(card) {
+                        const text = card.textContent || card.innerText;
+                        if (text.toUpperCase().indexOf(filter) > -1) {
+                            card.style.display = "";
+                        } else {
+                            card.style.display = "none";
+                        }
+                    });
+                });
+            }
+            
+            // 파일 업로드 라벨
+            $(".custom-file-input").on("change", function() {
+                var fileName = $(this).val().split("\\").pop();
+                $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+            });
         });
     </script>
+
 </body>
 </html>
-<?php if(isset($connect)) { sqlsrv_close($connect); } ?>
+
+<?php 
+    if(isset($connect)) { sqlsrv_close($connect); }
+?>
