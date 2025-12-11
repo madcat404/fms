@@ -35,9 +35,9 @@ $cards = [
         ["./kjwt_schedule/schedule.php", "fa-user-tie", "방문자"],       
         ["./kjwt_uniform/uniform.php", "fa-tshirt", "유니폼"],
         ["./kjwt_birthday/birthday.php", "fa-birthday-cake", "생년월일"],
-        ["./kjwt_sign/sign_select.php", "fa-file-signature", "교육회람"],
-        
-        ["./kjwt_human/human.php", "fa-users", "HR"]
+        ["./kjwt_sign/sign_select.php", "fa-file-signature", "교육회람"],    
+        ["./kjwt_human/human.php", "fa-users", "HR"],
+        ["./kjwt_facility/facility.php", "fa-tools", "시설"]
     ],
     '전산' => [
         ["./index.php", "fa-arrow-left", "뒤로가기"],

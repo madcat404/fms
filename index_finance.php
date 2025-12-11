@@ -29,7 +29,10 @@ $cards = [
     '내부회계' => [
         ["./index.php", "fa-arrow-left", "뒤로가기"],
         ["./kjwt_audit/audit.php", "fa-user-lock", "ERP권한"],
-        ["./kjwt_todolist/todolist.php", "fa-headset", "기술지원"]
+        ["./kjwt_todolist/todolist.php", "fa-headset", "기술지원"],
+        ["./kjwt_audit/audit_log_view.php", "fa-headset", "DB 변경 로그"]
+
+        
     ],
     '관리' => [
         ["./index.php", "fa-arrow-left", "뒤로가기"],        
