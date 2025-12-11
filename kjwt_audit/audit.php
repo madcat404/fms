@@ -489,7 +489,6 @@
                                                                     <table class="table table-bordered table-striped mobile-responsive-table" id="table5">
                                                                         <thead>
                                                                             <tr>
-                                                                                <th>그룹코드</th>
                                                                                 <th>사용자</th>
                                                                                 <th>퇴사일</th>   
                                                                                 <th>퇴사처리일시</th>
@@ -498,8 +497,7 @@
                                                                         </thead>
                                                                         <tbody>
                                                                             <?php foreach ($retire_list as $Data_Grant4): ?>                                                                            
-                                                                                <tr>  
-                                                                                    <td data-label="그룹코드"><?= h($Data_Grant4['CD_GROUP']) ?></td>                                                                                             
+                                                                                <tr>                                                                                             
                                                                                     <td data-label="사용자"><?= h($Data_Grant4['NM_KOR']) ?></td>  
                                                                                     <td data-label="퇴사일"><?= h($Data_Grant4['DT_RETIRE'] ? date('Y-m-d', strtotime($Data_Grant4['DT_RETIRE'])) : '') ?></td>
                                                                                     <td data-label="퇴사처리일시"><?= h($Data_Grant4['DTS_UPDATE'] ? date('Y-m-d H:m:s', strtotime($Data_Grant4['DTS_UPDATE'])) : '') ?></td>
