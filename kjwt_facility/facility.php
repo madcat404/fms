@@ -551,6 +551,70 @@ function truncateText($text, $width = 30) {
             if ($.fn.DataTable.isDataTable('#dataTableResult')) {
                 $('#dataTableResult').DataTable().destroy();
             }
+
+            // [추가 기능] 이미지 선택 시 용량 자동 줄이기 (Client-Side Resizing)
+            const fileInput = document.getElementById('photo');
+            if(fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    // 이미지가 아니면 패스
+                    if (!file.type.match(/image.*/)) return;
+
+                    // 1. 이미지 읽기
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const img = new Image();
+                        img.onload = function() {
+                            // 2. 캔버스로 리사이징 (최대 1280px)
+                            const MAX_WIDTH = 1280; 
+                            const MAX_HEIGHT = 1280;
+                            let width = img.width;
+                            let height = img.height;
+
+                            if (width > height) {
+                                if (width > MAX_WIDTH) {
+                                    height *= MAX_WIDTH / width;
+                                    width = MAX_WIDTH;
+                                }
+                            } else {
+                                if (height > MAX_HEIGHT) {
+                                    width *= MAX_HEIGHT / height;
+                                    height = MAX_HEIGHT;
+                                }
+                            }
+
+                            const canvas = document.createElement('canvas');
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            // 3. 압축된 Blob 생성 (JPEG 퀄리티 0.7)
+                            canvas.toBlob(function(blob) {
+                                // 4. 원본 파일 교체 (파일명 유지)
+                                const newFile = new File([blob], file.name, {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now()
+                                });
+
+                                // DataTransfer를 사용하여 input의 files 교체
+                                const dataTransfer = new DataTransfer();
+                                dataTransfer.items.add(newFile);
+                                fileInput.files = dataTransfer.files;
+
+                                // (선택) 줄어든 용량 로그 확인용
+                                // console.log('원본:', (file.size/1024/1024).toFixed(2) + 'MB');
+                                // console.log('압축:', (newFile.size/1024/1024).toFixed(2) + 'MB');
+
+                            }, 'image/jpeg', 0.7); // 0.7 = 70% 품질
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
             
             var table = $('#dataTableResult').DataTable({
                 "responsive": true,
