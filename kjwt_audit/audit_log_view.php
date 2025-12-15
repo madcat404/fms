@@ -34,9 +34,10 @@ if (isset($connect) && $connect) {
                     [UserName], 
                     [TableName], 
                     [QueryText], 
-                    [SyncTime]
+                    [NOTE]
                   FROM [CONNECT].[dbo].[TB_AUDIT_LOG_HISTORY]
                   WHERE [EventTime] BETWEEN ? AND ?
+                  AND [ActionID] IN ('IN', 'UP', 'DL')
                   ORDER BY [EventTime] DESC";
 
         // 파라미터 바인딩
@@ -138,6 +139,8 @@ if (isset($connect) && $connect) {
                                         <div class="tab-pane fade show active" id="tab1" role="tabpanel" aria-labelledby="tab-one">
                                             
                                             <div class="col-lg-12">
+                                                <P>데이터조작(DML): IN 데이터 삽입 / UP 데이터 수정 / DL 데이터 삭제
+                                                </P>
                                                 <div class="card shadow mb-4">
                                                     <a href="#collapseSearch" class="d-block card-header py-3" data-toggle="collapse"
                                                         role="button" aria-expanded="true" aria-controls="collapseSearch">
@@ -196,8 +199,8 @@ if (isset($connect) && $connect) {
                                                                             <th style="width: 10%;">유형</th>
                                                                             <th style="width: 10%;">사용자</th>
                                                                             <th style="width: 15%;">테이블명</th>
-                                                                            <th style="width: 35%;">쿼리 내용</th>
-                                                                            <th style="width: 10%;">동기화 시간</th>
+                                                                            <th style="width: 35%;">쿼리 내용</th>     
+                                                                            <th style="width: 35%;">비고</th>  
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
@@ -231,15 +234,7 @@ if (isset($connect) && $connect) {
                                                                                             <?php echo htmlspecialchars($row['QueryText']); ?>
                                                                                         </span>
                                                                                     </td>
-                                                                                    <td>
-                                                                                        <?php 
-                                                                                            if ($row['SyncTime'] instanceof DateTime) {
-                                                                                                echo $row['SyncTime']->format('Y-m-d H:i:s');
-                                                                                            } else {
-                                                                                                echo htmlspecialchars($row['SyncTime']);
-                                                                                            }
-                                                                                        ?>
-                                                                                    </td>
+                                                                                    <td><?php echo htmlspecialchars($row['NOTE']); ?></td>
                                                                                 </tr>
                                                                             <?php endforeach; ?>
                                                                         <?php endif; ?>
