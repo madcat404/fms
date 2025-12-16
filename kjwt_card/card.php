@@ -261,15 +261,15 @@ if (!function_exists('h')) {
                                 </thead>
                                 <tbody>
                                     <tr style="vertical-align: middle; text-align: center;"> 
-                                        <td>신한카드</td><td>4518-4445-0568-6532</td><td>01/27</td><td rowspan="3" style="vertical-align: middle;">매월 23일</td> 
+                                        <td>신한카드</td><td>4518-****-****-6532</td><td>01/27</td><td rowspan="3" style="vertical-align: middle;">매월 23일</td> 
                                         <td><?php echo (($Data_Card6532['IN_YN'] ?? 'Y') == 'N') ? "대여" : "반납"; ?></td>   
                                     </tr>  
                                     <tr style="text-align: center;"> 
-                                        <td>우리비씨카드</td><td>4101-2020-0993-3963</td><td>03/30</td>   
+                                        <td>우리비씨카드</td><td>4101-****-****-3963</td><td>03/30</td>   
                                         <td><?php echo (($Data_Card3963['IN_YN'] ?? 'Y') == 'N') ? "대여" : "반납"; ?></td>  
                                     </tr> 
                                     <tr style="text-align: center;"> 
-                                        <td>기업비씨카드</td><td>9430-0307-5713-7938</td><td>05/26</td>  
+                                        <td>기업비씨카드</td><td>9430-****-****-7938</td><td>05/26</td>  
                                         <td><?php echo (($Data_Card7938['IN_YN'] ?? 'Y') == 'N') ? "대여" : "반납"; ?></td> 
                                     </tr>   
                                 </tbody>

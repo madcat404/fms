@@ -1,0 +1,5 @@
+# 모든 검색 로봇(Googlebot, Yeti 등)을 대상으로 합니다.
+User-agent: *
+
+# 사이트의 모든 경로(/)에 대해 수집을 금지합니다.
+Disallow: /
