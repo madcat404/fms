@@ -1,11 +1,10 @@
 <?php
 // brother/ocr_contract_worker.php
-// 계약서 OCR 분석 및 파싱 워커 (주소 API 제거하여 원본 주소 유지)
+// 계약서 OCR 분석 및 파싱 워커 (사용자 지정 순차 검색 로직 적용)
 
 set_time_limit(0);
 ini_set('memory_limit', '-1');
 
-// 경로 확인 필요
 require_once '/var/www/html/DB/DB1.php'; 
 require 'vendor/autoload.php'; 
 
@@ -74,14 +73,19 @@ try {
     $new_realtor_address = null;
     $new_realtor_phone = null;
 
-    // [1] 성명(법인명) 추출
+    $new_contract_start = null;
+    $new_contract_end = null;
+    $new_deposit = null;
+    $new_monthly_rent = null;
+
+
+    // [1] 성명(법인명)
     if (preg_match_all('/성명\s*\(법인명\)(?:\s*주소)?\s*[:\s\.]*([가-힣]{2,20})/u', $accumulatedText, $matches)) {
         if (isset($matches[1][0])) $new_lessor_name = trim($matches[1][0]);
         if (isset($matches[1][1])) $new_lessee_name = trim($matches[1][1]);
     }
 
-    // [2] 전화번호 추출
-    // 임대인
+    // [2] 전화번호
     if (preg_match('/임대사업자\s*주민등록번호\s*전화번호\s*[:\s\.]*([^\n]+)/u', $accumulatedText, $m)) {
         $tempStr = $m[1];
         if (preg_match('/01[016789][\s\-]?[0-9]{3,4}[\s\-]?[0-9]{4}/', $tempStr, $ph)) {
@@ -90,7 +94,6 @@ try {
              $new_lessor_phone = preg_replace('/[^0-9\-]/', '', $tempStr);
         }
     }
-    // 임차인
     if (preg_match('/임차인\s*주민등록번호\s*전화번호\s*[:\s\.]*([^\n]+)/u', $accumulatedText, $m)) {
         $tempStr = $m[1];
         if (preg_match('/01[016789][\s\-]?[0-9]{3,4}[\s\-]?[0-9]{4}/', $tempStr, $ph)) {
@@ -100,13 +103,11 @@ try {
         }
     }
 
-    // [3] 주민등록번호 추출
-    // 임대인
+    // [3] 주민등록번호
     if (preg_match('/\(사업자등록번호\)\s*[:\s\.]*(\d{6})/u', $accumulatedText, $m)) {
         $new_lessor_birth = $m[1];
     }
 
-    // 임차인 (주민번호 패턴 전체 검색 후 순서 기반 할당)
     preg_match_all('/(\d{6})-([1-4])\d{6}/', $accumulatedText, $birthMatches);
 
     if (isset($birthMatches[1][0]) && empty($new_lessor_birth)) {
@@ -134,7 +135,7 @@ try {
         }
     }
 
-    // [4] 공인중개사 정보 추출
+    // [4] 공인중개사 정보
     $realtorPos = mb_strpos($accumulatedText, '2. 공인중개사');
     if ($realtorPos === false) {
         $realtorPos = mb_strpos($accumulatedText, '개업공인중개사');
@@ -166,8 +167,7 @@ try {
         }
     }
 
-    // [5] 주소 및 전용면적 파싱 (주소 파싱 로직)
-    // 1순위: "대상물건의 표시" 섹션 내의 소재지
+    // [5] 주소 및 전용면적
     $targetPos = mb_strpos($accumulatedText, '대상물건의 표시');
     if ($targetPos !== false) {
         $subText = mb_substr($accumulatedText, $targetPos); 
@@ -181,7 +181,6 @@ try {
         }
     }
 
-    // 2순위: "토지" 키워드 바로 이전 주소
     if (empty($new_building_address)) {
         $tojiPos = mb_strpos($accumulatedText, '토지');
         if ($tojiPos !== false) {
@@ -199,7 +198,6 @@ try {
         }
     }
 
-    // 3순위: 기존 로직
     if (empty($new_building_address)) {
         $bodyText = ($realtorPos !== false) ? mb_substr($accumulatedText, 0, $realtorPos) : $accumulatedText;
         if (preg_match('/(?:주택\s*)?소재지[^\n]*\s+([^\n]+)/u', $bodyText, $m)) {
@@ -210,15 +208,87 @@ try {
         }
     }
 
-    // [전용면적]
     if (preg_match('/전용면적[^\d]*([\d\.]+)/u', $accumulatedText, $m)) {
         $new_exclusive_area = $m[1];
     }
+    
+    // ============================================================
+    // [6] 계약 기간 및 금액 파싱 (사용자 지정 순차 검색 로직)
+    // ============================================================
 
-    // ============================================================
-    // [중요] 4. 주소 정제 (Juso API) 부분 삭제됨
-    // (사용자가 OCR 원본 주소 유지를 원하므로 API 연동 로직 제거)
-    // ============================================================
+    // A. 계약 기간 (YYYY년 MM월 DD일)
+    if (preg_match('/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일[^\n]*?(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/u', $accumulatedText, $m)) {
+        $new_contract_start = sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
+        $new_contract_end = sprintf('%04d-%02d-%02d', $m[4], $m[5], $m[6]);
+    }
+
+    // B. 보증금 (임대보증금) - 기존 로직 유지
+    // "임대보증금" 뒤의 ₩ 뒤의 숫자
+    if (preg_match('/(?:임대|전세)?\s*보증금.{0,200}?[₩￦Ww]\s*([\d,]+)/su', $accumulatedText, $m)) {
+        $new_deposit = str_replace(',', '', $m[1]);
+    } 
+    elseif (preg_match('/(?:임대|전세)?\s*보증금.{0,200}?([1-9][\d,]{5,})\s*원/su', $accumulatedText, $m)) {
+         $new_deposit = str_replace(',', '', $m[1]);
+    }
+
+    // C. 월 임대료 (월차임) - [요청하신 순차 검색 로직]
+    // 1단계: "계약조건" (또는 계약내용, 제1조 등 헤더) 찾기
+    $posStart = 0;
+    $startKeywords = ['계약조건', '계약내용', '제1조', '부동산의 표시'];
+    
+    foreach($startKeywords as $kw) {
+        $p = mb_strpos($accumulatedText, $kw);
+        if ($p !== false) {
+            $posStart = $p;
+            break;
+        }
+    }
+
+    // 2단계: 그 다음으로 "₩" (첫 번째 ₩: 보통 보증금) 찾기
+    // $posFirstWon 위치를 찾음
+    $posFirstWon = false;
+    $wonSymbols = ['₩', '￦', 'W', 'w'];
+    $minDist = 999999;
+
+    foreach ($wonSymbols as $sym) {
+        $p = mb_strpos($accumulatedText, $sym, $posStart);
+        if ($p !== false && $p < $minDist) {
+            $minDist = $p;
+            $posFirstWon = $p;
+        }
+    }
+
+    // 3단계: 첫 번째 ₩ 이후에 "월임대료" (또는 월세, 차임) 찾기
+    $posRentKeyword = false;
+    
+    // 만약 첫 번째 ₩를 못 찾았으면, 시작점부터 그냥 찾음 (안전장치)
+    $searchBase = ($posFirstWon !== false) ? $posFirstWon : $posStart;
+    
+    $rentKeywords = ['월임대료', '월차임', '차임', '월세'];
+    $minDist = 999999;
+
+    foreach ($rentKeywords as $kw) {
+        $p = mb_strpos($accumulatedText, $kw, $searchBase);
+        if ($p !== false && $p < $minDist) {
+            $minDist = $p;
+            $posRentKeyword = $p;
+        }
+    }
+
+    // 4단계: 월임대료 이후에 나오는 "₩"를 찾아서 금액 추출
+    if ($posRentKeyword !== false) {
+        // 월임대료 키워드 뒤 200자 잘라내기
+        $rentChunk = mb_substr($accumulatedText, $posRentKeyword, 200);
+        
+        // ₩, ￦, W 뒤의 숫자 추출 (여기가 최종 타겟)
+        if (preg_match('/[₩￦Ww]\s*([\d,]+)/u', $rentChunk, $m)) {
+            $val = str_replace(',', '', $m[1]);
+            if (is_numeric($val)) {
+                $new_monthly_rent = $val;
+            }
+        }
+    }
+
 
     // ============================================================
     // 5. DB 업데이트
@@ -249,6 +319,11 @@ try {
         $final_realtor_address = !empty($row['realtor_office_address']) ? $row['realtor_office_address'] : $new_realtor_address;
         $final_realtor_phone = !empty($row['realtor_phone']) ? $row['realtor_phone'] : $new_realtor_phone;
 
+        $final_contract_start = !empty($row['contract_start_date']) ? $row['contract_start_date'] : $new_contract_start;
+        $final_contract_end = !empty($row['contract_end_date']) ? $row['contract_end_date'] : $new_contract_end;
+        $final_deposit = !empty($row['deposit']) ? $row['deposit'] : $new_deposit;
+        $final_monthly_rent = !empty($row['monthly_rent']) ? $row['monthly_rent'] : $new_monthly_rent;
+
     } else {
         $final_lessor_name = $new_lessor_name;
         $final_lessor_phone = $new_lessor_phone;
@@ -262,8 +337,14 @@ try {
         $final_realtor_name = $new_realtor_name;
         $final_realtor_address = $new_realtor_address;
         $final_realtor_phone = $new_realtor_phone;
+        
+        $final_contract_start = $new_contract_start;
+        $final_contract_end = $new_contract_end;
+        $final_deposit = $new_deposit;
+        $final_monthly_rent = $new_monthly_rent;
     }
     
+    // DB 업데이트
     $sql = "UPDATE brother_contract 
             SET ocr_raw_data = ?, 
                 pdf_page_count = ?, 
@@ -278,14 +359,18 @@ try {
                 realtor_office_name = ?,
                 realtor_office_address = ?,
                 realtor_phone = ?,
-                lessee_sex = ?
+                lessee_sex = ?,
+                contract_start_date = ?,
+                contract_end_date = ?,
+                deposit = ?,
+                monthly_rent = ?
             WHERE no = ?";
             
     $stmt = mysqli_prepare($connect, $sql);
     
     $cnt = 1; 
 
-    mysqli_stmt_bind_param($stmt, "sissssssssssssi", 
+    mysqli_stmt_bind_param($stmt, "sissssssssssssssssi", 
         $accumulatedText, 
         $cnt, 
         $final_lessor_name, 
@@ -300,12 +385,16 @@ try {
         $final_realtor_address, 
         $final_realtor_phone,
         $final_lessee_sex,
+        $final_contract_start,
+        $final_contract_end,
+        $final_deposit,
+        $final_monthly_rent,
         $dbId
     );
     
     mysqli_stmt_execute($stmt);
     
-    writeLog("성공: Contract ID $dbId 처리 완료. 주소:$final_building_address");
+    writeLog("성공: Contract ID $dbId 처리 완료. 보증금:$final_deposit, 월세:$final_monthly_rent");
 
 } catch (Exception $e) {
     writeLog("에러: " . $e->getMessage());

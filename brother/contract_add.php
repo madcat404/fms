@@ -26,8 +26,7 @@
     }
 
     // 1. DB 조회 (brother_contract 테이블)
-    // 임대인 이름으로 조회 (생년월일은 포맷이 다를 수 있어 이름 우선 조회 후 PHP에서 검증 권장하지만, 여기선 이름만으로 조회하거나 LIKE 사용)
-    // 보안상 Prepared Statement 사용
+    // 임대인 이름으로 조회
     $sql = "SELECT * FROM brother_contract WHERE lessor_name = ? ORDER BY building_address ASC, no DESC";
     
     $stmt = mysqli_prepare($connect, $sql);
@@ -39,39 +38,31 @@
     $buildingsMap = [];
 
     while ($row = mysqli_fetch_assoc($result)) {
-        // 생년월일 검증 (필요한 경우 주석 해제)
-        // if ($ownerBirth && strpos($row['lessor_birth_date'], $ownerBirth) === false) continue;
-
+        
         $fullAddress = $row['building_address'];
         
         // ---------------------------------------------------------
         // [주소 파싱 로직] 건물명과 호수 분리 시도
-        // 예: 부산광역시 서구 부용동1가 18 세경더파크 802호
         // ---------------------------------------------------------
         
-        // 1. 호수 추출 (문자열 끝에 있는 '숫자+호' 패턴)
+        // 1. 호수 추출
         $roomNumber = '호수미상';
         if (preg_match('/(\d+호)$/u', $fullAddress, $m)) {
             $roomNumber = $m[1];
         }
 
         // 2. 건물명 추출
-        // 호수를 제외한 나머지 주소에서, 번지수(숫자) 뒤에 오는 단어를 건물명으로 추정
         $addressWithoutRoom = trim(str_replace($roomNumber, '', $fullAddress));
-        $buildingName = $addressWithoutRoom; // 기본값은 호수 뺀 전체 주소
+        $buildingName = $addressWithoutRoom; 
 
-        // "번지" 또는 숫자로 끝나는 지점 뒤의 텍스트를 건물명으로 인식 시도
-        // 예: "...부용동1가 18 세경더파크" -> "18" 뒤의 "세경더파크" 추출
         if (preg_match('/(?:\d+(?:-\d+)?|\d+번지)\s+([^\d]+)$/u', $addressWithoutRoom, $m)) {
             $potentialName = trim($m[1]);
-            // 동/읍/면/리로 끝나지 않는 경우만 건물명으로 간주
             if (!preg_match('/(동|읍|면|리|가|로|길)$/u', $potentialName)) {
                 $buildingName = $potentialName;
             }
         }
 
         // 3. 건물이 맵에 없으면 초기화
-        // 그룹화 키는 '호수를 제외한 주소' 사용
         $buildingKey = $addressWithoutRoom;
         
         if (!isset($buildingsMap[$buildingKey])) {
@@ -82,13 +73,13 @@
             ];
         }
 
-        // 4. 호실 정보 구성 (Flutter Model의 Unit 구조에 맞춤)
-        // AssetService.dart에서 파싱하는 키값들을 맞춰줍니다.
+        // 4. 호실 정보 구성
+        // [수정됨] DB의 신규 컬럼들을 JSON 키에 매핑
         $unitData = [
             'room_number' => $roomNumber,
             'area' => $row['exclusive_area'] ?? '-',
             
-            // [추가됨] 임대인 정보 (DB 컬럼명 그대로 매핑)
+            // 임대인 정보
             'lessor_name' => $row['lessor_name'] ?? '-',
             'lessor_phone' => $row['lessor_phone'] ?? '-',
             'lessor_birth' => $row['lessor_birth_date'] ?? '-',
@@ -99,8 +90,16 @@
             'lessee_birth' => $row['lessee_birth_date'] ?? '-',
             'lessee_sex' => $row['lessee_sex'] ?? '-', 
             
-            // ... (하단 생략) ...
+            // [신규 추가] 계약 상세 정보 (DB 컬럼 -> JSON 키)
+            'contract_date' => $row['contract_start_date'] ?? '-', // 계약 시작일
+            'expiry_date'   => $row['contract_end_date'] ?? '-',   // 계약 종료일
+            'deposit'       => $row['deposit'] ?? '-',             // 보증금
+            'rent'          => $row['monthly_rent'] ?? '-',        // 월 임대료 (Flutter 모델이 'rent'를 사용함)
+            
+            // 공실 여부 (임차인 이름이 없으면 공실)
             'is_vacant' => empty($row['lessee_name']),
+            
+            // 기타 정보
             'floor_info' => json_encode([
                 ['floor' => '', 'usage' => '주거용'] 
             ]) 
