@@ -1,6 +1,6 @@
 <?php
 // brother/ocr_contract_worker.php
-// 임대차 계약서 정밀 분석 (Gemini 2.0 Flash + 고화질 변환)
+// 임대차 계약서 정밀 분석 (Gemini 3 Flash Preview + 건물명 추출 추가)
 
 set_time_limit(0);
 ini_set('memory_limit', '-1');
@@ -17,15 +17,14 @@ function writeLog($msg) {
 
 // Gemini API 호출 (재시도 로직 포함)
 function callGeminiForContract($imagePaths) {
-    // ★ API 키 입력 필수
-    $apiKey = "AIzaSyCfMRWWgIgpQiV5haRtpgm0E7mNTnv4aQw"; 
+    // ★ API 키 입력 필수 (기존 키를 유지하세요)
+    $apiKey = "AIzaSyCeHMItJeu7IsUBSVluPTFlEOQoUUznxUI"; 
     
-    // [핵심 변경] 시력이 더 좋은 2.0 모델 사용
-    // 429 에러가 뜨더라도 아래 재시도 로직이 해결해줍니다.
+    // [사용 중인 모델 유지] gemini-3-flash-preview
     $model = "gemini-3-flash-preview"; 
     $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=" . $apiKey;
 
-    // [프롬프트 강화] 환각 방지 지시 추가
+    // [프롬프트 수정] 12번 항목에 building_name 추가
     $promptText = "
     이 이미지는 부동산 임대차 계약서야. 내용을 있는 그대로 정확하게 읽어줘.
     특히 사람 이름(임대인, 임차인)을 읽을 때 주의해줘. 
@@ -44,11 +43,12 @@ function callGeminiForContract($imagePaths) {
     9. realtor_office_address: 공인중개사 소재지
     10. realtor_phone: 공인중개사 전화번호
     11. building_address: 임대 대상 건물 소재지 (전체 주소)
-    12. exclusive_area: 전용 면적
-    13. contract_start_date: 계약 시작일 (YYYY-MM-DD)
-    14. contract_end_date: 계약 종료일 (YYYY-MM-DD)
-    15. deposit: 보증금 (숫자만, 예: 50000000)
-    16. monthly_rent: 월세 (숫자만, 없으면 0)
+    12. building_name: 건물 명칭 (주소 외에 건물의 고유 이름이 있다면 추출. 예: '세경더파크', '래미안', '타워팰리스'. 없으면 null)
+    13. exclusive_area: 전용 면적
+    14. contract_start_date: 계약 시작일 (YYYY-MM-DD)
+    15. contract_end_date: 계약 종료일 (YYYY-MM-DD)
+    16. deposit: 보증금 (숫자만, 예: 50000000)
+    17. monthly_rent: 월세 (숫자만, 없으면 0)
 
     응답은 오직 JSON 포맷으로만 해줘. (마크다운 태그 제외)
     ";
@@ -104,7 +104,6 @@ function callGeminiForContract($imagePaths) {
             continue;
         } else {
             writeLog("API 에러 (HTTP $httpCode): " . substr($response, 0, 300));
-            // 5xx 서버 에러인 경우 한 번 더 시도해볼 가치 있음
             if ($httpCode >= 500) {
                 sleep(2);
                 continue;
@@ -152,7 +151,7 @@ try {
     $lessor_name = $lessor_birth_date = $lessor_phone = null;
     $lessee_name = $lessee_birth_date = $lessee_phone = $lessee_sex = null;
     $realtor_office_name = $realtor_office_address = $realtor_phone = null;
-    $building_address = $exclusive_area = null;
+    $building_address = $building_name = $exclusive_area = null;
     $contract_start_date = $contract_end_date = null;
     $deposit = $monthly_rent = null;
     $ocr_raw_data = "";
@@ -168,37 +167,44 @@ try {
         $realtor_office_name = $parsedData['realtor_office_name'] ?? null;
         $realtor_office_address = $parsedData['realtor_office_address'] ?? null;
         $realtor_phone = $parsedData['realtor_phone'] ?? null;
+        
         $building_address = $parsedData['building_address'] ?? null;
+        $building_name = $parsedData['building_name'] ?? null; // ★ 추가됨
         $exclusive_area = $parsedData['exclusive_area'] ?? null;
+        
         $contract_start_date = $parsedData['contract_start_date'] ?? null;
         $contract_end_date = $parsedData['contract_end_date'] ?? null;
         $deposit = $parsedData['deposit'] ?? null;
         $monthly_rent = $parsedData['monthly_rent'] ?? null;
 
         $ocr_raw_data = json_encode($parsedData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-        writeLog("분석 완료: 임대인 [$lessor_name]");
+        writeLog("분석 완료: 임대인 [$lessor_name], 건물명 [$building_name]");
     } else {
         $ocr_raw_data = "분석 실패 (로그 확인 필요)";
         writeLog("분석 실패.");
     }
 
     // 4. DB 저장
+    // ★ building_name 컬럼 추가
     $sql = "UPDATE brother_contract SET 
             lessor_name = ?, lessor_birth_date = ?, lessor_phone = ?, 
             lessee_name = ?, lessee_birth_date = ?, lessee_phone = ?, lessee_sex = ?, 
             realtor_office_name = ?, realtor_office_address = ?, realtor_phone = ?, 
-            building_address = ?, exclusive_area = ?, 
+            building_address = ?, building_name = ?, exclusive_area = ?, 
             contract_start_date = ?, contract_end_date = ?, 
             deposit = ?, monthly_rent = ?, 
             pdf_page_count = ?, ocr_raw_data = ? 
             WHERE no = ?";
 
     $stmt = mysqli_prepare($connect, $sql);
-    mysqli_stmt_bind_param($stmt, "ssssssssssssssssisi", 
+    
+    // 바인딩 타입 수정: sssssssssssssssssisi (총 20개 파라미터)
+    // building_name을 building_address 뒤에 추가
+    mysqli_stmt_bind_param($stmt, "sssssssssssssssssisi", 
         $lessor_name, $lessor_birth_date, $lessor_phone, 
         $lessee_name, $lessee_birth_date, $lessee_phone, $lessee_sex, 
         $realtor_office_name, $realtor_office_address, $realtor_phone, 
-        $building_address, $exclusive_area, 
+        $building_address, $building_name, $exclusive_area, 
         $contract_start_date, $contract_end_date, 
         $deposit, $monthly_rent, 
         $pageCount, $ocr_raw_data, 
