@@ -18,7 +18,7 @@ function writeLog($msg) {
 // Gemini API 호출 (재시도 로직 포함)
 function callGeminiForContract($imagePaths) {
     // ★ API 키 입력 필수 (기존 키를 유지하세요)
-    $apiKey = "AIzaSyAigTPKIoJXX9xGR-TuqiXRiBcGwcXzYso"; 
+    $apiKey = "AIzaSyBMzdXMP2JoEWQBalkAcEjXBr_PkPtAEUE"; 
     
     // [사용 중인 모델 유지] gemini-3-flash-preview
     $model = "gemini-3-flash-preview"; 
