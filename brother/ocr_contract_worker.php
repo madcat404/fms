@@ -18,7 +18,7 @@ function writeLog($msg) {
 // Gemini API 호출 (재시도 로직 포함)
 function callGeminiForContract($imagePaths) {
     // ★ API 키 입력 필수 (기존 키를 유지하세요)
-    $apiKey = "AIzaSyCeHMItJeu7IsUBSVluPTFlEOQoUUznxUI"; 
+    $apiKey = "AIzaSyAigTPKIoJXX9xGR-TuqiXRiBcGwcXzYso"; 
     
     // [사용 중인 모델 유지] gemini-3-flash-preview
     $model = "gemini-3-flash-preview"; 
@@ -213,6 +213,17 @@ try {
 
     if (mysqli_stmt_execute($stmt)) {
         writeLog("DB 저장 성공");
+        if (!empty($building_address)) {
+            writeLog("건축물대장 정보 수집 시도: $building_address");
+            
+            // 백그라운드에서 실행 (사용자를 기다리게 하지 않음)
+            // wget을 사용하여 비동기 호출
+            $encodedAddr = urlencode($building_address);
+            $triggerUrl = "https://fms.iwin.kr/brother/api_auto_register.php?address=" . $encodedAddr;
+            
+            // 리눅스 백그라운드 실행 명령어 (> /dev/null 2>&1 &)
+            exec("wget -q -O - '$triggerUrl' > /dev/null 2>&1 &");
+        }
     } else {
         writeLog("DB 에러: " . mysqli_stmt_error($stmt));
     }
