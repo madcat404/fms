@@ -67,22 +67,15 @@
             // --- 행 반복 처리 ---
             $highestRow = $worksheet->getHighestRow();
             $sheetInsertCount = 0;
-            $status_condition = '운송중'; // 상태 초기값 설정
 
             // 기존 로직대로 4행부터 시작
             for ($i = 4; $i <= $highestRow; $i++) {
                 try {
                     $dataA_raw = $worksheet->getCell('A' . $i)->getValue();
                     
-                    // A열이 비어있으면 해당 시트 처리 중단
-                    if (empty($dataA_raw)) {
+                    // A열이 비어있거나 '운송 완료 LIST' 이면 해당 시트 처리 중단
+                    if (empty($dataA_raw) || trim($dataA_raw) === '운송 완료 LIST') {
                         break;
-                    }
-
-                    // A열에 '운송 완료 LIST'가 있으면 상태를 '운송완료'로 변경하고 다음 행으로
-                    if (trim($dataA_raw) === '운송 완료 LIST') {
-                        $status_condition = '운송완료';
-                        continue; // 해당 행은 데이터가 아니므로 건너뜁니다.
                     }
 
                     // --- 데이터 추출 및 변환 ---
@@ -108,8 +101,8 @@
                     $dataN = trim($worksheet->getCell('N' . $i)->getValue() ?? ''); // vessel
 
                     // --- DB INSERT (Parameterized) ---
-                    $insertSql = "INSERT INTO CONNECT.dbo.DISTRIBUTION(s_country, e_country, update_dt, bl, invoice, kind, invoice_dt, etd, eta, delay, vessel, condition) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                    $insertParams = [$s_country, $e_country, $dataA, $dataC, $dataD, $dataE, $dataF, $dataG, $dataH, $dataJ, $dataN, $status_condition];
+                    $insertSql = "INSERT INTO CONNECT.dbo.DISTRIBUTION(s_country, e_country, update_dt, bl, invoice, kind, invoice_dt, etd, eta, delay, vessel) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    $insertParams = [$s_country, $e_country, $dataA, $dataC, $dataD, $dataE, $dataF, $dataG, $dataH, $dataJ, $dataN];
                     
                     $insertStmt = sqlsrv_query($connect, $insertSql, $insertParams);
                     if ($insertStmt === false) {

@@ -128,16 +128,16 @@ HTML;
         case 'individual_gas_ticket_notice':
             include_once __DIR__ . '/DB/DB1.php'; // For $connect (mysqli)
             
-            $query = "SELECT NO, CAR_NUM FROM user_car WHERE GIVE_YN='Y' AND MAIL_YN='N'";
+            // 지급은 완료(Y)되었으나 메일은 아직 발송되지 않은(N) 모든 레코드 조회
+            $query = "SELECT NO, CAR_NUM, GIVE_OIL FROM user_car WHERE GIVE_YN='Y' AND MAIL_YN='N'";
             $result = $connect->query($query);
 
             if ($result && $result->num_rows > 0) {
                 $systemName = '개인차량 FMS';
-                $title = '기름티켓 지급 안내';
                 $link = 'https://fms.iwin.kr/kjwt_fms/individual.php';
-                $subject = '[FMS] 기름티켓 지급 안내';
 
                 while ($user_car = $result->fetch_assoc()) {
+                    // 사용자 정보에서 이메일과 유종(CAR_OIL) 조회
                     $user_info_query = $connect->prepare("SELECT EMAIL, CAR_OIL FROM user_info WHERE CAR_NUM = ?");
                     $user_info_query->bind_param("s", $user_car['CAR_NUM']);
                     $user_info_query->execute();
@@ -146,24 +146,43 @@ HTML;
 
                     if ($user_info && !empty($user_info['EMAIL'])) {
                         $to = $user_info['EMAIL'];
-                        
-                        if ($user_info['CAR_OIL'] == 'LPG') {
-                            $contentHtml = "<p>경영팀을 방문하여 기름티켓을 받아 가시기 바랍니다.</p><p>수령하신 기름티켓은 <strong>선암주유소(<a href='https://kko.to/sucBgowg1k'>부산광역시 기장군 장안읍 기장대로 1453</a>)</strong>에서만 사용가능합니다.</p>";
+                        $amount = number_format((float)$user_car['GIVE_OIL']); // 정산 수치 포맷팅
+
+                        // --- 유종별 메일 내용 및 제목 분기 ---
+                        if ($user_info['CAR_OIL'] === '전기') {
+                            // 전기차 전용 메일 설정
+                            $subject = '[FMS] 전기차 충전비 정산 안내';
+                            $title = '전기차 충전비 정산 완료';
+                            $contentHtml = "
+                                <p>개인차량(전기차) 운행에 따른 충전비 정산이 완료되었습니다.</p>
+                                <p style='font-size: 16px; color: #055AAF;'><strong>정산 금액: {$amount}원</strong></p><br>
+                                <p>해당 메일을 증빙으로 지출결의서 작성바랍니다.</p><br>                            
+                                ";
                         } else {
-                            $contentHtml = "<p>경영팀을 방문하여 기름티켓을 받아 가시기 바랍니다.</p><p>수령하신 기름티켓은 <strong>장안가스충전주유소(<a href='https://kko.kakao.com/quibtWrWz7'>부산광역시 기장군 장안읍 기장대로 1673</a>)</strong>에서만 사용가능합니다.</p>";
+                            // 일반 유종(휘발유, 경유, LPG) 메일 설정
+                            $subject = '[FMS] 기름티켓 지급 안내';
+                            $title = '기름티켓 지급 안내';
+                            
+                            if ($user_info['CAR_OIL'] == 'LPG') {
+                                $contentHtml = "<p>경영팀을 방문하여 기름티켓(<strong>{$amount} L</strong>)을 받아 가시기 바랍니다.</p><p>수령하신 기름티켓은 <strong>선암주유소(<a href='https://kko.to/sucBgowg1k'>부산광역시 기장군 장안읍 기장대로 1453</a>)</strong>에서만 사용가능합니다.</p>";
+                            } else {
+                                $contentHtml = "<p>경영팀을 방문하여 기름티켓(<strong>{$amount} L</strong>)을 받아 가시기 바랍니다.</p><p>수령하신 기름티켓은 <strong>장안가스충전주유소(<a href='https://kko.kakao.com/quibtWrWz7'>부산광역시 기장군 장안읍 기장대로 1673</a>)</strong>에서만 사용가능합니다.</p>";
+                            }
                         }
+
                         $body = build_email_template($systemName, $title, $contentHtml, $link, 'FMS 페이지로 이동', $logoCid);
 
+                        // 메일 발송 성공 시에만 MAIL_YN 업데이트
                         if (send_system_email($to, $subject, $body, $embeddedImages)) {
                             $update_stmt = $connect->prepare("UPDATE user_car SET MAIL_YN='Y' WHERE NO = ?");
                             $update_stmt->bind_param("i", $user_car['NO']);
                             $update_stmt->execute();
-                            echo "Gas ticket notice sent to {$to}. ";
+                            echo "Notice sent to {$to} ({$user_info['CAR_OIL']}). ";
                         }
                     }
                 }
             } else {
-                echo "No new gas tickets to notify.";
+                echo "No new tickets to notify.";
             }
             if(isset($connect)) { $connect->close(); }
             break;
@@ -2061,6 +2080,53 @@ HTML;
                 echo "Ethics campaign notice sent successfully.";
             } else {
                 echo "Failed to send ethics campaign notice.";
+            }
+            break;
+
+        // ===================================
+        // 안전 신문고 접수 알림
+        // ===================================
+        case 'safety_report':
+            $r_location = htmlspecialchars($_POST["risk_location"] ?? '', ENT_QUOTES, 'UTF-8');
+            $r_title = htmlspecialchars($_POST["risk_title"] ?? '', ENT_QUOTES, 'UTF-8');
+            $r_content = nl2br(htmlspecialchars($_POST["risk_content"] ?? '', ENT_QUOTES, 'UTF-8'));
+            $r_reporter = htmlspecialchars($_POST["reporter"] ?? '익명', ENT_QUOTES, 'UTF-8');
+
+            $to = ['hr@iwin.kr', 'hjjin@iwin.kr', 'gmkim@iwin.kr', 'dykim@iwin.kr', 'jsyoon@iwin.kr'];
+            $subject = '[FMS] 안전 신문고 제보가 접수되었습니다.';
+            $systemName = '안전 신문고';
+            $title = '접수내용';
+
+            $contentHtml = <<<HTML
+            <p>새로운 위험요소 신고가 접수되었습니다.</p>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px;">
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #dee2e6; font-weight: bold; width: 30%; background-color: #f8f9fc;">발견 장소</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">{$r_location}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #dee2e6; font-weight: bold; background-color: #f8f9fc;">제목</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">{$r_title}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #dee2e6; font-weight: bold; background-color: #f8f9fc;">신고자</td>
+                    <td style="padding: 8px; border: 1px solid #dee2e6;">{$r_reporter}</td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="padding: 8px; border: 1px solid #dee2e6; font-weight: bold; background-color: #f8f9fc;">상세 내용</td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="padding: 15px; border: 1px solid #dee2e6;">{$r_content}</td>
+                </tr>
+            </table>
+HTML;
+            $link = 'https://fms.iwin.kr/kjwt_safety/safety.php?tab=tab4';
+            $body = build_email_template($systemName, $title, $contentHtml, $link, '신문고 확인하기', $logoCid);
+
+            if (send_system_email($to, $subject, $body, $embeddedImages)) {
+                echo "Safety report email sent.";
+            } else {
+                echo "Failed to send safety report email.";
             }
             break;
 

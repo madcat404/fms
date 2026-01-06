@@ -179,13 +179,6 @@
             <span>로그아웃</span>
         </a>
     </li>
-
-    <li class="nav-item mt-auto mb-3">
-        <a class="nav-link" href="https://fms.iwin.kr/my_page.php" title="설정">
-            <i class="fas fa-cog"></i>
-            <span>설정</span>
-        </a>
-    </li>
     <div class="text-center d-none d-md-inline mobile-toggler">
         <button class="rounded-circle border-0" id="sidebarToggle" title="SidebarTOGGLE"></button>
     </div>   

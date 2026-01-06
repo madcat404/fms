@@ -137,11 +137,62 @@ if ($data['CreatedAt'] instanceof DateTime) {
     </div>
     
     <?php include '../plugin_lv1.php'; ?>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     <script>
         // 파일명 표시
         $(".custom-file-input").on("change", function() {
             var fileName = $(this).val().split("\\").pop();
             $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+        });
+
+        // 폼 제출 시 이미지 압축
+        $('form').on('submit', async function(e) {
+            e.preventDefault(); // 기본 폼 제출 중단
+
+            const form = this;
+            const imageFile = $('#photo')[0].files[0];
+            
+            // 압축할 이미지가 없으면 바로 폼 제출
+            if (!imageFile) {
+                form.submit();
+                return;
+            }
+
+            const submitButton = $(form).find('button[type="submit"]');
+            const originalButtonText = submitButton.find('.text').text();
+            submitButton.prop('disabled', true).find('.text').text('파일 압축 중...');
+
+            const options = {
+                maxSizeMB: 2,          // 최대 2MB로 압축
+                maxWidthOrHeight: 1920, // 최대 너비/높이 1920px
+                useWebWorker: true
+            }
+
+            try {
+                const compressedFile = await imageCompression(imageFile, options);
+
+                const formData = new FormData(form);
+                formData.set('photo', compressedFile, compressedFile.name); // 원본 파일을 압축 파일로 교체
+
+                submitButton.find('.text').text('업로드 중...');
+
+                // Fetch API로 폼 데이터 제출
+                const response = await fetch(form.action, {
+                    method: form.method,
+                    body: formData
+                });
+
+                // 서버 응답(주로 리디렉션 스크립트)을 현재 문서에 쓰고 실행
+                document.open();
+                document.write(await response.text());
+                document.close();
+
+            } catch (error) {
+                console.error('Image compression error:', error);
+                alert('이미지 압축에 실패했습니다. 원본 파일로 업로드를 시도합니다.');
+                submitButton.prop('disabled', false).find('.text').text(originalButtonText);
+                form.submit(); // 압축 실패 시 원본 폼 제출
+            }
         });
     </script>
 </body>

@@ -1,6 +1,6 @@
 <?php   
     // =============================================
-	// Author: <KWON SUNG KUN - cardclear@naver.com>	
+	// Author: <KWON SUNG KUN - sealclear@naver.com>	
 	// Create date: <24.09.12>
 	// Description:	<법인카드>
     // Last Modified: <25.09.24> - Refactored for PHP 8.x, Security, and Performance
@@ -54,20 +54,18 @@
     $s_dt13 = $dt13 ? substr($dt13, 0, 10) : null;
 	$e_dt13 = $dt13 ? substr($dt13, 13, 10) : null;
 
-    // 동명이인 처리를 위한 변수 초기화
-    $duplicate_names = [];
-    $action_target = ''; // 'bt11' or 'bt12'
-    $selected_user_name = $_POST['selected_user_name'] ?? null;
-
     
     //★버튼 클릭 시 실행 (모든 쿼리를 매개변수화)
-    //지급 (bt11)
+    //지급
     if ($bt11 === "on") { 
-        // 1. 이미 사용자를 선택해서 넘어온 경우 (팝업에서 선택)
-        if ($selected_user_name) {
-            $userName = $selected_user_name;
+        $user11_like = $user11 . '%';
+        $Query_ID = "SELECT TOP 1 NM_KOR FROM NEOE.NEOE.MA_EMP WHERE NO_RES LIKE ?";
+        $Result_ID = sqlsrv_query($connect, $Query_ID, [$user11_like]);
+        $Data_ID = sqlsrv_fetch_array($Result_ID);   
+
+        if ($Data_ID) {
+            $userName = $Data_ID['NM_KOR'];
             
-            // 바로 지급 로직 실행
             $Query_CardUserCount = "SELECT COUNT(*) as cnt FROM CONNECT.dbo.CARD WHERE NAME = ?";
             $Result_CardUserCount = sqlsrv_query($connect, $Query_CardUserCount, [$userName]);
             $Data_CardUserCount = sqlsrv_fetch_array($Result_CardUserCount);
@@ -77,52 +75,20 @@
             sqlsrv_query($connect, $Query_InsertCard, [$card11, $userName, $contents11, $s_dt, $e_dt, $Seq]);
 
             echo "<script>alert('입력 되었습니다!');location.href='card.php?flag=log';</script>";
-            exit;
-        } 
-        // 2. 처음 입력하는 경우 (사용자 조회 필요)
-        else {
-            $user11_like = $user11 . '%';
-            // TOP 1 제거하고 전체 조회
-            $Query_ID = "SELECT NM_KOR FROM NEOE.NEOE.MA_EMP WHERE NO_RES LIKE ?";
-            $Result_ID = sqlsrv_query($connect, $Query_ID, [$user11_like]);
-            
-            $candidates = [];
-            while ($row = sqlsrv_fetch_array($Result_ID, SQLSRV_FETCH_ASSOC)) {
-                $candidates[] = $row['NM_KOR'];
-            }
-            $cnt = count($candidates);
-
-            if ($cnt === 0) {
-                echo "<script>alert('아이윈 직원이 아닙니다!');location.href='card.php';</script>";
-                exit;
-            } elseif ($cnt === 1) {
-                // 한 명인 경우 정상 진행
-                $userName = $candidates[0];
-
-                $Query_CardUserCount = "SELECT COUNT(*) as cnt FROM CONNECT.dbo.CARD WHERE NAME = ?";
-                $Result_CardUserCount = sqlsrv_query($connect, $Query_CardUserCount, [$userName]);
-                $Data_CardUserCount = sqlsrv_fetch_array($Result_CardUserCount);
-                $Seq = ($Data_CardUserCount['cnt'] ?? 0) + 1;
-
-                $Query_InsertCard = "INSERT INTO CONNECT.dbo.CARD(CARD, NAME, CONTENTS, START_DT, END_DT, GW) VALUES(?, ?, ?, ?, ?, ?)";
-                sqlsrv_query($connect, $Query_InsertCard, [$card11, $userName, $contents11, $s_dt, $e_dt, $Seq]);
-
-                echo "<script>alert('입력 되었습니다!');location.href='card.php?flag=log';</script>";
-                exit;
-            } else {
-                // 중복 발생: view(card.php)로 넘어가서 팝업 띄움
-                $duplicate_names = $candidates;
-                $action_target = 'bt11'; // 지급 버튼에서 발생함
-            }
+        } else {
+            echo "<script>alert('아이윈 직원이 아닙니다!');location.href='card.php';</script>";
         }
     }
-    //반납 (bt12)
+    //반납
     elseif ($bt12 === "on") { 
-        // 1. 이미 사용자를 선택해서 넘어온 경우
-        if ($selected_user_name) {
-            $userName = $selected_user_name;
+        $user12_like = $user12 . '%';
+        $Query_ID2 = "SELECT TOP 1 NM_KOR FROM NEOE.NEOE.MA_EMP WHERE NO_RES LIKE ?";
+        $Result_ID2 = sqlsrv_query($connect, $Query_ID2, [$user12_like]);
+        $Data_ID2 = sqlsrv_fetch_array($Result_ID2);   
+
+        if ($Data_ID2) {
+            $userName = $Data_ID2['NM_KOR'];
             
-            // 반납 로직 실행
             $Query_CardUserCount2 = "SELECT COUNT(*) as cnt FROM CONNECT.dbo.CARD WHERE IN_YN='N' AND CARD = ?";
             $Result_CardUserCount2 = sqlsrv_query($connect, $Query_CardUserCount2, [$card12]);
             $Data_CardUserCount2 = sqlsrv_fetch_array($Result_CardUserCount2);
@@ -137,47 +103,8 @@
             } elseif ($count === 0) {
                 echo "<script>alert('이 카드는 현재 대여 중이 아닙니다.');location.href='card.php?flag=in';</script>";
             }
-            exit;
-        }
-        // 2. 처음 입력하는 경우
-        else {
-            $user12_like = $user12 . '%';
-            $Query_ID2 = "SELECT NM_KOR FROM NEOE.NEOE.MA_EMP WHERE NO_RES LIKE ?";
-            $Result_ID2 = sqlsrv_query($connect, $Query_ID2, [$user12_like]);
-            
-            $candidates = [];
-            while ($row = sqlsrv_fetch_array($Result_ID2, SQLSRV_FETCH_ASSOC)) {
-                $candidates[] = $row['NM_KOR'];
-            }
-            $cnt = count($candidates);
-
-            if ($cnt === 0) {
-                echo "<script>alert('아이윈 직원이 아닙니다!');location.href='card.php';</script>";
-                exit;
-            } elseif ($cnt === 1) {
-                // 한 명인 경우 정상 진행
-                $userName = $candidates[0];
-                
-                $Query_CardUserCount2 = "SELECT COUNT(*) as cnt FROM CONNECT.dbo.CARD WHERE IN_YN='N' AND CARD = ?";
-                $Result_CardUserCount2 = sqlsrv_query($connect, $Query_CardUserCount2, [$card12]);
-                $Data_CardUserCount2 = sqlsrv_fetch_array($Result_CardUserCount2);
-                $count = $Data_CardUserCount2['cnt'] ?? 0;
-
-                if ($count >= 1) {
-                    $Query_UpdateCard = "UPDATE CONNECT.dbo.CARD SET RETURN_USER=?, RETURN_DATE=?, IN_YN='Y' WHERE CARD=? AND IN_YN='N'";
-                    $update_result = sqlsrv_query($connect, $Query_UpdateCard, [$userName, $Hyphen_today, $card12, $card12]);
-                    if ($update_result) {
-                        echo "<script>alert('반납 되었습니다!');location.href='card.php?flag=log';</script>";
-                    }
-                } elseif ($count === 0) {
-                    echo "<script>alert('이 카드는 현재 대여 중이 아닙니다.');location.href='card.php?flag=in';</script>";
-                }
-                exit;
-            } else {
-                 // 중복 발생
-                 $duplicate_names = $candidates;
-                 $action_target = 'bt12'; // 반납 버튼에서 발생함
-            }
+        } else {
+            echo "<script>alert('아이윈 직원이 아닙니다!');location.href='card.php';</script>";
         }
     }
     //모바일 로그

@@ -207,6 +207,8 @@
             $s_date = date("Y-m-d");
             $search_date = date("Y-m-d H:i:s");
 
+            $message = ""; // 알림 메시지 저장 변수
+
             if ($admin_code == '2580') {
                 // 유가 비교 로직 (항상 실행)
                 $gasoline_price_stmt = $connect->prepare("SELECT OIL_PRICE FROM oil_price WHERE car_oil='휘발유' AND s_date=?");
@@ -233,7 +235,7 @@
                     exit;
                 }
 
-                // 정산 로직
+                // --- 정산 로직 시작 ---
                 if (strcasecmp($car_num, 'all') !== 0) { // 단일 처리
                     $user_info_stmt = $connect->prepare("SELECT CAR_NUM FROM user_info WHERE CAR_NUM = ?");
                     $user_info_stmt->bind_param("s", $car_num);
@@ -249,7 +251,18 @@
                             $oil_price_stmt->execute();
                             $price_row = $oil_price_stmt->get_result()->fetch_object();
                             $current_oil_price = $price_row->OIL_PRICE ?? 1;
-                            $calc = ($row->HIPASS_YN == 'N') ? ceil(($row->KM / 10) + ($row->TOLL_GATE / $current_oil_price)) : ceil($row->KM / 10);
+
+                            // [유종별 계산식 분기]
+                            if ($row->CAR_OIL === '전기') {
+                                $calc = ($row->HIPASS_YN == 'N') 
+                                        ? ceil(($row->KM / 5 * $current_oil_price) + $row->TOLL_GATE) 
+                                        : ceil($row->KM / 5 * $current_oil_price);
+                            } else {
+                                $calc = ($row->HIPASS_YN == 'N') 
+                                        ? ceil(($row->KM / 10) + ($row->TOLL_GATE / $current_oil_price)) 
+                                        : ceil($row->KM / 10);
+                            }
+
                             if ($calc > 0) {
                                 $update_stmt = $connect->prepare("UPDATE user_car SET GIVE_OIL = ?, GIVE_CHECK = 'Y', UPDATE_DATE = ? WHERE NO = ?");
                                 $update_stmt->bind_param("isi", $calc, $search_date, $row->NO);
@@ -259,9 +272,9 @@
                                 $files_update_stmt->execute();
                             }
                         }
-                        echo "<script>alert('정산되었습니다!');</script>";
+                        $message = "정산되었습니다!";
                     } else {
-                        echo "<script>alert('등록되지 않은 번호입니다!');</script>";
+                        $message = "등록되지 않은 번호입니다!";
                     }
                 } else { // 일괄 처리
                     $all_calc_stmt = $connect->prepare("SELECT * FROM user_car WHERE GIVE_OIL = 0 AND GIVE_CHECK = 'N' AND UPLOAD_YN = 'Y'");
@@ -273,7 +286,18 @@
                         $oil_price_stmt->execute();
                         $price_row = $oil_price_stmt->get_result()->fetch_object();
                         $current_oil_price = $price_row->OIL_PRICE ?? 1;
-                        $calc2 = ($row->HIPASS_YN == 'N') ? ceil(($row->KM / 10) + ($row->TOLL_GATE / $current_oil_price)) : ceil($row->KM / 10);
+
+                        // [유종별 계산식 분기]
+                        if ($row->CAR_OIL === '전기') {
+                            $calc2 = ($row->HIPASS_YN == 'N') 
+                                    ? ceil(($row->KM / 5 * $current_oil_price) + $row->TOLL_GATE) 
+                                    : ceil($row->KM / 5 * $current_oil_price);
+                        } else {
+                            $calc2 = ($row->HIPASS_YN == 'N') 
+                                    ? ceil(($row->KM / 10) + ($row->TOLL_GATE / $current_oil_price)) 
+                                    : ceil($row->KM / 10);
+                        }
+
                         if ($calc2 > 0) {
                             $update_stmt = $connect->prepare("UPDATE user_car SET GIVE_OIL = ?, GIVE_CHECK = 'Y', UPDATE_DATE = ? WHERE NO = ?");
                             $update_stmt->bind_param("isi", $calc2, $search_date, $row->NO);
@@ -283,8 +307,9 @@
                             $files_update_stmt->execute();
                         }
                     }
-                    echo "<script>alert('도착정보를 입력한 데이터만 결재하였습니다!');</script>";
+                    $message = "도착정보를 입력한 데이터만 결재하였습니다!";
                 }
+                
                 // 메일 발송은 공통
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_URL, "https://fms.iwin.kr/mailer.php?type=individual_voucher_request");
@@ -302,15 +327,15 @@
                         $give_stmt = $connect->prepare("UPDATE user_car SET GIVE_YN = 'Y', UPDATE_DATE = ? WHERE CAR_NUM = ? AND GIVE_CHECK = 'Y' AND GIVE_YN = 'N'");
                         $give_stmt->bind_param("ss", $search_date, $car_num);
                         $give_stmt->execute();
-                        echo "<script>alert('지급완료되었습니다!');</script>";
+                        $message = "지급완료되었습니다!";
                     } else {
-                        echo "<script>alert('등록되지 않은 번호입니다!');</script>";
+                        $message = "등록되지 않은 번호입니다!";
                     }
                 } else { // 일괄 처리
                     $all_give_stmt = $connect->prepare("UPDATE user_car SET GIVE_YN = 'Y', UPDATE_DATE = ? WHERE GIVE_CHECK = 'Y' AND GIVE_YN = 'N'");
                     $all_give_stmt->bind_param("s", $search_date);
                     $all_give_stmt->execute();
-                    echo "<script>alert('정산된 데이터만 지급완료되었습니다!');</script>";
+                    $message = "정산된 데이터만 지급완료되었습니다!";
                 }
                 // 메일 발송은 공통
                 $ch = curl_init();
@@ -321,10 +346,11 @@
                 curl_close($ch);
 
             } else {
-                echo "<script>alert('패스워드가 일치하지 않습니다!');</script>";
+                $message = "패스워드가 일치하지 않습니다!";
             }
 
-            echo "<script>location.href='individual.php';</script>";
+            // 모든 처리가 끝난 후 알림창 띄우고 이동
+            echo "<script>alert('{$message}'); location.href='individual.php';</script>";
             exit;
         }
     }
@@ -354,6 +380,7 @@
     $row11 = get_oil_price($connect, '휘발유', $select_date);
     $row22 = get_oil_price($connect, '경유', $select_date);
     $row33 = get_oil_price($connect, 'LPG', $select_date);
+    $row44 = get_oil_price($connect, '전기', $select_date);
 
     // 7일 이상 증빙 미업로드 건 조회 및 알림 메일 발송
     $seven_days_ago = date("Y-m-d H:i:s", strtotime("-7 days"));

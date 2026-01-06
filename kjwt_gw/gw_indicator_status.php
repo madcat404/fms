@@ -145,7 +145,6 @@
 
     // ★ 주식 (Stocks) ★
     $indicator_data['stock']['iwin'] = getStockInfo($connect4, '아이윈', $NoHyphen_today, $Minus1Day2);
-    $indicator_data['stock']['iwinplus'] = getStockInfo($connect4, '아이윈플러스', $NoHyphen_today, $Minus1Day2);
 
     // ★ 뉴스 (News) ★
     $query_news = "SELECT TOP 3 * FROM CONNECT.dbo.DASHBOARD_NEWS WHERE collect_dt = ? ORDER BY dt DESC";

@@ -32,10 +32,22 @@ $created_at = $_POST['created_at'] ?? '';
 
 // 파일 업로드 처리 함수
 function handleFileUpload($file, $uploadDir = '../uploads/facility/') {
-    if (!isset($file) || $file['error'] != UPLOAD_ERR_OK) return null;
+    if (!isset($file) || $file['error'] === UPLOAD_ERR_NO_FILE) return null; // No file uploaded, not an error
+
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        // Log PHP file upload errors
+        error_log("File upload error: " . $file['error'] . " for file " . ($file['name'] ?? 'unknown'));
+        return null;
+    }
     
     // 디렉토리 생성
-    if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+    if (!is_dir($uploadDir)) {
+        // 권한 문제 등으로 디렉토리 생성 실패 시
+        if (!mkdir($uploadDir, 0777, true)) {
+            error_log("Failed to create upload directory: " . $uploadDir);
+            return null;
+        }
+    }
 
     $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
     $newFileName = date('Ymd_His') . '_' . uniqid() . '.' . $ext;
@@ -43,8 +55,10 @@ function handleFileUpload($file, $uploadDir = '../uploads/facility/') {
     
     if (move_uploaded_file($file['tmp_name'], $targetPath)) {
         return 'uploads/facility/' . $newFileName; 
+    } else {
+        error_log("Failed to move uploaded file from " . $file['tmp_name'] . " to " . $targetPath);
+        return null;
     }
-    return null;
 }
 
 // ====================================================
@@ -86,41 +100,51 @@ elseif ($mode === 'update') {
         exit;
     }
 
+    $file_upload_attempted = (isset($_FILES['photo']) && $_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE);
     $newPhotoPath = handleFileUpload($_FILES['photo'] ?? null);
 
-    // 수정 시에도 날짜($created_at)를 업데이트할지 여부 결정
-    // created_at 값이 넘어오면 업데이트 쿼리에 포함
-    if ($newPhotoPath) {
-        if (!empty($created_at)) {
-            $sql = "UPDATE Facility 
-                    SET Location = ?, IssueDescription = ?, Resolution = ?, RepairCost = ?, PhotoPath = ?, CreatedAt = ? 
-                    WHERE LogID = ?";
-            $params = array($location, $issue, $resolution, $cost, $newPhotoPath, $created_at, $logID);
-        } else {
-            $sql = "UPDATE Facility 
-                    SET Location = ?, IssueDescription = ?, Resolution = ?, RepairCost = ?, PhotoPath = ? 
-                    WHERE LogID = ?";
-            $params = array($location, $issue, $resolution, $cost, $newPhotoPath, $logID);
-        }
-    } else {
-        if (!empty($created_at)) {
-            $sql = "UPDATE Facility 
-                    SET Location = ?, IssueDescription = ?, Resolution = ?, RepairCost = ?, CreatedAt = ? 
-                    WHERE LogID = ?";
-            $params = array($location, $issue, $resolution, $cost, $created_at, $logID);
-        } else {
-            $sql = "UPDATE Facility 
-                    SET Location = ?, IssueDescription = ?, Resolution = ?, RepairCost = ? 
-                    WHERE LogID = ?";
-            $params = array($location, $issue, $resolution, $cost, $logID);
-        }
+    // 파일 업로드를 시도했지만 실패한 경우
+    if ($file_upload_attempted && $newPhotoPath === null) {
+        echo "<script>alert('파일 업로드에 실패했습니다. 관리자에게 문의하세요.'); history.back();</script>";
+        exit;
     }
 
+    $sql_parts = [];
+    $params = [];
+
+    // 항상 업데이트되는 필드
+    $sql_parts[] = "Location = ?";
+    $params[] = $location;
+    $sql_parts[] = "IssueDescription = ?";
+    $params[] = $issue;
+    $sql_parts[] = "Resolution = ?";
+    $params[] = $resolution;
+    $sql_parts[] = "RepairCost = ?";
+    $params[] = $cost;
+
+    // 사진 파일이 새로 업로드된 경우
+    if ($newPhotoPath) {
+        $sql_parts[] = "PhotoPath = ?";
+        $params[] = $newPhotoPath;
+    }
+
+    // 작업 일자가 입력된 경우
+    if (!empty($created_at)) {
+        $sql_parts[] = "CreatedAt = ?";
+        $params[] = $created_at;
+    }
+
+    // WHERE 절을 위한 LogID 추가
+    $params[] = $logID;
+
+    // 최종 SQL 쿼리 생성
+    $sql = "UPDATE Facility SET " . implode(', ', $sql_parts) . " WHERE LogID = ?";
+    
     $stmt = sqlsrv_query($connect, $sql, $params);
 
     if ($stmt === false) {
         $errors = print_r(sqlsrv_errors(), true);
-        echo "<script>alert('수정 실패: {$errors}'); history.back();</script>";
+        echo "<script>alert('수정 실패: " . addslashes($errors) . "'); history.back();</script>";
     } else {
         sqlsrv_free_stmt($stmt);
         echo "<script>location.href='facility.php?status=updated';</script>";

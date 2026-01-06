@@ -513,8 +513,9 @@
             $financialData[$year][$accountName] = $row;
         }
     } else {
-        // 쿼리 실패 시 에러 출력 (디버깅용)
-        die(print_r(sqlsrv_errors(), true));
+        // 쿼리 실패 시 에러 로깅 (페이지 중단 방지)
+        error_log("DART financial data query failed: " . print_r(sqlsrv_errors(), true));
+        // financialData를 빈 배열로 유지하여 후속 코드에서 오류가 나지 않도록 함
     }
 
     // ★★★★★ (추가!) 재무 항목 비교 바 차트용 데이터 생성 ★★★★★
@@ -544,8 +545,7 @@
     $data_in_transit = []; // 운송중 데이터
     $data_completed = [];  // 운송완료 데이터
 
-    // 2. [JOIN]을 사용하여 DISTRIBUTION과 VESSEL 테이블을 한 번에 조회하고,
-    //    [CASE] 문으로 운송 상태를 구분하는 최적화된 쿼리
+    // 2. [JOIN]과 [WHERE]를 사용하여 필요한 데이터만 효율적으로 조회
     $sql = "
         SELECT 
             d.*, 
@@ -554,28 +554,26 @@
             CONNECT.dbo.DISTRIBUTION d
         LEFT JOIN 
             CONNECT.dbo.VESSEL v ON d.vessel = v.name
-        WHERE
-            d.SORTING_DATE = ?
-            AND (
-                d.complete_dt IS NULL -- '운송중' 조건
-                OR
-                (d.complete_dt IS NOT NULL AND d.update_dt >= ?) -- '운송완료' 조건
-            )
+        WHERE 
+            (d.condition = '운송중' AND d.SORTING_DATE = ?)
+            OR
+            (d.condition = '운송완료' AND d.update_dt >= ?)
         ORDER BY 
-            d.s_country, d.e_country, d.invoice_dt
+            d.condition, d.s_country, d.e_country, d.invoice_dt
     ";
 
     // 3. 파라미터 바인딩
     $params = [$NoHyphen_today, $Minus3Month];
     $stmt = sqlsrv_query($connect, $sql, $params);
 
-    // 4. 결과를 '운송중'과 '운송완료'로 분리하여 각 배열에 저장
+    // 4. 결과를 'condition' 값에 따라 '운송중'과 '운송완료'로 분리하여 각 배열에 저장
     if ($stmt) {
         while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
-            if ($row['complete_dt'] === null) {
-                $data_in_transit[] = $row; // complete_dt가 없으면 '운송중' 배열에 추가
-            } else {
-                $data_completed[] = $row;  // complete_dt가 있으면 '운송완료' 배열에 추가
+            // 쿼리(WHERE)에서 이미 상태가 필터링되었지만, PHP단에서 한번 더 명확하게 분리
+            if (isset($row['condition']) && $row['condition'] === '운송중') {
+                $data_in_transit[] = $row;
+            } else if (isset($row['condition']) && $row['condition'] === '운송완료') {
+                $data_completed[] = $row;
             }
         }
     }
@@ -767,13 +765,26 @@
         $row_minus2 = sqlsrv_fetch_array($stmt_minus2);
         $dates[$yearBeforePrevious] = $row_minus2 ? $row_minus2['SORTING_DATE']->format('Y-m-d') : null;
 
-        // 2. 모든 상세 항목 데이터 가져오기 (수정 없음)
+        // 2. 모든 상세 항목 데이터 가져오기 (수정)
         $qcData = [];
+        $usingPreviousYearData = false;
         if (!empty($dates[$currentYear])) {
             $sql_main = "SELECT * FROM CONNECT.dbo.QC WHERE SORTING_DATE = ? AND KIND IN ('시트히터', '핸들', '통풍') ORDER BY NO";
             $main_results = sqlsrv_query($connect, $sql_main, [$dates[$currentYear]]);
-            while ($row = sqlsrv_fetch_array($main_results, SQLSRV_FETCH_ASSOC)) {
-                $qcData[$row['KIND']][$row['KIND2']][] = $row;
+            if ($main_results) {
+                while ($row = sqlsrv_fetch_array($main_results, SQLSRV_FETCH_ASSOC)) {
+                    $qcData[trim($row['KIND'])][trim($row['KIND2'])][] = $row;
+                }
+            }
+        } elseif (!empty($dates[$previousYear])) {
+            // 금년 데이터가 없으면 전년도 MM=13 데이터를 가져옴
+            $usingPreviousYearData = true;
+            $sql_main = "SELECT * FROM CONNECT.dbo.QC WHERE SORTING_DATE = ? AND MM = '13' AND KIND IN ('시트히터', '핸들', '통풍') ORDER BY NO";
+            $main_results = sqlsrv_query($connect, $sql_main, [$dates[$previousYear]]);
+            if ($main_results) {
+                while ($row = sqlsrv_fetch_array($main_results, SQLSRV_FETCH_ASSOC)) {
+                    $qcData[$row['KIND']][$row['KIND2']][] = $row;
+                }
             }
         }
 
@@ -818,30 +829,39 @@
         if (!empty($qcData)) {
             foreach ($qcData as $kind => $subKindData) {
                 foreach ($subKindData as $kind2 => $records) {
-                    if (isset($monthlyData[$kind][$kind2])) { // 미리 정의된 구조에 해당하는 데이터만 처리
+                    // if (isset($monthlyData[$kind][$kind2])) { // 미리 정의된 구조에 해당하는 데이터만 처리 -> 제거
                         foreach ($records as $record) {
                             $month = (int)$record['MM'];
                             $money = (float)$record['M_MONEY'];
-                            if ($month >= 1 && $month <= 12) {
-                                $monthlyData[$kind][$kind2][$month] += $money;
+                            if ($usingPreviousYearData) {
+                                if ($month === 13) {
+                                    // 전년도 데이터는 합계(13)에 바로 넣고, 월별 데이터는 0으로 유지됨
+                                    $monthlyData[$kind][$kind2][$month] += $money;
+                                }
+                            } else {
+                                if ($month >= 1 && $month <= 12) {
+                                    $monthlyData[$kind][$kind2][$month] += $money;
+                                }
                             }
                         }
-                    }
+                    // }
                 }
             }
         }
 
         // 각 항목의 합계(13번째 값)를 계산합니다.
-        foreach ($monthlyData as $kind => &$subKinds) {
-            foreach ($subKinds as $kind2 => &$months) {
-                $total = 0;
-                for ($m = 1; $m <= 12; $m++) {
-                    $total += $months[$m];
+        if (!$usingPreviousYearData) {
+            foreach ($monthlyData as $kind => &$subKinds) {
+                foreach ($subKinds as $kind2 => &$months) {
+                    $total = 0;
+                    for ($m = 1; $m <= 12; $m++) {
+                        $total += $months[$m];
+                    }
+                    $months[13] = $total; // 13번째 인덱스에 합계 저장
                 }
-                $months[13] = $total; // 13번째 인덱스에 합계 저장
             }
+            unset($subKinds, $months); // 참조 해제
         }
-        unset($subKinds, $months); // 참조 해제
 
         // 5. barChart7을 위한 데이터 가공 (수정 없음)
         $currentYearHeater = $graphData[$currentYear]['시트히터'] ?? 0;
@@ -943,23 +963,17 @@
     //베트남 인원
 
     // --- 1. 기본 데이터 구조 생성 ---
-    // 데이터가 없을 경우 사용될 기본 빈 행(row) 구조를 정의합니다.
     $defaultRow = [
         'night_iwin' => 0, 'night_part' => 0, 'morning_iwin' => 0,
         'morning_part' => 0, 'morning_office' => 0, 'morning_etc' => 0,
         'vacation_baby' => 0,
     ];
 
-    // 1월부터 12월까지 기본 행으로 채워진 배열을 미리 생성합니다.
-    $thisYearVietnamTotals = array_fill(1, 12, $defaultRow);
-    $lastYearVietnamTotals = array_fill(1, 12, $defaultRow);
+    // --- 2. 연도별 데이터 배열을 기본 구조로 미리 초기화 (1월~12월) ---
+    $thisYearData = array_fill(1, 12, $defaultRow);
+    $lastYearData = array_fill(1, 12, $defaultRow);
 
-    // --- 2. DB에서 실제 데이터 가져오기 ---
-    // DB에서 가져온 실제 데이터를 임시로 담을 배열
-    $thisYearData = [];
-    $lastYearData = [];
-
-    // 금년과 작년 데이터를 한 번에 가져오는 최적화된 쿼리
+    // --- 3. DB에서 실제 데이터 가져오기 ---
     $query = "
         WITH MonthlyData AS (
             SELECT *, ROW_NUMBER() OVER(PARTITION BY SUBSTRING(excel_title, 1, 6) ORDER BY excel_title DESC) as rn
@@ -968,33 +982,26 @@
         )
         SELECT * FROM MonthlyData WHERE rn = 1
     ";
-
-    // 파라미터 바인딩
     $params = [$currentYear . '%', $previousYear . '%'];
-    $options = ["Scrollable" => SQLSRV_CURSOR_KEYSET]; // 필요에 따라 옵션 조정
-    $stmt = sqlsrv_query($connect, $query, $params, $options);
+    $stmt = sqlsrv_query($connect, $query, $params);
 
-    if ($stmt !== false) {
+    if ($stmt) {
         while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
             $year = (int)substr($row['excel_title'], 0, 4);
             $month = (int)substr($row['excel_title'], 4, 2);
             
-            if ($year == $currentYear) {
-                $dbDataThisYear[$month] = $row;
-            } elseif ($year == $previousYear) {
-                $dbDataLastYear[$month] = $row;
+            if ($month >= 1 && $month <= 12) {
+                // DB에 데이터가 있는 월만 덮어쓰기
+                if ($year == $currentYear) {
+                    $thisYearData[$month] = $row;
+                } elseif ($year == $previousYear) {
+                    $lastYearData[$month] = $row;
+                }
             }
         }
     }
 
-    // --- 3. 기본 데이터에 실제 데이터 덮어쓰기 (가공) ---
-    // array_replace 함수는 $thisYearData의 기본값을 $dbDataThisYear의 실제 값으로 교체합니다.
-    // $dbDataThisYear에 데이터가 없는 월은 $thisYearData의 기본값이 그대로 유지됩니다.
-    $thisYearData = array_replace($thisYearData, $dbDataThisYear);
-    $lastYearData = array_replace($lastYearData, $dbDataLastYear);
-
-    // --- 4. (그래프용) 합계 데이터 계산 ---
-    // 이제 완성된 $thisYearData를 기반으로 합계 데이터를 계산합니다.
+    // --- 4. (그래프용) 월별 합계 데이터 계산 ---
     $thisYearVietnamTotals = array_fill(1, 12, 0);
     $lastYearVietnamTotals = array_fill(1, 12, 0);
     $sum_keys = ['night_iwin', 'night_part', 'morning_iwin', 'morning_part', 'morning_office', 'morning_etc', 'vacation_baby'];

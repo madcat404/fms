@@ -118,10 +118,23 @@ declare(strict_types=1); // PHP 8.x 호환성: 엄격한 타입 모드를 활성
             }
         }
         
-        // 보안: SQL Injection 방지를 위해 매개변수화된 쿼리로 업데이트합니다.
-        $query_insert_meter = "UPDATE CONNECT.dbo.READ_METER SET WATER_IWIN=?, WATER_MALLE=?, GAS=? WHERE SORTING_DATE=?";
-        $params_insert = [$note21_a, $note21_b, $note21_c, $Hyphen_today];
-        sqlsrv_query($connect, $query_insert_meter, $params_insert);
+        // Check if data for today already exists
+        $query_check_today = "SELECT NO FROM CONNECT.dbo.READ_METER WHERE SORTING_DATE = ?";
+        $params_check_today = [$Hyphen_today];
+        $stmt_check_today = sqlsrv_query($connect, $query_check_today, $params_check_today);
+
+        // 보안: SQL Injection 방지를 위해 매개변수화된 쿼리를 사용합니다.
+        if (sqlsrv_fetch($stmt_check_today)) {
+            // Data exists, so UPDATE
+            $query_update_meter = "UPDATE CONNECT.dbo.READ_METER SET WATER_IWIN=?, WATER_MALLE=?, GAS=? WHERE SORTING_DATE=?";
+            $params_update = [$note21_a, $note21_b, $note21_c, $Hyphen_today];
+            sqlsrv_query($connect, $query_update_meter, $params_update);
+        } else {
+            // Data does not exist, so INSERT
+            $query_insert_meter = "INSERT INTO CONNECT.dbo.READ_METER (SORTING_DATE, WATER_IWIN, WATER_MALLE, GAS, ELECTRICITY) VALUES (?, ?, ?, ?, 0)";
+            $params_insert = [$Hyphen_today, $note21_a, $note21_b, $note21_c];
+            sqlsrv_query($connect, $query_insert_meter, $params_insert);
+        }
     }     
     //검침내역
     ELSEIF($bt31 === "on" && $s_dt3 && $e_dt3) {

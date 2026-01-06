@@ -100,9 +100,8 @@
         data.addColumn('number', '주식 현재가(원)');
         data.addColumn('string', '전일대비(원)');
         data.addRows([
-          [ "아이윈", <?php echo $indicator_data['stock']['iwin']['current']; ?>, '<?php echo getComparisonHtml($indicator_data['stock']['iwin']['compare'], $indicator_data['stock']['iwin']['compare_rate']); ?>'],
-          ["아이윈플러스", <?php echo $indicator_data['stock']['iwinplus']['current']; ?>, '<?php echo getComparisonHtml($indicator_data['stock']['iwinplus']['compare'], $indicator_data['stock']['iwinplus']['compare_rate']); ?>']
-        ]);
+          [ "아이윈", <?php echo $indicator_data['stock']['iwin']['current']; ?>, '<?php echo getComparisonHtml($indicator_data['stock']['iwin']['compare'], $indicator_data['stock']['iwin']['compare_rate']); ?>']
+         ]);
 
         var table = new google.visualization.Table(document.getElementById('table_div5'));
         table.draw(data, {allowHtml: true, width: '100%', height: '100%'});

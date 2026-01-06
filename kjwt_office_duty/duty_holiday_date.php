@@ -18,7 +18,7 @@
 	$s_dd = substr($s_date, 8, 2);
 
 	//다음달
-	$s_mm2 = $s_mm+2;
+	$s_mm2 = $s_mm+1;
 	
 	//10, 11, 12월이 아닌경우
 	if(strlen($s_mm2)==1) {
@@ -48,7 +48,7 @@
 	else {	
 		//공공데이터포털 일일 허용 call 수 10000번
 		// 보안 참고: API 키는 소스코드에 직접 하드코딩하는 것보다 별도의 설정 파일로 분리하여 관리하는 것이 안전합니다.
-		$url = "http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getHoliDeInfo?solYear="."$s_yy"."&solMonth="."$s_mm2"."&ServiceKey=wJisSFM6CHVsmsJx85m1BrhJ5azT3ryOMFxULxcDj3duJzZNlJD7wFuL%2FlBP56HXz1v72EJSJXKS2n4%2FkuTd4A%3D%3D";
+		$url = "http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getHoliDeInfo?solYear="."$s_yy"."&solMonth="."$s_mm2"."&ServiceKey=IO031b0twVJ4cXrhqlKAl4Xfdka2wMvW3cQMkOfuRqUnapo9YQNb16qvhxv7U6DF%2Bma7k25nALytcJTdKPlVYw%3D%3D";
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);

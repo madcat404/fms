@@ -119,8 +119,7 @@
     }
 
     $stocksToUpdate = [
-        '아이윈' => '090150',
-        '아이윈플러스' => '123010'
+        '아이윈' => '090150'
     ];
 
     foreach ($stocksToUpdate as $name => $code) {

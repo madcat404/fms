@@ -41,8 +41,7 @@ $cards = [
         ["./index_global.php", ["fa-globe-asia"], "Việt Nam"]
     ],
     '실험실' => [
-        ["./ocp.php", ["fa-flask"], "캐시관리"],
-        ["./kjwt_wiki/wiki_view.php", ["fa-bolt"], "공사중) wiki"]
+        ["./ocp.php", ["fa-flask"], "캐시관리"]
     ]
 ];
 

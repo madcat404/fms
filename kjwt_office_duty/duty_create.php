@@ -11,7 +11,7 @@
 	// --- 1. 날짜 설정 (DateTime 객체 사용) ---
 	try {
 		$date = new DateTime();
-		$date->modify('+2 months'); // 두 달 뒤 날짜로 설정
+		$date->modify('+1 months'); // 두 달 뒤 날짜로 설정
 		$targetYear = $date->format('Y');
 		$targetMonth = $date->format('m');
 		$lastDayOfMonth = (int)$date->format('t');

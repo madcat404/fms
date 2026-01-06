@@ -350,7 +350,8 @@
 
     //탭6 
     $item6 = strtoupper($_POST["item6"]);
-    $use_function6 = CROP($item6);
+    $clean_item6 = preg_replace('/[\x00-\x1F\x7F]/', '', $item6); //아스키코드 제거
+    $use_function6 = CROP($clean_item6);
     $CD_ITEM6 = HyphenRemove($use_function6[0]);
     //MEa 제품은 뒤에 (na)가 붙어 선택창이 나오도록 함 (25.01.16)
     $popitem = $_GET["popitem"]; 

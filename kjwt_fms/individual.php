@@ -102,10 +102,13 @@
                                             - 카카오맵, T맵, 네이버지도 등과 같은 앱을 캡처하여 업로드 바랍니다.<br> 
                                             - 사진 파일만 업로드 가능합니다.<br>
                                             - 기름티켓이 발급되면 현황에서 데이터가 사라집니다.<br>
-                                            - 계산식 [정산=roundup((주행거리/10)+(톨비/자차유종가격))]<br>
+                                            - [휘발유, 경유, LPG] 계산식 [정산=roundup((주행거리/10)+(톨비/자차유종가격))]<br>
+                                            - [전기] 계산식 [정산=(주행거리/5*평균요금)+(톨비)]<br>
+                                             ※ 무공해차 통합누리집 급속 비회원 평균요금으로 계산<br>
+                                             ※ 검색 시 나오는 평균 연비 5km/kWh 적용 (25.12.26)<br>
                                             - 장안주유소 및 선암가스충전소 실시간 유가를 출력합니다.(한국석유공사 제공)<br>
                                             - ★장안주유소 주소: 부산광역시 기장군 장안읍 기장대로 1673<br>
-                                            - ★선암가스충전소 주소: 부산광역시 기장군 장안읍 기장대로 1451                                            
+                                            - ★선암가스충전소 주소: 부산광역시 기장군 장안읍 기장대로 1451<br>  
                                         </p>                                            
                                     </div>
                                 </div>
@@ -192,16 +195,16 @@
                                 </form>             
                             </div>
                         </div> 
-
+                        
                         <div class="col-xl-3 col-md-6 mb-2">
                             <div class="card border-left-primary shadow h-100 py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">결재 및 정산 대기</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $num_result; ?></div>
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">휘발유</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo htmlspecialchars($row11->OIL_PRICE ?? 'N/A', ENT_QUOTES, 'UTF-8'); ?> 원</div>
                                         </div>
-                                        <div class="col-auto"><i class="fas fa-tasks fa-2x text-gray-300"></i></div>
+                                        <div class="col-auto"><i class="fas fa-oil-can fa-2x text-gray-300"></i></div>
                                     </div>
                                 </div>
                             </div>
@@ -211,8 +214,8 @@
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">휘발유</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo htmlspecialchars($row11->OIL_PRICE ?? 'N/A', ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">경유</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo htmlspecialchars($row22->OIL_PRICE ?? 'N/A', ENT_QUOTES, 'UTF-8'); ?> 원</div>
                                         </div>
                                         <div class="col-auto"><i class="fas fa-oil-can fa-2x text-gray-300"></i></div>
                                     </div>
@@ -224,10 +227,10 @@
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">경유</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo htmlspecialchars($row22->OIL_PRICE ?? 'N/A', ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">LPG</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo htmlspecialchars($row33->OIL_PRICE ?? 'N/A', ENT_QUOTES, 'UTF-8'); ?> 원</div>
                                         </div>
-                                        <div class="col-auto"><i class="fas fa-oil-can fa-2x text-gray-300"></i></div>
+                                        <div class="col-auto"><i class="fas fa-gas-pump fa-2x text-gray-300"></i></div>
                                     </div>
                                 </div>
                             </div>
@@ -237,10 +240,12 @@
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">LPG</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo htmlspecialchars($row33->OIL_PRICE ?? 'N/A', ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">전기 (급속/비회원)</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo htmlspecialchars($row44->OIL_PRICE ?? '0', ENT_QUOTES, 'UTF-8'); ?> 원</div>
                                         </div>
-                                        <div class="col-auto"><i class="fas fa-oil-can fa-2x text-gray-300"></i></div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-bolt fa-2x text-gray-300"></i>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -288,7 +293,7 @@
                                         <div class="table-responsive d-none d-md-block">
                                             <table class="table table-bordered table-hover text-nowrap" id="dataTable">
                                                 <thead>
-                                                    <tr><th>이름</th><th>차번</th><th>유종</th><th>출발지</th><th>경유/목적지</th><th>주행거리</th><th>톨비</th><th>주행거리사진</th><th>톨비사진</th><th>기록일</th><th>정산(L)</th></tr>
+                                                    <tr><th>이름</th><th>차번</th><th>유종</th><th>출발지</th><th>경유/목적지</th><th>주행거리</th><th>톨비</th><th>주행거리사진</th><th>톨비사진</th><th>기록일</th><th>정산</th></tr>
                                                 </thead>
                                                 <tbody>
                                                     <?php foreach ($status_data as $row): ?>
@@ -311,7 +316,10 @@
                                                                 <?php else: echo "없음"; endif; ?>
                                                             </td>
                                                             <td><?= htmlspecialchars($row['SEARCH_DATE']) ?></td>
-                                                            <td><?= htmlspecialchars($row['GIVE_OIL']) ?></td>
+                                                            <td>
+                                                                <?= htmlspecialchars($row['GIVE_OIL']) ?> 
+                                                                <?= ($row['CAR_OIL'] === '전기') ? '원' : 'L' ?>
+                                                            </td>
                                                         </tr>
                                                     <?php endforeach; ?> 
                                                 </tbody>

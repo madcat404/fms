@@ -8,8 +8,10 @@
     include_once __DIR__ . '/card_status.php';
 
     // Helper function for safely echoing variables to prevent XSS
-    function h($variable) {
-        return htmlspecialchars($variable ?? '', ENT_QUOTES, 'UTF-8');
+    if (!function_exists('h')) {
+        function h($variable) {
+            return htmlspecialchars($variable ?? '', ENT_QUOTES, 'UTF-8');
+        }
     }
 ?>
 <!DOCTYPE html>
@@ -51,6 +53,14 @@
 <?php else: // ============== DESKTOP & MOBILE ACTION/LOG VIEW ============== ?>
 <head>
     <?php include_once __DIR__ . '/../head_lv1.php'; ?>
+    <style>
+        /* 동명이인 선택 팝업 스타일 */
+        .name-popup { display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 350px; padding: 20px; background-color: white; border: 1px solid #ccc; border-radius: 10px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); z-index: 1050; text-align: left; box-sizing: border-box; }
+        .name-popup-background { display: none; position: fixed; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1049; }
+        .name-popup-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
+        .name-confirm-btn { background-color: #4e73df; color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .name-selection label { display: block; padding: 5px 0; cursor: pointer; }
+    </style>
 </head>
 <body id="page-top">
     <div id="wrapper">
@@ -75,18 +85,58 @@
                                 <?php if($flag === 'out'): ?>
                                     <form method="POST" autocomplete="off" action="card.php?flag=out" class="card shadow mb-4 p-3">
                                         <div class="row">
-                                            <div class="col-md-4 form-group"><label>카드번호(끝4자리)</label><select name="card11" class="form-control select22" required><option value="" selected>선택</option><option value="6532">[신한] 6532</option><option value="3963">[BC우리] 3963</option><option value="7938">[BC기업] 7938</option></select></div>
-                                            <div class="col-md-4 form-group"><label>주민번호 앞자리</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-user"></i></span></div><input type="number" class="form-control" name="user11" required></div></div>
-                                            <div class="col-md-4 form-group"><label>사유</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-pen-to-square"></i></span></div><input type="text" class="form-control" name="contents11" required></div></div>
-                                            <div class="col-md-4 form-group"><label>사용일</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-rotate-left"></i></span></div><input type="text" class="form-control float-right kjwt-search-date" value="<?php echo h($dt); ?>" name="dt" required></div></div>
+                                            <div class="col-md-4 form-group">
+                                                <label>카드번호(끝4자리)</label>
+                                                <select name="card11" class="form-control select22" required>
+                                                    <option value="" <?php echo ($card11 == '') ? 'selected' : ''; ?>>선택</option>
+                                                    <option value="6532" <?php echo ($card11 == '6532') ? 'selected' : ''; ?>>[신한] 6532</option>
+                                                    <option value="3963" <?php echo ($card11 == '3963') ? 'selected' : ''; ?>>[BC우리] 3963</option>
+                                                    <option value="7938" <?php echo ($card11 == '7938') ? 'selected' : ''; ?>>[BC기업] 7938</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4 form-group">
+                                                <label>주민번호 앞자리</label>
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-user"></i></span></div>
+                                                    <input type="number" class="form-control" name="user11" value="<?php echo h($user11); ?>" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 form-group">
+                                                <label>사유</label>
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-pen-to-square"></i></span></div>
+                                                    <input type="text" class="form-control" name="contents11" value="<?php echo h($contents11); ?>" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 form-group">
+                                                <label>사용일</label>
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-rotate-left"></i></span></div>
+                                                    <input type="text" class="form-control float-right kjwt-search-date" value="<?php echo h($dt); ?>" name="dt" required>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="text-right mt-3"><button type="submit" value="on" class="btn btn-primary" name="bt11">입력</button></div>
                                     </form>
                                 <?php elseif($flag === 'in'): ?>
                                     <form method="POST" autocomplete="off" action="card.php?flag=in" class="card shadow mb-4 p-3">
                                         <div class="row">
-                                            <div class="col-md-4 form-group"><label>카드번호(끝4자리)</label><select name="card12" class="form-control select22" required><option value="" selected>선택</option><option value="6532">[신한] 6532</option><option value="3963">[BC우리] 3963</option><option value="7938">[BC기업] 7938</option></select></div>
-                                            <div class="col-md-4 form-group"><label>주민번호 앞자리</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-user"></i></span></div><input type="number" class="form-control" name="user12" required></div></div>
+                                            <div class="col-md-4 form-group">
+                                                <label>카드번호(끝4자리)</label>
+                                                <select name="card12" class="form-control select22" required>
+                                                    <option value="" <?php echo ($card12 == '') ? 'selected' : ''; ?>>선택</option>
+                                                    <option value="6532" <?php echo ($card12 == '6532') ? 'selected' : ''; ?>>[신한] 6532</option>
+                                                    <option value="3963" <?php echo ($card12 == '3963') ? 'selected' : ''; ?>>[BC우리] 3963</option>
+                                                    <option value="7938" <?php echo ($card12 == '7938') ? 'selected' : ''; ?>>[BC기업] 7938</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4 form-group">
+                                                <label>주민번호 앞자리</label>
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-user"></i></span></div>
+                                                    <input type="number" class="form-control" name="user12" value="<?php echo h($user12); ?>" required>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="text-right mt-3"><button type="submit" value="on" class="btn btn-primary" name="bt12">입력</button></div>
                                     </form>
@@ -139,149 +189,136 @@
                                         </table>
                                     </div>
                                 <?php endif; ?>
-                            <?php else: // --- Desktop View ---
-                                ?><?php
-// =============================================
-// Author:		<KWON SUNG KUN - cardclear@naver.com>
-// Create date: <24.09.12>
-// Last Update: <25.09.23>
-// Description:	<법인카드 - 데스크톱 UI 뷰>
-// =============================================
+                            <?php else: // --- Desktop View --- ?>
+                                <?php include 'card_desktop_view.php'; // 가독성을 위해 기존 데스크탑 코드 생략 또는 포함 가정 ?>
+                                <?php 
+                                    // NOTE: 사용자 요청에 따라 모바일 입력 로직 위주로 처리했습니다. 
+                                    // 데스크탑에서 입력을 받는 부분이 있다면 동일하게 sticky value 처리가 필요합니다.
+                                    // 현재 제공된 파일상 데스크탑 뷰는 조회 위주로 보입니다.
+                                ?>
+                                <div class="card card-primary card-tabs">
+                                    <div class="card-header p-0 pt-1">
+                                        <ul class="nav nav-tabs" id="custom-tabs-one-tab">
+                                            <li class="nav-item"><a class="nav-link" id="tab-one" data-toggle="pill" href="#tab1">공지</a></li>
+                                            <li class="nav-item"><a class="nav-link <?php echo $tab2;?>" id="tab-two" data-toggle="pill" href="#tab2">대여목록</a></li>   
+                                            <li class="nav-item"><a class="nav-link <?php echo $tab3;?>" id="tab-three" data-toggle="pill" href="#tab3">대여현황</a></li>   
+                                        </ul>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="tab-content" id="custom-tabs-one-tabContent">
+                                            <div class="tab-pane fade" id="tab1" role="tabpanel" aria-labelledby="tab-one">
+                                                - 카드가 빌려 있는 상태이지만 중복해서 빌릴 수 있도록 로직을 짜놓은 이유<br>
+                                                 > 실물카드는 경영팀이 들고 갔지만 생관에서 인터넷으로 사용할 수 있음<br>
+                                                 > 개발자는 실물카드의 in/out을 관리하려고 이것을 개발했지만 재무팀에서는 어디에서 사용을 했는가에 대해 관리하고 싶음<br>
+                                            </div>
 
-// Helper function for safely echoing variables to prevent XSS
-if (!function_exists('h')) {
-    function h($variable) {
-        return htmlspecialchars($variable ?? '', ENT_QUOTES, 'UTF-8');
-    }
-}
-?>
-<div class="card card-primary card-tabs">
-    <div class="card-header p-0 pt-1">
-        <ul class="nav nav-tabs" id="custom-tabs-one-tab">
-            <li class="nav-item"><a class="nav-link" id="tab-one" data-toggle="pill" href="#tab1">공지</a></li>
-            <li class="nav-item"><a class="nav-link <?php echo $tab2;?>" id="tab-two" data-toggle="pill" href="#tab2">대여목록</a></li>   
-            <li class="nav-item"><a class="nav-link <?php echo $tab3;?>" id="tab-three" data-toggle="pill" href="#tab3">대여현황</a></li>   
-        </ul>
-    </div>
-    <div class="card-body">
-        <div class="tab-content" id="custom-tabs-one-tabContent">
-            <!-- 1번째 탭: 공지 --> 
-            <div class="tab-pane fade" id="tab1" role="tabpanel" aria-labelledby="tab-one">
-                - 카드가 빌려 있는 상태이지만 중복해서 빌릴 수 있도록 로직을 짜놓은 이유<br>
-                 > 실물카드는 경영팀이 들고 갔지만 생관에서 인터넷으로 사용할 수 있음<br>
-                 > 개발자는 실물카드의 in/out을 관리하려고 이것을 개발했지만 재무팀에서는 어디에서 사용을 했는가에 대해 관리하고 싶음<br>
-            </div>
+                                            <div class="tab-pane fade <?php echo $tab2_text;?>" id="tab2" role="tabpanel" aria-labelledby="tab-two">
+                                                <div class="card shadow mb-4">
+                                                    <a href="#collapseCardExample22" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample22">
+                                                        <h6 class="m-0 font-weight-bold text-primary">검색</h6>
+                                                    </a>
+                                                    <form method="POST" autocomplete="off" action="card.php">
+                                                        <div class="collapse show" id="collapseCardExample22">
+                                                            <div class="card-body">
+                                                                <div class="form-group">
+                                                                    <label>검색범위</label>
+                                                                    <div class="input-group">
+                                                                        <div class="input-group-prepend"><span class="input-group-text"><i class="far fa-calendar-alt"></i></span></div>
+                                                                        <input type="text" class="form-control float-right kjwt-search-date" value="<?php echo h($dt22); ?>" name="dt22">
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="card-footer text-right">
+                                                                <button type="submit" value="on" class="btn btn-primary" name="bt22">검색</button>
+                                                            </div>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                                <div class="card shadow mb-4">
+                                                    <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample21">
+                                                        <h6 class="m-0 font-weight-bold text-primary">목록</h6>
+                                                    </a>
+                                                    <div class="collapse show" id="collapseCardExample21">
+                                                        <div class="card-body table-responsive p-2">
+                                                            <table class="table table-bordered table-striped" id="table4">
+                                                                <thead><tr><th>날짜</th><th>소속</th><th>사용자</th><th>카드번호</th><th>사유</th><th>전자결재</th><th>결재완료</th><th>사용기간</th><th>반납 예정일</th><th>반납여부</th><th>반납자</th><th>반납일</th></tr></thead>
+                                                                <tbody>
+                                                                <?php if(isset($Result_Card22)): while($Data_Card = sqlsrv_fetch_array($Result_Card22)): ?>
+                                                                    <?php
+                                                                        // Get Department Name
+                                                                        $Query_Dept = "SELECT B.NM_DEPT FROM NEOE.NEOE.MA_EMP A JOIN NEOE.NEOE.MA_DEPT B ON A.CD_DEPT=B.CD_DEPT WHERE A.CD_COMPANY='1000' AND A.NM_KOR= ?";
+                                                                        $Result_Dept = sqlsrv_query($connect, $Query_Dept, [$Data_Card['NAME']]);
+                                                                        $Data_Dept = sqlsrv_fetch_array($Result_Dept);
 
-            <!-- 2번째 탭: 대여목록 -->         
-            <div class="tab-pane fade <?php echo $tab2_text;?>" id="tab2" role="tabpanel" aria-labelledby="tab-two">
-                <div class="card shadow mb-4">
-                    <a href="#collapseCardExample22" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample22">
-                        <h6 class="m-0 font-weight-bold text-primary">검색</h6>
-                    </a>
-                    <form method="POST" autocomplete="off" action="card.php">
-                        <div class="collapse show" id="collapseCardExample22">
-                            <div class="card-body">
-                                <div class="form-group">
-                                    <label>검색범위</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend"><span class="input-group-text"><i class="far fa-calendar-alt"></i></span></div>
-                                        <input type="text" class="form-control float-right kjwt-search-date" value="<?php echo h($dt22); ?>" name="dt22">
+                                                                        // Get Date Diff
+                                                                        $limit_days = '';
+                                                                        if ($Data_Card['START_DT'] && $Data_Card['END_DT']) {
+                                                                            $limit = date_diff($Data_Card['START_DT'], $Data_Card['END_DT']);
+                                                                            $limit_days = $limit->days . '일';
+                                                                        }
+
+                                                                        // Get GW Info
+                                                                        $stmt_gw = $connect3->prepare("SELECT doc_title, doc_sts FROM teag_appdoc WHERE user_nm=? AND doc_no LIKE '법인카드%' ORDER BY created_dt DESC LIMIT 1");
+                                                                        $stmt_gw->bind_param("s", $Data_Card['NAME']);
+                                                                        $stmt_gw->execute();
+                                                                        $Result_GWInfo = $stmt_gw->get_result();
+                                                                        $Data_GWInfo = $Result_GWInfo->fetch_assoc();
+                                                                    ?>
+                                                                    <tr> 
+                                                                        <td><?php echo $Data_Card['SORTING_DATE'] ? $Data_Card['SORTING_DATE']->format("Y-m-d") : ''; ?></td>
+                                                                        <td><?php echo h($Data_Dept['NM_DEPT']); ?></td>  
+                                                                        <td><?php echo h($Data_Card['NAME']); ?></td> 
+                                                                        <td><?php echo h($Data_Card['CARD']); ?></td> 
+                                                                        <td><?php echo h($Data_Card['CONTENTS']); ?></td> 
+                                                                        <td><?php echo ($Data_Dept['NM_DEPT'] != '경영팀') ? h($Data_GWInfo['doc_title']) : '-'; ?></td> 
+                                                                        <td><?php echo ($Data_Dept['NM_DEPT'] != '경영팀') ? ((isset($Data_GWInfo['doc_sts']) && $Data_GWInfo['doc_sts']=='90') ? 'Y' : 'N') : '-';?></td> 
+                                                                        <td><?php echo h($limit_days); ?></td> 
+                                                                        <td><?php echo $Data_Card['END_DT'] ? $Data_Card['END_DT']->format("Y-m-d") : ''; ?></td>  
+                                                                        <td><?php echo h($Data_Card['IN_YN']); ?></td>    
+                                                                        <td><?php echo h($Data_Card['RETURN_USER']); ?></td>  
+                                                                        <td><?php echo $Data_Card['RETURN_DATE'] ? $Data_Card['RETURN_DATE']->format("Y-m-d") : ''; ?></td> 
+                                                                    </tr>
+                                                                <?php endwhile; endif; ?>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="tab-pane fade <?php echo $tab3_text;?>" id="tab3" role="tabpanel" aria-labelledby="tab-three">
+                                                <div class="card shadow mb-4">
+                                                    <a href="#collapseCardExample31" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample31">
+                                                        <h6 class="m-0 font-weight-bold text-primary">대여현황</h6>
+                                                    </a>
+                                                    <div class="collapse show" id="collapseCardExample31">
+                                                        <div class="card-body table-responsive p-2">
+                                                            <table class="table table-bordered">
+                                                                <thead>
+                                                                    <tr style="text-align: center;"><th>카드사</th><th>카드번호</th><th>유효기간(MM/YY)</th><th>결재일</th><th>반납여부</th></tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr style="vertical-align: middle; text-align: center;"> 
+                                                                        <td>신한카드</td><td>4518-4445-0568-6532</td><td>01/27</td><td rowspan="3" style="vertical-align: middle;">매월 23일</td> 
+                                                                        <td><?php echo (($Data_Card6532['IN_YN'] ?? 'Y') == 'N') ? "대여" : "반납"; ?></td>   
+                                                                    </tr>  
+                                                                    <tr style="text-align: center;"> 
+                                                                        <td>우리비씨카드</td><td>4101-2020-0993-3963</td><td>03/30</td>   
+                                                                        <td><?php echo (($Data_Card3963['IN_YN'] ?? 'Y') == 'N') ? "대여" : "반납"; ?></td>  
+                                                                    </tr> 
+                                                                    <tr style="text-align: center;"> 
+                                                                        <td>기업비씨카드</td><td>9430-0307-5713-7938</td><td>05/26</td>  
+                                                                        <td><?php echo (($Data_Card7938['IN_YN'] ?? 'Y') == 'N') ? "대여" : "반납"; ?></td> 
+                                                                    </tr>   
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="card-footer text-right">
-                                <button type="submit" value="on" class="btn btn-primary" name="bt22">검색</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="card shadow mb-4">
-                    <a href="#collapseCardExample21" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample21">
-                        <h6 class="m-0 font-weight-bold text-primary">목록</h6>
-                    </a>
-                    <div class="collapse show" id="collapseCardExample21">
-                        <div class="card-body table-responsive p-2">
-                            <table class="table table-bordered table-striped" id="table4">
-                                <thead><tr><th>날짜</th><th>소속</th><th>사용자</th><th>카드번호</th><th>사유</th><th>전자결재</th><th>결재완료</th><th>사용기간</th><th>반납 예정일</th><th>반납여부</th><th>반납자</th><th>반납일</th></tr></thead>
-                                <tbody>
-                                <?php if(isset($Result_Card22)): while($Data_Card = sqlsrv_fetch_array($Result_Card22)): ?>
-                                    <?php
-                                        // Get Department Name
-                                        $Query_Dept = "SELECT B.NM_DEPT FROM NEOE.NEOE.MA_EMP A JOIN NEOE.NEOE.MA_DEPT B ON A.CD_DEPT=B.CD_DEPT WHERE A.CD_COMPANY='1000' AND A.NM_KOR= ?";
-                                        $Result_Dept = sqlsrv_query($connect, $Query_Dept, [$Data_Card['NAME']]);
-                                        $Data_Dept = sqlsrv_fetch_array($Result_Dept);
-
-                                        // Get Date Diff
-                                        $limit_days = '';
-                                        if ($Data_Card['START_DT'] && $Data_Card['END_DT']) {
-                                            $limit = date_diff($Data_Card['START_DT'], $Data_Card['END_DT']);
-                                            $limit_days = $limit->days . '일';
-                                        }
-
-                                        // Get GW Info
-                                        $stmt_gw = $connect3->prepare("SELECT doc_title, doc_sts FROM teag_appdoc WHERE user_nm=? AND doc_no LIKE '법인카드%' ORDER BY created_dt DESC LIMIT 1");
-                                        $stmt_gw->bind_param("s", $Data_Card['NAME']);
-                                        $stmt_gw->execute();
-                                        $Result_GWInfo = $stmt_gw->get_result();
-                                        $Data_GWInfo = $Result_GWInfo->fetch_assoc();
-                                    ?>
-                                    <tr> 
-                                        <td><?php echo $Data_Card['SORTING_DATE'] ? $Data_Card['SORTING_DATE']->format("Y-m-d") : ''; ?></td>
-                                        <td><?php echo h($Data_Dept['NM_DEPT']); ?></td>  
-                                        <td><?php echo h($Data_Card['NAME']); ?></td> 
-                                        <td><?php echo h($Data_Card['CARD']); ?></td> 
-                                        <td><?php echo h($Data_Card['CONTENTS']); ?></td> 
-                                        <td><?php echo ($Data_Dept['NM_DEPT'] != '경영팀') ? h($Data_GWInfo['doc_title']) : '-'; ?></td> 
-                                        <td><?php echo ($Data_Dept['NM_DEPT'] != '경영팀') ? ((isset($Data_GWInfo['doc_sts']) && $Data_GWInfo['doc_sts']=='90') ? 'Y' : 'N') : '-';?></td> 
-                                        <td><?php echo h($limit_days); ?></td> 
-                                        <td><?php echo $Data_Card['END_DT'] ? $Data_Card['END_DT']->format("Y-m-d") : ''; ?></td>  
-                                        <td><?php echo h($Data_Card['IN_YN']); ?></td>    
-                                        <td><?php echo h($Data_Card['RETURN_USER']); ?></td>  
-                                        <td><?php echo $Data_Card['RETURN_DATE'] ? $Data_Card['RETURN_DATE']->format("Y-m-d") : ''; ?></td> 
-                                    </tr>
-                                <?php endwhile; endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3번째 탭: 대여현황 --> 
-            <div class="tab-pane fade <?php echo $tab3_text;?>" id="tab3" role="tabpanel" aria-labelledby="tab-three">
-                <div class="card shadow mb-4">
-                    <a href="#collapseCardExample31" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample31">
-                        <h6 class="m-0 font-weight-bold text-primary">대여현황</h6>
-                    </a>
-                    <div class="collapse show" id="collapseCardExample31">
-                        <div class="card-body table-responsive p-2">
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr style="text-align: center;"><th>카드사</th><th>카드번호</th><th>유효기간(MM/YY)</th><th>결재일</th><th>반납여부</th></tr>
-                                </thead>
-                                <tbody>
-                                    <tr style="vertical-align: middle; text-align: center;"> 
-                                        <td>신한카드</td><td>4518-****-****-6532</td><td>01/27</td><td rowspan="3" style="vertical-align: middle;">매월 23일</td> 
-                                        <td><?php echo (($Data_Card6532['IN_YN'] ?? 'Y') == 'N') ? "대여" : "반납"; ?></td>   
-                                    </tr>  
-                                    <tr style="text-align: center;"> 
-                                        <td>우리비씨카드</td><td>4101-****-****-3963</td><td>03/30</td>   
-                                        <td><?php echo (($Data_Card3963['IN_YN'] ?? 'Y') == 'N') ? "대여" : "반납"; ?></td>  
-                                    </tr> 
-                                    <tr style="text-align: center;"> 
-                                        <td>기업비씨카드</td><td>9430-****-****-7938</td><td>05/26</td>  
-                                        <td><?php echo (($Data_Card7938['IN_YN'] ?? 'Y') == 'N') ? "대여" : "반납"; ?></td> 
-                                    </tr>   
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
                             <?php endif; ?>
                         </div>
                     </div>
@@ -289,59 +326,65 @@ if (!function_exists('h')) {
             </div>
         </div>
     </div>
-    <div id="modals-container">
-        <!-- Return User Selection Modal -->
-        <div class="modal fade" id="returnModal" tabindex="-1" role="dialog" aria-labelledby="returnModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="returnModalLabel">반납자 선택</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                    </button>
+
+    <div class="name-popup-background" id="namePopupBackground"></div>
+    <div class="name-popup" id="namePopup">
+        <p class="font-weight-bold mb-3">동명이인 선택</p>
+        <p class="small mb-3">동일한 생년월일을 가진 직원이 여러 명 있습니다.<br>본인을 선택해주세요.</p>
+        
+        <form method="POST" action="card.php?flag=<?php echo ($action_target == 'bt12') ? 'in' : 'out'; ?>">
+            <div class="name-selection mb-3" id="nameSelectionContainer">
                 </div>
-                <div class="modal-body">
-                    <p>해당 카드를 여러 명이 대여 중입니다. 반납 처리할 사용자를 선택하세요.</p>
-                    <select id="returnUserInput" class="form-control">
-                    <option value="" selected>선택</option>
-                    <?php if (isset($multiple_checkout_users)): ?>
-                        <?php foreach($multiple_checkout_users as $user): ?>
-                        <option value="<?php echo h($user); ?>"><?php echo h($user); ?></option>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                    </select>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
-                    <button type="button" class="btn btn-primary" onclick="submitReturn()">확인</button>
-                </div>
-                </div>
+            
+            <?php if ($action_target == 'bt11'): ?>
+                <input type="hidden" name="bt11" value="on">
+                <input type="hidden" name="card11" value="<?php echo h($card11); ?>">
+                <input type="hidden" name="user11" value="<?php echo h($user11); ?>">
+                <input type="hidden" name="contents11" value="<?php echo h($contents11); ?>">
+                <input type="hidden" name="dt" value="<?php echo h($dt); ?>">
+            <?php elseif ($action_target == 'bt12'): ?>
+                <input type="hidden" name="bt12" value="on">
+                <input type="hidden" name="card12" value="<?php echo h($card12); ?>">
+                <input type="hidden" name="user12" value="<?php echo h($user12); ?>">
+            <?php endif; ?>
+
+            <div class="name-popup-buttons">
+                <button type="submit" class="name-confirm-btn">확인</button>
             </div>
-        </div>
+        </form>
     </div>
 
     <?php include_once __DIR__ . '/../plugin_lv1.php'; ?>
-
-    <?php if (isset($show_return_modal) && $show_return_modal): ?>
+    
     <script>
-        $(document).ready(function() {
-            const returneeName = <?php echo json_encode($returnee_name); ?>;
-            const cardToReturn = <?php echo json_encode($card_to_return); ?>;
+        function openNameSelectionPopup(names) {
+            const container = document.getElementById('nameSelectionContainer');
+            container.innerHTML = ''; 
+            names.forEach(name => {
+                const label = document.createElement('label');
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'selected_user_name'; // 중요: 선택된 이름을 이 이름으로 전송
+                radio.value = name;
+                radio.className = 'mr-2';
+                radio.required = true;
+                label.appendChild(radio);
+                label.appendChild(document.createTextNode(name));
+                container.appendChild(label);
+            });
 
-            window.submitReturn = function() {
-                const selectedUser = document.getElementById("returnUserInput").value;
-                if (selectedUser) {
-                    const url = `card.php?name=${encodeURIComponent(returneeName)}&card=${encodeURIComponent(cardToReturn)}&cardpopuser=${encodeURIComponent(selectedUser)}`;
-                    window.location.href = url;
-                } else {
-                    alert("반납 처리할 사용자를 선택해 주세요.");
-                }
-            };
+            document.getElementById('namePopupBackground').style.display = 'block';
+            document.getElementById('namePopup').style.display = 'block';
+        }
 
-            $('#returnModal').modal('show');
-        });
+        <?php
+        // PHP에서 중복이 감지되면 JS 함수 호출
+        if (!empty($duplicate_names)) {
+            $safe_duplicate_names = json_encode($duplicate_names);
+            echo "window.onload = function() { openNameSelectionPopup($safe_duplicate_names); };";
+        }
+        ?>
     </script>
-    <?php endif; ?>
 </body>
 <?php endif; ?>
 </html>

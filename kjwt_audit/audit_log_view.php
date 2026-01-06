@@ -27,7 +27,7 @@ $logData = [];
 if (isset($connect) && $connect) {
     try {
         // 검색 쿼리 작성 (T-SQL, TOP 1000 제한, 날짜 범위 검색)
-        $query = "SELECT TOP 1000 
+        $query = "SELECT
                     [LogID], 
                     [EventTime], 
                     [ActionID], 
@@ -185,7 +185,7 @@ if (isset($connect) && $connect) {
                                                 <div class="card shadow mb-4">
                                                     <a href="#collapseResult" class="d-block card-header py-3" data-toggle="collapse"
                                                         role="button" aria-expanded="true" aria-controls="collapseResult">
-                                                        <h6 class="m-0 font-weight-bold text-primary">조회 결과 (최근 1000건)</h6>
+                                                        <h6 class="m-0 font-weight-bold text-primary">조회 결과</h6>
                                                     </a>
                                                     
                                                     <div class="collapse show" id="collapseResult">
