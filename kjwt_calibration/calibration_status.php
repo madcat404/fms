@@ -7,7 +7,7 @@
     // =============================================
 
     //★DB연결 및 함수사용
-    //외부 사람이 QR코드를 스캔하여 팝업창 버튼을 선택해야 하므로 로그인 보안을 적용하면 안됨
+    require_once __DIR__ . '/../session/session_check.php';   
     include_once __DIR__ . '/../FUNCTION.php';
     include_once __DIR__ . '/../DB/DB2.php'; 
 

@@ -7,9 +7,9 @@
     // =============================================
 
     //★DB연결 및 함수사용
-    require_once __DIR__ . '/../session/ip_session.php'; 
-    require_once __DIR__ . '/../DB/DB3.php';  // $connect3 (mysqli)
-    require_once __DIR__ . '/../DB/DB2.php'; // $connect (sqlsrv)
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB3.php';  // $connect3 (mysqli)
+    include_once __DIR__ . '/../DB/DB2.php'; // $connect (sqlsrv)
 
     // --- Helper Functions ---
 

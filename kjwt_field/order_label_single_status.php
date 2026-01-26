@@ -7,8 +7,8 @@
     // =============================================
 
     //★DB연결 및 함수사용
-    include '../session/ip_session.php'; 
-    include '../DB/DB2.php';   
+    require_once __DIR__ .'/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';  
 
     //★변수정의  
     $seq = $_POST['seq'] ?? '';   

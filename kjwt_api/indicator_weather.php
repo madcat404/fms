@@ -10,9 +10,9 @@
 
     // --- Setup and Includes ---
     set_time_limit(120);
-    include '../session/ip_session.php';
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB4.php'; 
 
-    // Check for mysqli connection from ip_session.php
     if (!isset($connect4) || $connect4->connect_error) {
         die("MariaDB 데이터베이스 연결에 실패했습니다: " . ($connect4->connect_error ?? 'Unknown error'));
     }

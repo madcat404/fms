@@ -1,10 +1,10 @@
 <?php 
     // =============================================
-	// Author: <KWON SUNG KUN - sealclear@naver.com>	
-	// Create date: <21.11.15>
-	// Description:	<개인차량 연락망 (경비실용)>	
-    // Last Modified: <Current Date> - Mobile Search Fixed (Method: GET)
-	// =============================================
+    // Author: <KWON SUNG KUN - sealclear@naver.com>    
+    // Create date: <21.11.15>
+    // Description: <개인차량 연락망 (경비실용)>    
+    // Last Modified: <2026-01-26> - 내선번호 국번(051-790-) 추가 적용
+    // =============================================
     include 'car_status.php';   
 
     // XSS 방지 함수
@@ -49,7 +49,6 @@
         .mobile-search-btn {
             width: 60px;
             border-radius: 0; /* 사각형 */
-            /* btn-primary 클래스로 인해 파란색 유지 */
         }
     </style>
 </head>
@@ -121,7 +120,9 @@
                                                                 </div>
                                                             <?php else: ?>
                                                                 <?php foreach ($car_list as $row): 
-                                                                    $phone = h($row['CALL'] ?? ''); // 내선번호
+                                                                    $raw_phone = $row['CALL'] ?? '';
+                                                                    // 내선번호가 있을 경우 앞에 국번 추가
+                                                                    $phone = $raw_phone ? "051-790-" . $raw_phone : ''; 
                                                                     $tel_link = "tel:" . str_replace('-', '', $phone); 
                                                                 ?>
                                                                 <div class="card mb-2 shadow-sm border-0">
@@ -131,11 +132,11 @@
                                                                                 <h5 class="font-weight-bold text-primary mb-1"><?= h($row['CAR_NUM']) ?></h5>
                                                                                 <h6 class="text-dark font-weight-bold mb-1"><?= h($row['USER_NM']) ?> <small class="text-muted"><?= h($row['TEAM_NM']) ?></small></h6>
                                                                                 <div class="small text-gray-600">
-                                                                                    <?= h($row['CAR_NM']) ?>
+                                                                                    <?= h($row['CAR_NM']) ?> | 내선: <?= h($phone) ?>
                                                                                 </div>
                                                                             </div>
                                                                             <div>
-                                                                                <?php if($phone): ?>
+                                                                                <?php if($raw_phone): ?>
                                                                                 <a href="<?= $tel_link ?>" class="btn btn-success btn-call">
                                                                                     <i class="fas fa-phone-alt"></i>
                                                                                 </a>
@@ -164,14 +165,18 @@
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    <?php foreach ($car_list as $row): ?>                                                                            
+                                                                    <?php foreach ($car_list as $row): 
+                                                                        $raw_call = $row['CALL'] ?? '';
+                                                                        // 테이블 출력용 번호 가공
+                                                                        $display_call = $raw_call ? "051-790-" . $raw_call : '';
+                                                                    ?>                                                                    
                                                                         <tr> 
-                                                                            <td><?= h($row['USER_NM']) ?></td>                                                                                              
+                                                                            <td><?= h($row['USER_NM']) ?></td>                                                                                               
                                                                             <td><?= h($row['TEAM_NM']) ?></td>  
                                                                             <td><?= h($row['CAR_NM']) ?></td> 
                                                                             <td><?= h($row['CAR_NUM']) ?></td> 
-                                                                            <td><?= h($row['CALL']) ?></td>    
-                                                                        </tr>                                                                           
+                                                                            <td><?= h($display_call) ?></td>    
+                                                                        </tr>                                                                          
                                                                     <?php endforeach; ?>                     
                                                                 </tbody>
                                                             </table>
@@ -179,13 +184,13 @@
 
                                                     </div>
                                                 </div>
-                                            </div>                                          
+                                            </div>                                                          
                                         </div>  
 
                                         <div class="tab-pane fade p-2" id="tab2" role="tabpanel" aria-labelledby="tab-two">
                                             [목표]<BR>
                                             - 개인차량 및 출입 차량 연락망 확인<BR><BR>   
-                                            
+                                             
                                             [용도]<BR>
                                             - 경비실 및 임직원용 주차 관리<BR>
                                             - 이중주차 또는 비상 시 차주에게 즉시 연락<BR><BR>
@@ -193,16 +198,15 @@
                                             [사용법]<BR>
                                             - '차량 검색' 탭에서 차량번호 뒷자리(4자리) 또는 차주 이름을 입력하세요.<BR>
                                             - 모바일에서는 우측의 초록색 전화기 버튼을 누르면 바로 연결됩니다.<BR><BR>
-                                            
+                                             
                                             [제작일]<BR>
                                             - 21.11.15<br><br>        
                                         </div>
-                                        
+                                         
                                     </div>
                                 </div>
                             </div>
                         </div>   
-                    </div>
                     </div>
                 </div>
             </div>
@@ -212,6 +216,6 @@
 </html>
 
 <?php 
-    // 메모리 회수 (MySQLi)
-    if(isset($connect4)) { mysqli_close($connect4); }	
+    // 메모리 회수 (sqlsrv_close 사용 - 요청하신 sqlsrv 방식 준수)
+    if(isset($connect4)) { sqlsrv_close($connect4); }   
 ?>

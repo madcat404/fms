@@ -1,46 +1,34 @@
-<!-- Begin row -->
 <div class="row"> 
     <div class="col-lg-12"> 
-        <!-- Collapsable Card Example -->
         <div class="card shadow mb-2">
-            <!-- Card Header - Accordion -->
             <a href="#collapseCardExample71t" class="d-block card-header py-3" data-toggle="collapse"
                 role="button" aria-expanded="true" aria-controls="collapseCardExample71t">
-                <h1 class="h6 m-0 font-weight-bold text-primary">#1. 실패비용</h6>
+                <h1 class="h6 m-0 font-weight-bold text-primary">#1. 실패비용(<?php echo isset($QC_Current) ? $QC_Current : $YY; ?>년)</h6>
             </a>
 
-            <!-- Card Content - Collapse -->
             <div class="collapse show" id="collapseCardExample71t">
                 <div class="card-body">
-                    <p>※ 집계완료까지 전년도 데이터가 계속 출력됩니다.</p>
+                    
                     <div class="row">
-                        <!-- 차트 - 실패비용 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --> 
                         <div class="col-lg-12"> 
-                            <!-- Collapsable Card Example -->
                             <div class="card shadow mb-2">
-                                <!-- Card Header - Accordion -->
                                 <a href="#collapseCardExample711t" class="d-block card-header py-3" data-toggle="collapse"
                                     role="button" aria-expanded="true" aria-controls="collapseCardExample711t">
                                     <h1 class="h6 m-0 font-weight-bold text-primary">#1-1. 년도별 실패비용 그래프</h6>
                                 </a>
-                                <!-- Card Content - Collapse -->
                                 <div class="collapse show" id="collapseCardExample711t">                                    
                                     <div class="card-body">
-                                        <!-- Begin row -->
                                         <div class="row">    
                                             <div class="chart" style="height: 30vh; width: 100%;">
                                                 <canvas id="barChart7"></canvas>                                                                                            
                                             </div>
                                         </div> 
-                                        <!-- /.row -->         
                                     </div> 
-                                    <!-- /.card-body -->              
                                 </div>
-                                <!-- /.Card Content - Collapse -->
                             </div>
-                            <!-- /.card -->
                         </div> 
                     </div>
+
                     <div class="row">
                         <div class="col-lg-12">
                             <div class="card shadow mb-2">
@@ -57,9 +45,11 @@
                                                         <th colspan="3">한국 폐기</th>
                                                         <th colspan="2">한국 리워크</th>
                                                         <th rowspan="2" style="vertical-align: middle;">베트남 폐기</th>
+                                                        <th rowspan="2" style="vertical-align: middle;">베트남 리워크</th>
                                                         <th rowspan="2" style="vertical-align: middle;">중국 폐기</th>
                                                         <th rowspan="2" style="vertical-align: middle;">미국 폐기</th>
                                                         <th rowspan="2" style="vertical-align: middle;">슬로박 폐기</th>
+                                                        <th rowspan="2" style="vertical-align: middle; background-color: #f8f9fc;">계</th>
                                                     </tr>
                                                     <tr>
                                                         <th>본사 스티칭</th>
@@ -71,21 +61,33 @@
                                                 </thead>
                                                 <tbody align="right">
                                                 <?php
-                                                    // ✅ 비즈니스 로직: 올해 실패비용이 작년보다 개선되었는지(작아졌는지) 확인
-                                                    $isImproved = ($graphData[$currentYear]['시트히터'] ?? 0) < ($graphData[$previousYear]['시트히터'] ?? 0);
+                                                    $curY = isset($QC_Current) ? $QC_Current : $currentYear;
+                                                    $prevY = isset($QC_Previous) ? $QC_Previous : $previousYear;
+                                                    $isImproved = ($graphData[$curY]['시트히터'] ?? 0) < ($graphData[$prevY]['시트히터'] ?? 0);
+
                                                     for ($month = 1; $month <= 13; $month++):
+                                                        // [스타일] 최종합계 행 강조
+                                                        $rowStyle = ($month == 13) ? 'style="background-color: #eaecf4; font-weight: bold;"' : '';
+                                                        
+                                                        // [계산] 해당 월(행)의 총합 계산
+                                                        $rowTotal = 0;
+                                                        foreach ($monthlyData['시트히터'] as $subKey => $data) {
+                                                            $rowTotal += $data[$month] ?? 0;
+                                                        }
                                                 ?>
-                                                    <tr>
-                                                        <td align="center"><?php echo ($month == 13) ? "합계" : $month . "월"; ?></td>
+                                                    <tr <?php echo $rowStyle; ?>>
+                                                        <td align="center"><?php echo ($month == 13) ? "최종합계" : $month . "월"; ?></td>
                                                         <td><?php echo number_format($monthlyData['시트히터']['한국폐기 본사 스티칭'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['시트히터']['한국폐기 본사 최종검사'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['시트히터']['한국폐기 협력사귀책'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['시트히터']['한국리워크 본사'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['시트히터']['한국리워크 BB베트남'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['시트히터']['베트남 폐기'][$month] ?? 0); ?></td>
+                                                        <td><?php echo number_format($monthlyData['시트히터']['베트남 리워크'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['시트히터']['중국 폐기'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['시트히터']['미국 폐기'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['시트히터']['슬로박 폐기'][$month] ?? 0); ?></td>
+                                                        <td style="background-color: #f8f9fc; font-weight: bold;"><?php echo number_format($rowTotal); ?></td>
                                                     </tr>
                                                 <?php endfor; ?>
                                                 </tbody>
@@ -113,6 +115,7 @@
                                                         <th colspan="3">한국 폐기</th>
                                                         <th colspan="2">한국 리워크</th>
                                                         <th rowspan="2" style="vertical-align: middle;">베트남 폐기</th>
+                                                        <th rowspan="2" style="vertical-align: middle; background-color: #f8f9fc;">계</th>
                                                     </tr>
                                                     <tr>
                                                         <th>본사</th>
@@ -124,18 +127,25 @@
                                                 </thead>
                                                 <tbody align="right">
                                                 <?php
-                                                    // ✅ 핸들에 대한 비즈니스 로직 적용
-                                                    $isImproved = ($graphData[$currentYear]['핸들'] ?? 0) < ($graphData[$previousYear]['핸들'] ?? 0);
+                                                    $isImproved = ($graphData[$curY]['핸들'] ?? 0) < ($graphData[$prevY]['핸들'] ?? 0);
                                                     for ($month = 1; $month <= 13; $month++):
+                                                        $rowStyle = ($month == 13) ? 'style="background-color: #eaecf4; font-weight: bold;"' : '';
+                                                        
+                                                        // [계산]
+                                                        $rowTotal = 0;
+                                                        foreach ($monthlyData['핸들'] as $subKey => $data) {
+                                                            $rowTotal += $data[$month] ?? 0;
+                                                        }
                                                 ?>
-                                                    <tr>
-                                                        <td align="center"><?php echo ($month == 13) ? "합계" : $month . "월"; ?></td>
+                                                    <tr <?php echo $rowStyle; ?>>
+                                                        <td align="center"><?php echo ($month == 13) ? "최종합계" : $month . "월"; ?></td>
                                                         <td><?php echo number_format($monthlyData['핸들']['한국폐기 본사'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['핸들']['한국폐기 협력사귀책'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['핸들']['한국폐기 BB베트남'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['핸들']['한국리워크 본사'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['핸들']['한국리워크 BB베트남'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['핸들']['베트남 폐기'][$month] ?? 0); ?></td>
+                                                        <td style="background-color: #f8f9fc; font-weight: bold;"><?php echo number_format($rowTotal); ?></td>
                                                     </tr>
                                                 <?php endfor; ?>
                                                 </tbody>
@@ -161,6 +171,7 @@
                                                     <tr>
                                                         <th rowspan="2"></th>
                                                         <th colspan="2">한국 폐기</th>
+                                                        <th rowspan="2" style="vertical-align: middle; background-color: #f8f9fc;">계</th>
                                                     </tr>
                                                     <tr>
                                                         <th>본사</th>
@@ -169,14 +180,21 @@
                                                 </thead>
                                                 <tbody align="right">
                                                 <?php
-                                                    // ✅ 통풍에 대한 비즈니스 로직 적용
-                                                    $isImproved = ($graphData[$currentYear]['통풍'] ?? 0) < ($graphData[$previousYear]['통풍'] ?? 0);
+                                                    $isImproved = ($graphData[$curY]['통풍'] ?? 0) < ($graphData[$prevY]['통풍'] ?? 0);
                                                     for ($month = 1; $month <= 13; $month++):
+                                                        $rowStyle = ($month == 13) ? 'style="background-color: #eaecf4; font-weight: bold;"' : '';
+                                                        
+                                                        // [계산]
+                                                        $rowTotal = 0;
+                                                        foreach ($monthlyData['통풍'] as $subKey => $data) {
+                                                            $rowTotal += $data[$month] ?? 0;
+                                                        }
                                                 ?>
-                                                    <tr>
-                                                        <td align="center"><?php echo ($month == 13) ? "합계" : $month . "월"; ?></td>
+                                                    <tr <?php echo $rowStyle; ?>>
+                                                        <td align="center"><?php echo ($month == 13) ? "최종합계" : $month . "월"; ?></td>
                                                         <td><?php echo number_format($monthlyData['통풍']['한국폐기 본사'][$month] ?? 0); ?></td>
                                                         <td><?php echo number_format($monthlyData['통풍']['한국폐기 협력사귀책'][$month] ?? 0); ?></td>
+                                                        <td style="background-color: #f8f9fc; font-weight: bold;"><?php echo number_format($rowTotal); ?></td>
                                                     </tr>
                                                 <?php endfor; ?>
                                                 </tbody>
@@ -189,11 +207,7 @@
                     </div>
 
                 </div>
-                <!-- /.card-body -->                                                      
-            </div>    
-            <!-- /.Card Content - Collapse -->
+                </div>    
+            </div>
         </div>
-        <!-- /.card -->
-    </div>
 </div>
-<!-- /.row --> 

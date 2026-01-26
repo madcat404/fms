@@ -206,6 +206,16 @@
                                                                         $todays_records[] = $record;
                                                                     }
                                                                 }
+
+                                                                // [추가된 코드] 시간 순서대로 정렬 (내림차순: 최신이 위로)
+                                                                usort($todays_records, function($a, $b) {
+                                                                    // $a['RECORD_DATE']가 DateTime 객체라고 가정
+                                                                    if ($a['RECORD_DATE'] == $b['RECORD_DATE']) {
+                                                                        return 0;
+                                                                    }
+                                                                    // 부등호 방향을 바꾸면 순서가 바뀝니다. ($b > $a : 내림차순, $a > $b : 오름차순)
+                                                                    return ($b['RECORD_DATE'] > $a['RECORD_DATE']) ? 1 : -1;
+                                                                });
                                                                 ?>
                                                                 
                                                                 <!-- Mobile Search -->
@@ -321,6 +331,14 @@
                                                                             $gate_history[] = $row;
                                                                         }
                                                                     }
+
+                                                                    // [추가된 코드] 시간 순서대로 정렬 (내림차순: 최신이 위로)
+                                                                    usort($gate_history, function($a, $b) {
+                                                                        if ($a['RECORD_DATE'] == $b['RECORD_DATE']) {
+                                                                            return 0;
+                                                                        }
+                                                                        return ($b['RECORD_DATE'] > $a['RECORD_DATE']) ? 1 : -1;
+                                                                    });
                                                                 ?>
                                                                 <!-- Mobile Search -->
                                                                 <div class="d-md-none mb-3">

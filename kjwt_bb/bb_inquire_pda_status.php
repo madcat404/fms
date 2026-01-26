@@ -7,9 +7,8 @@
     // =============================================
 
     //★DB연결 및 함수사용
-    include_once __DIR__ . '/../session/ip_session.php'; 
+    require_once __DIR__ . '/../session/session_check.php'; 
     include_once __DIR__ . '/../DB/DB2.php';
-    // $Hyphen_today 변수 및 공통 함수를 사용하기 위해 명시적으로 포함
     include_once __DIR__ . '/../FUNCTION.php';
    
     //★메뉴 진입 시 실행

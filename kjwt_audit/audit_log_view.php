@@ -8,9 +8,9 @@
 // =============================================
 
 // DB 연결 설정 파일 포함
-include '../DB/DB2.php'; 
-// 공통 함수 포함
-include '../FUNCTION.php';
+require_once __DIR__ . '/../session/session_check.php'; 
+include_once __DIR__ . '/../DB/DB2.php';
+include_once __DIR__ . '/../FUNCTION.php';
 
 // 날짜 초기값 설정 (오늘 - 오늘)
 $today = date("Y-m-d");

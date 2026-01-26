@@ -6,15 +6,11 @@
     // Last Modified: <25.09.18> - Refactored for PHP 8.x, Security, and Maintainability
     // =============================================
 
-    // --- 초기 설정 ---
-    // 개발 환경에서는 오류를 확인하기 위해 아래 주석을 해제하세요.
-    // error_reporting(E_ALL);
-    // ini_set('display_errors', 1);
-
     // --- 의존성 파일 포함 ---
-    include_once '../session/ip_session.php';
-    include_once '../DB/DB2.php';
-    include_once '../DB/DB3.php';
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';  
+    include_once __DIR__ . '/../DB/DB3.php';  
+    include_once __DIR__ . '/../FUNCTION.php';  
 
     // --- 유틸리티 함수 정의 ---
 

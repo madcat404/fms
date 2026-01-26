@@ -7,8 +7,9 @@
     // =============================================
 
     //★DB연결 및 함수사용
-    include '../session/ip_session.php'; 
-    include '../DB/DB2.php';    
+    require_once __DIR__ .'/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';  
+    include_once __DIR__ . '/../FUNCTION.php'; 
 
     //★탭활성화
     $tab_sequence=2; 
@@ -41,9 +42,4 @@
     //베트남 탭
     $sql_VietnamScan = "SELECT * FROM CONNECT.dbo.FIELD_PROCESS_FINISH_V WHERE SORTING_DATE=? ORDER BY NO DESC";
     $VietnamScan_DataArray = fetch_all_results($connect, $sql_VietnamScan, [$Hyphen_today]);
-
-    //중국 탭
-    $sql_ChinaScan = "SELECT * FROM CONNECT.dbo.FIELD_PROCESS_FINISH_C WHERE SORTING_DATE=? ORDER BY NO DESC";
-    $ChinaScan_DataArray = fetch_all_results($connect, $sql_ChinaScan, [$Hyphen_today]);
-
 ?>

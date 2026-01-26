@@ -6,7 +6,7 @@
     // Last Modified: <25.09.24> - Refactored for PHP 8.x, Security, and Performance		
     // =============================================
        
-    include_once __DIR__ . '/../session/ip_session.php'; 
+    require_once __DIR__ .'/../session/session_check.php';
     include_once __DIR__ . '/../DB/DB4.php'; // For $connect4
 
     //★변수모음 (Null 병합 연산자로 안전하게 초기화)

@@ -7,6 +7,7 @@
     // =============================================
     
     // 데이터 처리 로직 포함 (기존 파일 유지)
+    require_once __DIR__ .'/../session/session_check.php';
     include 'esg_status.php';   
 ?>
 <!DOCTYPE html>

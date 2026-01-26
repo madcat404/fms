@@ -6,7 +6,9 @@
 // Last Modified: <25.09.24> - Refactored for PHP 8.x, Security, and Performance	
 // =============================================
 
-include '../session/ip_session.php';
+require_once __DIR__ .'/../session/session_check.php';
+include_once __DIR__ . '/../DB/DB4.php';
+include_once __DIR__ . '/../FUNCTION.php';
 // function의 dt로 설정하지 않음
 // 23.6 기준으로 해당 웹페이지 운영하고 있지 않으므로 보류
 // 시험실 전기공사 중
@@ -70,7 +72,7 @@ foreach ([7, 8, 9] as $num) {
 
 // --- Weekly Data ---
 $weeklyData = [];
-// Assuming $week, $week1, ... $week6 are defined in ip_session.php
+// Assuming $week, $week1, ... $week6
 $weeks = [$week, $week1, $week2, $week3, $week4, $week5, $week6];
 $query_weekly = "SELECT SUM(work_time) as work_time FROM equipment_worktime WHERE kind = ? AND YEAR(dt) = ? AND WEEKOFYEAR(dt) = ?";
 

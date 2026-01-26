@@ -1,11 +1,11 @@
 <?php 
     // =============================================
-	// Author: <KWON SUNG KUN - sealclear@naver.com>	
-	// Create date: <21.11.15>
-	// Description:	<식수 리뉴얼>	
+    // Author: <KWON SUNG KUN - sealclear@naver.com>    
+    // Create date: <21.11.15>
+    // Description: <식수 리뉴얼>   
     // Last Modified: <25.09.29> - Refactored for PHP 8.x and security.
-    // Last Modified: <Current Date> - Mobile UI Optimization & Image Zoom Added
-	// =============================================
+    // Last Modified: <Current Date> - Security Update (Direct file access blocked)
+    // =============================================
     include 'food_status.php';   
 
     // XSS 방지를 위한 헬퍼 함수
@@ -44,11 +44,11 @@
 <head>
     <?php include '../head_lv1.php' ?>
     <script>
-        // [추가] 이미지 확대 스크립트
-        function bigimg(filename){
-            if (filename) {
-                // 새 창으로 이미지 열기
-                window.open("../files/" + filename, "bigimg", "width=800,height=800,scrollbars=yes"); 
+        // [보안 수정] 이미지 확대 스크립트 (보안 스크립트 경로 사용)
+        function bigimg(encodedFilename){
+            if (encodedFilename) {
+                // 직접 경로(../files/) 대신 보안 뷰어(view_file.php)를 호출
+                window.open("/session/view_file.php?file=" + encodedFilename, "bigimg", "width=800,height=800,scrollbars=yes"); 
             }
         }
     </script>    
@@ -159,11 +159,25 @@
                                                             <div class="col-md-12">
                                                                 <div class="form-group text-center mb-0">
                                                                     <?php foreach ($menu_list as $menu): 
-                                                                        $filename = 'food ' . h($menu['SORTING_DATE']);
+                                                                        // [보안 및 오류 수정]
+                                                                        // 1. 날짜가 DateTime 객체인지 확인 후 문자열로 변환
+                                                                        $sortDate = $menu['SORTING_DATE'];
+                                                                        if ($sortDate instanceof DateTime) {
+                                                                            $sortDate = $sortDate->format('Y-m-d');
+                                                                        }
+                                                                        
+                                                                        // 2. 파일명 생성 (예: food 2025-01-14)
+                                                                        $rawFilename = 'food ' . $sortDate; 
+                                                                        
+                                                                        // 3. [중요] 파일명에 공백이 있으므로 URL 인코딩 필수
+                                                                        $encodedFilename = urlencode($rawFilename);
+                                                                        
+                                                                        // 4. 보안 뷰어 스크립트 경로 생성
+                                                                        $viewUrl = "/session/view_file.php?file=" . $encodedFilename;
                                                                     ?>
-                                                                        <img src='../files/<?= $filename ?>' 
+                                                                        <img src='<?= $viewUrl ?>' 
                                                                              style='width: 100%; height: auto; margin-bottom: 10px; border-radius: 5px; cursor: pointer;'
-                                                                             onclick="bigimg('<?= $filename ?>')">
+                                                                             onclick="bigimg('<?= $encodedFilename ?>')">
                                                                     <?php endforeach; ?>
                                                                 </div>
                                                             </div>
@@ -279,6 +293,6 @@
 
 <?php 
     // 메모리 회수
-    if (isset($connect4)) { mysqli_close($connect4); }	
+    if (isset($connect4)) { mysqli_close($connect4); }  
     if (isset($connect)) { sqlsrv_close($connect); }
 ?>

@@ -5,6 +5,7 @@
 	// Description:	<회사 입출문 - NFC 출문>
     // Last Modified: <25.09.29> - Refactored for PHP 8.x and security.
 	// =============================================
+    require_once __DIR__ . '/../session/session_check.php';
 ?>
 <!DOCTYPE html>
 <html lang="ko">

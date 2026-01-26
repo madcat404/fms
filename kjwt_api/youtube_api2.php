@@ -6,11 +6,6 @@
     // Last Modified: <25.09.18> - Refactored for PHP 8.x, Security, and Performance
     // =============================================
 
-    // --- 설정 ---
-    // 개발 환경에서는 오류를 확인하기 위해 아래 주석을 해제하세요.
-    // error_reporting(E_ALL);
-    // ini_set('display_errors', 1);
-
     include_once '../DB/DB1.php';
 
     // !!! 보안 경고 !!!

@@ -2,7 +2,7 @@
     // =============================================
 	// Author: <KWON SUNG KUN - sealclear@naver.com>	
 	// Create date: <22.06.10>
-	// Description:	<감사 - 모바일 최적화 적용>
+	// Description:	<내부회계>
     // Last Modified: <25.09.18>
 	// =============================================
     include 'audit_status.php';
@@ -485,7 +485,7 @@
                                                                     </div>
                                                                 </div>
 
-                                                                <div class="table-editable">
+                                                                <div id="table" class="table-editable">
                                                                     <table class="table table-bordered table-striped mobile-responsive-table" id="table5">
                                                                         <thead>
                                                                             <tr>
@@ -532,3 +532,76 @@
     //MSSQL 메모리 회수
     if(isset($connect)) { sqlsrv_close($connect); }	
 ?>
+
+<script>
+$(document).ready(function() {
+    // 관리할 테이블 ID 목록
+    var targetTables = ['#table3', '#table4', '#table5'];
+
+    // [1] 초기화 함수: 버튼과 레이아웃이 포함된 설정을 적용합니다.
+    function initCustomDataTable(tableId) {
+        // 이미 생성된 상태라면 건너뜁니다 (중복 방지)
+        if ($.fn.DataTable.isDataTable(tableId)) {
+            return;
+        }
+
+        $(tableId).DataTable({
+            "destroy": true, // 혹시 모를 잔재 제거
+            "responsive": true, 
+            "lengthChange": false, 
+            "autoWidth": false, 
+            "ordering": true,
+            // 버튼(B)을 왼쪽에, 검색창(f)을 오른쪽에 배치하는 레이아웃 강제 지정
+            "dom": "<'row'<'col-sm-12 col-md-6'B><'col-sm-12 col-md-6'f>>" +
+                   "<'row'<'col-sm-12'tr>>" +
+                   "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+            "buttons": [
+                { extend: 'copy', text: 'copy' },
+                { extend: 'csv', text: 'CSV' },
+                { extend: 'excel', text: 'excel' },
+                { extend: 'pdf', text: 'PDF' },
+                { extend: 'print', text: 'print' },
+                { extend: 'colvis', text: 'colvis' }
+            ],
+            "language": {
+                "emptyTable": "데이터가 없습니다.",
+                "info": "_START_ - _END_ (총 _TOTAL_ 명)",
+                "infoEmpty": "0명",
+                "paginate": { "previous": "이전", "next": "다음" }
+            }
+        });
+    }
+
+    // [2] 페이지 로드 시: plugin_lv1.php가 망가뜨려 놓은 설정을 일단 모두 '파괴(Destroy)'합니다.
+    // 숨겨진 상태에서 잘못 그려진 테이블을 없애야 나중에 제대로 그릴 수 있습니다.
+    targetTables.forEach(function(id) {
+        if ($.fn.DataTable.isDataTable(id)) {
+            $(id).DataTable().destroy();
+        }
+    });
+
+    // [3] 현재 화면에 '보이는' 테이블만 즉시 생성합니다. (보통 첫 화면에 있는 탭)
+    targetTables.forEach(function(id) {
+        if ($(id).is(':visible')) {
+            initCustomDataTable(id);
+        }
+    });
+
+    // [4] 탭 클릭 이벤트 감지: 탭이 '보여진 후(shown)'에 테이블을 생성합니다.
+    $('a[data-toggle="pill"], a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        // 클릭한 탭의 컨텐츠 영역(href="#tab...")을 찾습니다.
+        var targetTabContent = $(e.target).attr('href');
+        
+        // 해당 탭 안에 있는 테이블을 찾아서 생성(초기화)합니다.
+        $(targetTabContent).find('table').each(function() {
+            var tableId = '#' + $(this).attr('id');
+            if (targetTables.includes(tableId)) {
+                initCustomDataTable(tableId);
+            }
+        });
+
+        // 레이아웃(컬럼 너비) 깨짐 방지 재정렬
+        $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust().responsive.recalc();
+    });
+});
+</script>

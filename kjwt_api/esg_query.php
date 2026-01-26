@@ -7,8 +7,8 @@
 	// =============================================
     //nas 또는 fms서버 재시작으로 인하여 마운트가 끈어진 경우 재마운트 필요
     //nas 경로가 달라진 경우 filename 재작성 필요 
-    include '../session/ip_session.php'; 
-    include '../DB/DB2.php';  
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';   
 
     $Query_Esg = "INSERT INTO [CONNECT].[dbo].[ESG] ([top_official]
                         ,[top_official_woman]
@@ -69,5 +69,4 @@
     }   
 
     //메모리 회수
-    if(isset($connect4)) { mysqli_close($connect4); }
     if(isset($connect)) { sqlsrv_close($connect); }

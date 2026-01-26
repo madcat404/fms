@@ -6,8 +6,8 @@
     // Last Modified: <25.09.29> - Refactored for PHP 8.x and security.
     // =============================================
        
-    include '../session/ip_session.php'; 
-    include '../DB/DB2.php';   
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';
 
     // --- 데이터 처리를 위한 함수 정의 ---
     function process_ppm_data($row) {

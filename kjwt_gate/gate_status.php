@@ -7,10 +7,11 @@
 	// =============================================
 
     // Using include_once to prevent multiple inclusions
-    include_once '../FUNCTION.php';  
-    include_once '../DB/DB4.php';  
-    include_once '../DB/DB2.php';  
-    include_once '../DB/DB3.php';   
+    //require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../FUNCTION.php';
+    include_once __DIR__ . '/../DB/DB4.php';  
+    include_once __DIR__ . '/../DB/DB2.php';  
+    include_once __DIR__ . '/../DB/DB3.php';   
 
     // Safely initialize variables from POST/GET using the null coalescing operator
     $inout21 = $_POST["inout21"] ?? null;

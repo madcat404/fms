@@ -8,8 +8,8 @@
 
     // --- Setup and Includes ---
     set_time_limit(120); // API 호출을 위해 실행 시간을 2분으로 설정
-    include '../session/ip_session.php';
-    include '../DB/DB2.php';
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';   
 
     // --- Configuration ---
     // API 키는 별도의 설정 파일로 분리하는 것이 가장 좋습니다.

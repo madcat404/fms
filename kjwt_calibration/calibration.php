@@ -2,7 +2,7 @@
     // =============================================
 	// Author: <KWON SUNG KUN - sealclear@naver.com>	
 	// Create date: <25.01.11>
-	// Description:	<검교정 - 모바일 최적화 및 대시보드 필터링 적용>
+	// Description:	<검교정>
     // Last Modified: <25.09.23>
 	// =============================================
     include 'calibration_status.php';
@@ -255,7 +255,10 @@
                                     <div class="tab-content" id="custom-tabs-one-tabContent">
                                         <div class="tab-pane fade p-3" id="tab1" role="tabpanel" aria-labelledby="tab-one">
                                             [목표]<BR>
-                                            - 시험실 검교정 관리 전산화<BR><BR>   
+                                            - 시험실 검교정 관리 전산화<BR><BR>  
+                                            [사용방법]<br>
+                                            - QR 코드의 텍스트를 목록탭의 검사 카드에 입력란에 입력한다.<BR>
+                                            - QR코드 값은 다음과 같음. 예) https://fms.iwin.kr/kjwt_calibration/calibration.php?no=1<BR><BR>                                            
                                             [제작일]<BR>
                                             - 25.01.11<br><br>  
                                         </div>

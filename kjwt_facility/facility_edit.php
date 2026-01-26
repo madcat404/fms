@@ -4,9 +4,11 @@
 
 session_start();
 
+require_once __DIR__ .'/../session/session_check.php';
+
 // 1. DB 연결
 if (file_exists('../DB/DB2.php')) {
-    include_once '../DB/DB2.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
 } else {
     die("오류: DB 연결 파일을 찾을 수 없습니다.");
 }

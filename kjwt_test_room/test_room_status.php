@@ -3,14 +3,50 @@
 	// Author: <KWON SUNG KUN - sealclear@naver.com>	
 	// Create date: <25.02.12>
 	// Description:	<시험실 체크시트>	
-    // Last Modified: <Current Date> - Fixed Tab Redirect & Mobile Logic
+    // Last Modified: <Current Date> - Added validation for empty content in record
 	// =============================================
 
     //★DB연결 및 함수사용
-    include '../FUNCTION.php';
-    include '../DB/DB2.php';    
-    include '../DB/DB3.php';  
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
+    include_once __DIR__ . '/../DB/DB3.php'; 
+    include_once __DIR__ . '/../FUNCTION.php';  
 
+    // [이력 모달] 설비 이력 조회 AJAX 요청 처리
+    if (isset($_POST['ajax_history']) && $_POST['ajax_history'] == 'yes') {
+        $eq_num = $_POST['eq_num'] ?? 0;
+        
+        // 유효성 검사
+        if (!is_numeric($eq_num)) { echo "<tr><td colspan='5'>유효하지 않은 설비 번호입니다.</td></tr>"; exit; }
+
+        $Query_History = "SELECT * FROM CONNECT.dbo.TEST_ROOM_EQUIPMENT WHERE EQUIPMENT_NUM = ? ORDER BY RECORD_DATE DESC";
+        $params_history = array($eq_num);
+        $Result_History = sqlsrv_query($connect, $Query_History, $params_history, $options);
+
+        if ($Result_History === false) {
+            echo "<tr><td colspan='5'>데이터 조회 중 오류가 발생했습니다.</td></tr>";
+        } else {
+            if (sqlsrv_has_rows($Result_History)) {
+                while ($row = sqlsrv_fetch_array($Result_History, SQLSRV_FETCH_ASSOC)) {
+                     // 시간 제거 (Y-m-d 형식만 출력)
+                     $date = ($row['RECORD_DATE'] instanceof DateTime) ? $row['RECORD_DATE']->format('Y-m-d') : substr($row['RECORD_DATE'], 0, 10);
+                     // 수리비용 콤마 추가
+                     $cost = is_numeric($row['COST']) ? number_format($row['COST']) : $row['COST'];
+                     
+                     echo "<tr>";
+                     echo "<td class='text-center'>" . $row['EQUIPMENT_NUM'] . "</td>";
+                     echo "<td>" . $row['NOTE'] . "</td>";
+                     echo "<td class='text-right'>" . $cost . "</td>";
+                     echo "<td class='text-center'>" . $row['RECORDER'] . "</td>";
+                     echo "<td class='text-center'>" . $date . "</td>";
+                     echo "</tr>";
+                }
+            } else {
+                echo "<tr><td colspan='5' class='text-center'>기록된 이력이 없습니다.</td></tr>";
+            }
+        }
+        exit; // AJAX 요청 처리 후 종료
+    }
 
     //★탭활성화
     $checker = $_GET['checker'] ?? '';
@@ -21,7 +57,6 @@
     if ((!empty($checker) || !empty($supervisor2)) && empty($recorder)) {
         $tab_sequence = 3;
     } elseif (!empty($tab)) {
-        // [수정] tab 값이 있으면 해당 탭 번호를 그대로 사용
         $tab_sequence = $tab;
     } elseif (!empty($recorder)) {
         $tab_sequence = 5;
@@ -102,8 +137,19 @@
         $tab_sequence=5; 
         include '../TAB.php';
 
+        // [추가] 내용 입력 확인 (백엔드 검증)
+        if(empty($content51)) {
+            echo "<script>alert('내용을 입력해 주세요.');history.back();</script>";
+            exit;
+        }
+
         if($equipment!=0) {
-            $Query_Record = "INSERT INTO CONNECT.dbo.TEST_ROOM_EQUIPMENT(EQUIPMENT_NUM, COST, RECORDER, NOTE) VALUES('$equipment', '$cost', '$recorder51', '$content51')";              
+            // [수정] 수리비용 콤마 제거 및 변수명 수정 ($cost -> $cost51)
+            $cost_val = str_replace(',', '', $cost51);
+            if($cost_val == '') $cost_val = 0;
+
+            // [수정] 쿼리에 올바른 변수($cost_val) 사용 및 RECORD_DATE 명시
+            $Query_Record = "INSERT INTO CONNECT.dbo.TEST_ROOM_EQUIPMENT(EQUIPMENT_NUM, COST, RECORDER, NOTE, RECORD_DATE) VALUES('$equipment', '$cost_val', '$recorder51', '$content51', getdate())";              
             $Result_Record = sqlsrv_query($connect, $Query_Record, $params, $options);	
             
             echo "<script>alert('입력되었습니다!');location.href='test_room.php?tab=6';</script>";
@@ -275,4 +321,21 @@
             }
         }
     }
+
+    // [Tab 7] 설비이력2 (모든 설비의 마지막 이력)
+    // ROW_NUMBER()를 사용하여 각 EQUIPMENT_NUM별로 RECORD_DATE 기준 내림차순 정렬 후 가장 최신인(RN=1) 행만 가져옴
+    $Query_Tab7 = "
+        SELECT A.*, B.EQUIPMENT_NAME 
+        FROM (
+            SELECT *, ROW_NUMBER() OVER (PARTITION BY EQUIPMENT_NUM ORDER BY RECORD_DATE DESC) as RN
+            FROM CONNECT.dbo.TEST_ROOM_EQUIPMENT
+        ) A
+        LEFT JOIN (
+            SELECT DISTINCT EQUIPMENT_NUM, EQUIPMENT_NAME 
+            FROM CONNECT.dbo.TEST_ROOM_CHECKLIST
+        ) B ON A.EQUIPMENT_NUM = B.EQUIPMENT_NUM 
+        WHERE A.RN = 1
+        ORDER BY CAST(A.EQUIPMENT_NUM AS INT) ASC
+    "; 
+    $Result_Tab7 = sqlsrv_query($connect, $Query_Tab7, $params, $options);
 ?>

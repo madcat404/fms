@@ -6,7 +6,8 @@
 if (!file_exists('../DB/DB2.php')) {
     die("<div class='alert alert-danger'>DB 설정 파일이 없습니다. (../DB/DB2.php)</div>");
 }
-include '../DB/DB2.php';
+require_once __DIR__ . '/../session/session_check.php';
+include_once __DIR__ . '/../DB/DB2.php'; 
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();

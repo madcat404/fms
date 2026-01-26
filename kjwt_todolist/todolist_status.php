@@ -1,30 +1,28 @@
 <?php   
     // =============================================
-	// Author: <KWON SUNG KUN - sealclear@naver.com>	
-	// Create date: <22.05.04>
-	// Description:	<to do list>
+    // Author: <KWON SUNG KUN - sealclear@naver.com>    
+    // Create date: <22.05.04>
+    // Description: <to do list backend>
     // Last Modified: <25.09.25> - Refactored for PHP 8.x and security.
-	// =============================================
+    // Modified: <2026.01.14> - Refactored to use centralized mailer.php
+    // =============================================
 
     //★DB연결 및 함수사용
+    require_once __DIR__ . '/../session/session_check.php'; 
     include_once __DIR__ . '/../DB/DB4.php'; 
     include_once __DIR__ . '/../DB/DB2.php'; 
     include_once __DIR__ . '/../FUNCTION.php'; 
+    
+    // [변경] mailer_service.php 포함 제거 (mailer.php가 처리함)
+    // include_once __DIR__ . '/../mailer_service.php'; 
 
-    use PHPMailer\PHPMailer\PHPMailer;
-    use PHPMailer\PHPMailer\Exception; 
-
-    require_once __DIR__ . "/../PHPMailer-master/src/PHPMailer.php";
-    require_once __DIR__ . "/../PHPMailer-master/src/SMTP.php";
-    require_once __DIR__ . "/../PHPMailer-master/src/Exception.php"; 
-
-    //★변수 초기화 (PHP 8.x 호환성)
+    //★변수 초기화
     $modi = $_GET["modi"] ?? '';
     $bt21 = $_POST['bt21'] ?? '';
-    $bt22 = $_POST['bt22'] ?? '';  
+    $bt22 = $_POST['bt22'] ?? '';   
     $dt3 = $_POST['dt3'] ?? '';
-    $s_dt3 = $dt3 ? substr($dt3, 0, 10) : '';		
-	$e_dt3 = $dt3 ? substr($dt3, 13, 10) : '';
+    $s_dt3 = $dt3 ? substr($dt3, 0, 10) : '';       
+    $e_dt3 = $dt3 ? substr($dt3, 13, 10) : '';
     $bt31 = $_POST['bt31'] ?? '';
 
     //★메뉴 진입 시 탭활성화
@@ -38,124 +36,97 @@
     }
     include_once __DIR__ . '/../TAB.php'; 
 
-    //★함수
-    /**
-     * Sends a support-related email using PHPMailer.
-     * @param array $mailInfo Contains all necessary information for the email (to, subject, body, etc.).
-     * @param bool $isCompleteMail Determines if it's a completion notification to adjust recipients.
-     */
-    function sendSupportMail($mailInfo, $isCompleteMail = false) {
-        $mail = new PHPMailer(true);
-        try {
-            // Server settings
-            $mail->SMTPDebug = 0;
-            $mail->isSMTP();
-            $mail->Host = getenv('SMTP_HOST');
-            $mail->SMTPAuth = true;
-            $mail->Username = getenv('SMTP_USERNAME');
-            $mail->Password = getenv('SMTP_PASSWORD');
-            $mail->SMTPSecure = "tls";
-            $mail->Port = (int)getenv('SMTP_PORT');
-            $mail->CharSet = "utf-8";
+    // [추가] mailer.php로 발송 요청을 보내는 함수 (cURL 사용)
+    function send_request_to_mailer($params) {
+        // mailer.php의 실제 URL (서버 환경에 맞게 수정 필요, 보통 도메인 사용 권장)
+        $url = 'https://fms.iwin.kr/mailer.php'; 
 
-            // Recipients
-            $mail->setFrom("sealclear@naver.com", "FMS");
-            $mail->addAddress($mailInfo['to'], "요청자");
-            if (!$isCompleteMail) {
-                $mail->addAddress("skkwon@iwin.kr", "담당자");
-            }
-
-            // Content
-            $mail->isHTML(true);
-            $mail->Subject = $mailInfo['subject'];
-            $mail->Body = $mailInfo['body'];
-            
-            $mail->send();
-        } catch (Exception $e) {
-            // In a real app, you should log this error instead of echoing.
-            error_log("Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); // 결과를 문자열로 받음 (화면 출력 방지)
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // 내부 통신용 (필요시 true)
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5); // 5초 타임아웃 (메일 발송 대기)
+        
+        $response = curl_exec($ch);
+        
+        if (curl_errno($ch)) {
+            error_log("[Todolist Status] cURL Error: " . curl_error($ch));
         }
+        curl_close($ch);
+        
+        return $response;
     }
 
     //★버튼 클릭 시 실행
+    // 1. 입력 처리 (bt21)
     if($bt21 === "on") {
-        $requestor21 = $_POST['requestor21'] ?? '';  
+        $requestor21 = $_POST['requestor21'] ?? '';   
         $kind21 = $_POST['kind21'] ?? '';
         $IMPORTANCE21 = $_POST['IMPORTANCE21'] ?? '';
-        $problem21 = nl2br($_POST['problem21'] ?? '');
-        $solution21 = nl2br($_POST['solution21'] ?? '');
+        $problem21 = $_POST['problem21'] ?? '';
+        $solution21 = $_POST['solution21'] ?? '';
 
-        // 데이터 기록
-        $query_Record = "INSERT INTO CONNECT.dbo.TO_DO_LIST (REQUESTOR, KIND, IMPORTANCE, PROBLEM, SOLUTUIN) OUTPUT INSERTED.NO VALUES (?, ?, ?, ?, ?)";
-        $stmt = executeQuery($connect, $query_Record, [$requestor21, $kind21, $IMPORTANCE21, $problem21, $solution21]);
-        $inserted_row = sqlsrv_fetch_array($stmt);
-        $inserted_no = $inserted_row['NO'] ?? null;
+        sqlsrv_begin_transaction($connect);
 
-        if ($inserted_no) {
-            $newFileName = '';
-            // 파일 업로드 처리
-            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-                $file = $_FILES['file'];
+        try {
+            // 1) 메인 데이터 기록
+            $query_Record = "INSERT INTO CONNECT.dbo.TO_DO_LIST (REQUESTOR, KIND, IMPORTANCE, PROBLEM, SOLUTUIN, SORTING_DATE) OUTPUT INSERTED.NO VALUES (?, ?, ?, ?, ?, GETDATE())";
+            $stmt = sqlsrv_query($connect, $query_Record, [$requestor21, $kind21, $IMPORTANCE21, $problem21, $solution21]);
+            
+            if ($stmt === false) throw new Exception("DB Insert Failed: " . print_r(sqlsrv_errors(), true));
+            
+            $inserted_row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+            $inserted_no = $inserted_row['NO'] ?? null;
+            if (!$inserted_no) throw new Exception("Failed to retrieve Inserted ID.");
+
+            // 2) 다중 파일 업로드 처리
+            if (isset($_FILES['files'])) {
+                $fileCount = count($_FILES['files']['name']);
                 $uploadDir = __DIR__ . '/../files/';
-                $allowedExtensions = ['gif', 'png', 'jpeg', 'jpg', 'heic', 'pdf', 'xlsx', 'docx'];
-                $maxFileSize = 5 * 1024 * 1024; // 5MB
+                $allowedExtensions = ['gif', 'png', 'jpeg', 'jpg', 'heic', 'pdf', 'xlsx', 'docx', 'zip', 'txt'];
+                $maxFileSize = 10 * 1024 * 1024;
 
-                $fileName = basename($file['name']);
-                $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-                
-                if ($file['size'] > $maxFileSize) {
-                    echo "<script>alert('파일 크기는 5MB를 초과할 수 없습니다.'); history.back();</script>";
-                    exit;
-                }
-                if (!in_array($fileExt, $allowedExtensions)) {
-                    echo "<script>alert('허용되지 않는 파일 형식입니다.'); history.back();</script>";
-                    exit;
-                }
+                for ($i = 0; $i < $fileCount; $i++) {
+                    if ($_FILES['files']['error'][$i] === UPLOAD_ERR_OK) {
+                        $tmpName = $_FILES['files']['tmp_name'][$i];
+                        $originName = $_FILES['files']['name'][$i];
+                        $fileSize = $_FILES['files']['size'][$i];
+                        $fileExt = strtolower(pathinfo($originName, PATHINFO_EXTENSION));
 
-                $newFileName = 'REQUEST_' . $inserted_no . '_' . uniqid('', true) . '.' . $fileExt;
-                $destination = $uploadDir . $newFileName;
+                        if ($fileSize > $maxFileSize || !in_array($fileExt, $allowedExtensions)) continue;
 
-                if (move_uploaded_file($file['tmp_name'], $destination)) {
-                    $query_UpdateFile = "UPDATE CONNECT.dbo.TO_DO_LIST SET FILE_NM = ? WHERE NO = ?";
-                    executeQuery($connect, $query_UpdateFile, [$newFileName, $inserted_no]);
-                } else {
-                    echo "<script>alert('파일 업로드에 실패했습니다.'); history.back();</script>";
-                    exit;
+                        $uniqueName = 'REQUEST_' . $inserted_no . '_' . uniqid() . '.' . $fileExt;
+                        $destination = $uploadDir . $uniqueName;
+
+                        if (move_uploaded_file($tmpName, $destination)) {
+                            $sql_file = "INSERT INTO CONNECT.dbo.TO_DO_LIST_FILES (PARENT_NO, ORIG_FILENAME, SAVED_FILENAME, FILE_SIZE) VALUES (?, ?, ?, ?)";
+                            $stmt_file = sqlsrv_query($connect, $sql_file, [$inserted_no, $originName, $uniqueName, $fileSize]);
+                            if ($stmt_file === false) throw new Exception("File DB Insert Failed");
+                        }
+                    }
                 }
             }
+            sqlsrv_commit($connect);
 
-            // 메일 발송 로직
-            $query_CheckUser = "SELECT EMAIL, `CALL` FROM user_info WHERE USER_NM = ?";
-            $stmt_user = $connect4->prepare($query_CheckUser);
-            $stmt_user->bind_param("s", $requestor21);
-            $stmt_user->execute();
-            $result_user = $stmt_user->get_result();
-            $Data_CheckUser = $result_user->fetch_object();
+            // 3) [변경] mailer.php 호출 (cURL)
+            // 직접 메일을 보내지 않고 mailer.php에 type과 게시글 번호(no)만 전달합니다.
+            send_request_to_mailer([
+                'type' => 'todolist_regist',
+                'no'   => $inserted_no
+            ]);
 
-            if ($Data_CheckUser) {
-                $h = 'htmlspecialchars';
-                $body = "<!DOCTYPE html><html><body><table style='width: 50%;'>
-                            <tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>NO</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h($inserted_no)}</td><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Date</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h(date("Y-m-d"))}</td></tr>
-                            <tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Requestor</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h($requestor21)}</td><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Number</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h($Data_CheckUser->CALL)}</td></tr>
-                            <tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Category</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h($kind21)}</td><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Priority</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h($IMPORTANCE21)}</td></tr>
-                            <tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Contents</td><td colspan='3' style='border: 1px solid #000; width: 40%;'>{$problem21}</td></tr>";
-                if ($newFileName) {
-                    $body .= "<tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>File</td><td colspan='3' style='border: 1px solid #000; width: 40%;'><img src='https://fms.iwin.kr/files/{$h($newFileName)}' style='width: 100%; height: 100%'></td></tr>";
-                }
-                $body .= "<tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>URL</td><td colspan='3' style='border: 1px solid #000; width: 40%; text-align: center;'><a href='https://fms.iwin.kr/kjwt_todolist/todolist.php'>기술지원 및 문의현황 바로가기</a></td></tr></table></body></html>";
+            echo "<script>alert('요청이 등록되었습니다.'); location.href='todolist.php';</script>";
 
-                sendSupportMail(
-                    [
-                        'to' => $Data_CheckUser->EMAIL,
-                        'subject' => "[FMS] 기술지원 & 문의 등록 - NO. " . $inserted_no,
-                        'body' => $body
-                    ]
-                );
-            }
+        } catch (Exception $e) {
+            sqlsrv_rollback($connect);
+            echo "<script>alert('오류: " . addslashes($e->getMessage()) . "'); history.back();</script>";
         }
-        echo "<script>alert('요청이 등록되었습니다.'); location.href='todolist.php';</script>";
         exit;
-    }  
+    }   
+
+    // 2. 수정 모드 체크
     elseif($modi === 'Y') { 
         $Query_ModifyCheck = "SELECT [LOCK], WHO FROM CONNECT.dbo.USE_CONDITION WHERE KIND = ?";
         $Data_ModifyCheck = sqlsrv_fetch_array(executeQuery($connect, $Query_ModifyCheck, ['Todolist']));
@@ -168,7 +139,9 @@
             echo "<script>alert('다른 사람이 수정중 입니다!'); location.href='todolist.php';</script>";
             exit;
         }
-    }    
+    }
+
+    // 3. 답변 저장 및 완료 처리 (bt22)
     elseif($bt22 === "on") {
         $limit = (int)($_POST["until"] ?? 0);
 
@@ -182,47 +155,21 @@
                 executeQuery($connect, $query_StatusUpdate, [&$solution, &$solve_status, &$solve_no]);
 
                 if($solve_status === 'Y') {
-                    $query_Check = "SELECT * FROM CONNECT.dbo.TO_DO_LIST WHERE NO = ?";
-                    $Data_Check = sqlsrv_fetch_array(executeQuery($connect, $query_Check, [$solve_no]));
-
-                    if ($Data_Check) {
-                        $query_User = "SELECT EMAIL, `CALL` FROM user_info WHERE USER_NM = ?";
-                        $stmt_user = $connect4->prepare($query_User);
-                        $stmt_user->bind_param("s", $Data_Check['REQUESTOR']);
-                        $stmt_user->execute();
-                        $result_user = $stmt_user->get_result();
-                        $Data_User = $result_user->fetch_object();
-
-                        if ($Data_User) {
-                            $h = 'htmlspecialchars';
-                            $sorting_date_formatted = ($Data_Check['SORTING_DATE'] instanceof DateTime) ? $Data_Check['SORTING_DATE']->format('Y-m-d') : ($Data_Check['SORTING_DATE'] ?? '');
-                            $body = "<!DOCTYPE html><html><body><table style='width: 50%;'>
-                                        <tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>NO</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h($Data_Check['NO'])}</td><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Date</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h($sorting_date_formatted)}</td></tr>
-                                        <tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Requestor</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h($Data_Check['REQUESTOR'])}</td><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Number</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h($Data_User->CALL)}</td></tr>
-                                        <tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Category</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h($Data_Check['KIND'])}</td><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Priority</td><td style='border: 1px solid #000; width: 15%; text-align: center;'>{$h($Data_Check['IMPORTANCE'])}</td></tr>
-                                        <tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Contents</td><td colspan='3' style='border: 1px solid #000; width: 40%;'>{$Data_Check['PROBLEM']}</td></tr>
-                                        <tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>Answer</td><td colspan='3' style='border: 1px solid #000; width: 40%;'>{$Data_Check['SOLUTUIN']}</td></tr>
-                                        <tr><td style='border: 1px solid #000; width: 10%; text-align: center; background-color: #D3D3D3;'>URL</td><td colspan='3' style='border: 1px solid #000; width: 40%; text-align: center;'><a href='https://fms.iwin.kr/kjwt_todolist/todolist.php'>기술지원 및 문의현황 바로가기</a></td></tr></table></body></html>";
-
-                            sendSupportMail(
-                                [
-                                    'to' => $Data_User->EMAIL,
-                                    'subject' => "[FMS] 기술지원 & 문의 처리완료 - NO. " . $Data_Check['NO'],
-                                    'body' => $body
-                                ], true
-                            );
-                        }
-                    }
+                    // 4) [변경] mailer.php 호출 (완료 알림)
+                    send_request_to_mailer([
+                        'type' => 'todolist_finish',
+                        'no'   => $solve_no
+                    ]);
                 }
             }
         } 
-
         $query_ModifyUpdate2 = "UPDATE CONNECT.dbo.USE_CONDITION SET LOCK='N' WHERE KIND=?";
         executeQuery($connect, $query_ModifyUpdate2, ['Todolist']);
         header("Location: todolist.php");
         exit;
     }
     
+    // 4. 검색 데이터 조회 (bt31)
     $Data_WorkHistory = [];
     if($bt31 === "on") {
         $query_WorkHistory = "SELECT * FROM CONNECT.dbo.TO_DO_LIST WHERE SORTING_DATE BETWEEN ? AND ? ORDER BY NO DESC";
@@ -234,12 +181,9 @@
         }
     }
 
-    //★메뉴 진입 시 실행
-    // 처리되지 않은 항목 조회 (SOLVE가 'N'이거나 NULL인 경우)
+    //★메뉴 진입 시 실행: 미처리 항목 조회
     $Query_NotWork = "SELECT * FROM CONNECT.dbo.TO_DO_LIST WHERE SOLVE = 'N' OR SOLVE IS NULL ORDER BY NO DESC";
     $Result_NotWork = executeQuery($connect, $Query_NotWork);
-
-    // 처리되지 않은 항목 개수 조회
     $Query_Count = "SELECT COUNT(*) as count FROM CONNECT.dbo.TO_DO_LIST WHERE SOLVE = 'N' OR SOLVE IS NULL";
     $Result_Count = executeQuery($connect, $Query_Count);
     $Data_Count = sqlsrv_fetch_array($Result_Count);

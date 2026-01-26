@@ -7,9 +7,11 @@
     // Description: <PHP 8.x, PhpSpreadsheet 적용>
     // =============================================
 
-    include '../DB/DB2.php';
-    require '../vendor/autoload.php'; // composer 설치 경로에 따라 조정
-    include '../FUNCTION.php';
+    require_once __DIR__ .'/../session/session_check.php';
+    require_once __DIR__ .'/../vendor/autoload.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
+    include_once __DIR__ . '/../FUNCTION.php';    
+    
     ini_set('memory_limit', '1024M');
 
     use PhpOffice\PhpSpreadsheet\Spreadsheet;

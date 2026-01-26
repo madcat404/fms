@@ -5,10 +5,11 @@
 	// Description:	<마지막 사진 뷰어)>
   // Last Modified: <25.10.20> - Refactored for PHP 8.x	
 	// =============================================
-  include '../DB/DB1.php';
-  include '../DB/DB3.php';
-  include '../DB/DB6.php';
-  include '../FUNCTION.php'; 
+  require_once __DIR__ . '/../session/session_check.php';
+  include_once __DIR__ . '/../DB/DB1.php';
+  include_once __DIR__ . '/../DB/DB3.php';
+  include_once __DIR__ . '/../DB/DB6.php';
+  include_once __DIR__ . '/../FUNCTION.php';
 
   // Helper function to fetch pictures for a given car number
   function fetch_last_pictures($connect, $car_num) {

@@ -7,7 +7,8 @@
 	// =============================================
 
     //★DB연결 및 함수사용
-    include '../DB/DB1.php';    
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB1.php';   
         
 
     $no = $_GET["play"];	

@@ -8,12 +8,12 @@ declare(strict_types=1);
 // Last Modified: <25.10.22>
 // =============================================
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
 require_once __DIR__ . '/PHPMailer-master/src/PHPMailer.php';
 require_once __DIR__ . '/PHPMailer-master/src/SMTP.php';
 require_once __DIR__ . '/PHPMailer-master/src/Exception.php';
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
 
 /**
  * 시스템 전반에서 사용할 이메일을 발송합니다.

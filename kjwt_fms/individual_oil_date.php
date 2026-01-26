@@ -6,7 +6,8 @@
 	// Last Modified: <25.12.26> - 중복 실행 방지 로직 및 전기차 크롤링 통합
 	// =============================================
 	
-	include '../DB/DB1.php';
+	require_once __DIR__ .'/../session/session_check.php';
+	include_once __DIR__ . '/../DB/DB1.php';
 				
 	$s_date = date("Y-m-d");
 

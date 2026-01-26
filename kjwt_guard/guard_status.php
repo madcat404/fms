@@ -7,9 +7,10 @@
 // =============================================
 
 // ★ DB연결 및 공통 함수 포함
-include_once '../FUNCTION.php';
-include_once '../DB/DB4.php';
-include_once '../DB/DB2.php';
+require_once __DIR__ . '/../session/session_check.php';
+include_once __DIR__ . '/../DB/DB2.php';
+include_once __DIR__ . '/../DB/DB4.php';
+include_once __DIR__ . '/../FUNCTION.php';
 
 // ★ 변수 안전하게 받기
 // GET 파라미터

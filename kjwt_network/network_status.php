@@ -7,13 +7,13 @@
     // =============================================
     
     //★DB연결 및 함수사용
-    include '../session/ip_session.php'; 
-    include '../DB/DB2.php';
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';
 
 
     //★탭활성화
     $tab_sequence=2; 
-    include '../TAB.php';  
+    include_once __DIR__ . '/../TAB.php'; 
 
 
     //★변수모음      

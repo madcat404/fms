@@ -7,8 +7,10 @@
     // =============================================
     
     //★DB연결 및 함수사용
-    include '../FUNCTION.php'; 
-    include '../DB/DB2.php';
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
+    include_once __DIR__ . '/../FUNCTION.php'; 
+
 
     //★탭활성화
     $tab_sequence=2; 

@@ -75,16 +75,16 @@
                                                             $Data_kChkFinishedIn = sqlsrv_fetch_array($result_kChkFinishedIn, SQLSRV_FETCH_ASSOC);
 
                                                             $itemName = NM_ITEM($Data_KoreaScan['CD_ITEM']);
-                                                            $fan1=strpos(strtoupper($itemName), "모듈");
+                                                            /*$fan1=strpos(strtoupper($itemName), "모듈");
                                                             $fan2=strpos(strtoupper($itemName), "BLOW");
                                                             $fan3=strpos(strtoupper($itemName), "BLOWER");
                                                             $bed1=strpos(strtoupper($itemName), "BED");
                                                             $wheel1=strpos(strtoupper($itemName), "S/WHEEL");
                                                             $wheel2=strpos(strtoupper($itemName), "S/W");
                                                             $unit1=strpos(strtoupper($itemName), "UNIT");
-                                                            $warmer1=strpos(strtoupper($itemName), "WARMER");
+                                                            $warmer1=strpos(strtoupper($itemName), "WARMER");*/
 
-                                                            if($fan1 === false && $fan2 === false && $fan3 === false && $bed1 === false && $wheel1 === false && $wheel2 === false && $unit1 === false && $warmer1 === false) {
+                                                            //if($fan1 === false && $fan2 === false && $fan3 === false && $bed1 === false && $wheel1 === false && $wheel2 === false && $unit1 === false && $warmer1 === false) {
                                                                 $k_inspected_qty = ($Data_KoreaScan['QT_GOODS'] ?? 0) - ($Data_KoreaScan['REJECT_GOODS'] ?? 0);
                                                                 $k_received_qty = $Data_kChkFinishedIn['QT_GOODS'] ?? 0;
 
@@ -98,7 +98,7 @@
                                                                     </tr>
                                                     <?php 
                                                                 }
-                                                            }
+                                                            //}
                                                         }
                                                     ?>
                                                     <?php 
@@ -123,30 +123,7 @@
                                                     <?php 
                                                             }
                                                         }
-                                                    ?>   
-                                                    <?php 
-                                                    //중국
-                                                        foreach($ChinaScan_DataArray as $Data_ChinaScan)
-                                                        {
-                                                            $sql_cChkFinishedIn = "SELECT SUM(QT_GOODS) AS QT_GOODS FROM CONNECT.dbo.FINISHED_INPUT_LOG WHERE SORTING_DATE=? AND OUT_OF='BB' AND CD_ITEM=? GROUP BY CD_ITEM";
-                                                            $result_cChkFinishedIn = sqlsrv_query($connect, $sql_cChkFinishedIn, [$Hyphen_today, $Data_ChinaScan['CD_ITEM']]);
-                                                            $Data_cChkFinishedIn = sqlsrv_fetch_array($result_cChkFinishedIn, SQLSRV_FETCH_ASSOC);
-
-                                                            $c_inspected_qty = ($Data_ChinaScan['QT_GOODS'] ?? 0) - ($Data_ChinaScan['REJECT_GOODS'] ?? 0);
-                                                            $c_received_qty = $Data_cChkFinishedIn['QT_GOODS'] ?? 0;
-
-                                                            if($c_inspected_qty > $c_received_qty) {
-                                                    ?>
-                                                                <tr>
-                                                                    <td><?php echo h($Data_ChinaScan['CD_ITEM']); ?></td>
-                                                                    <td><?php echo h(NM_ITEM($Data_ChinaScan['CD_ITEM'])); ?></td>
-                                                                    <td><?php echo h($c_inspected_qty - $c_received_qty); ?></td>
-                                                                    <td><?php echo ($Data_ChinaScan['AS_YN'] == 'Y') ? "A/S" : "양산"; ?></td>
-                                                                </tr>
-                                                    <?php 
-                                                            }
-                                                        }
-                                                    ?>                  
+                                                    ?>                                                                      
                                                 </tbody>
                                             </table>
                                         </div> 

@@ -7,7 +7,8 @@
     // =============================================
     // --- Setup and Includes ---
     set_time_limit(120);
-    include '../session/ip_session.php';
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB4.php';  
 
     /**
      * Fetches the current stock price from Naver Finance.
@@ -98,7 +99,6 @@
     // --- Main Execution ---
     echo "주식 현재가 업데이트를 시작합니다.<br>";
 
-    // connect4 변수가 ip_session.php에서 생성된 mysqli 커넥션이라고 가정합니다.
     if (!isset($connect4) || $connect4->connect_error) {
         die("MariaDB 데이터베이스 연결에 실패했습니다.");
     }

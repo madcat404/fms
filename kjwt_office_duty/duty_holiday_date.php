@@ -8,8 +8,9 @@
 	//php.inid의 ;extension=php_curl.dll주석을 해제
 	//.../php/libssh2.dll을 .../apache2.4/bin로 복사 후 서비스 재시작
 	//xml 파서도 설치해야함
-	include '../session/ip_session.php'; 
-	include '../DB/DB1.php';  
+	require_once __DIR__ . '/../session/session_check.php';
+	include_once __DIR__ . '/../DB/DB1.php'; 
+	include_once __DIR__ . '/../FUNCTION.php';
 				
 	//오늘 날짜를 변수 $s_date에 저장   
 	$s_date = date("Y-m-d");

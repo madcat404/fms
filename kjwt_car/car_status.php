@@ -7,13 +7,12 @@
     // =============================================
 
     //★DB연결 및 함수사용
-    include '../session/ip_session.php';
-    // [중요] MySQL 연결 파일 ($connect4)
+    require_once __DIR__ .'/../session/session_check.php';
     include_once __DIR__ . '/../DB/DB4.php'; 
 
     //★매뉴 진입 시 탭활성화
     $tab_sequence = 2; 
-    include '../TAB.php';     
+    include_once __DIR__ . '/../TAB.php';     
 
     //★검색 로직
     $search_keyword = $_GET['search_keyword'] ?? '';

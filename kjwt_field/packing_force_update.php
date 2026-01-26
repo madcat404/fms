@@ -7,8 +7,8 @@
 	// =============================================
 
     //★DB연결 및 함수사용
-    include '../session/ip_session.php'; 
-    include '../DB/DB2.php';    
+    require_once __DIR__ .'/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';  
 
     // 1. 성능 및 안정성을 위해 while 루프로 변경하고, 필요한 컬럼만 선택합니다.
     $Query_SelectBarcode = "SELECT NO, PRODUCT_BARCODE FROM CONNECT.dbo.PACKING_LOG WHERE make_date IS NULL AND PRODUCT_BARCODE IS NOT NULL AND lot_date >= '20250101'";

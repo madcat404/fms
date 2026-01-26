@@ -4,12 +4,14 @@
     // Create date: <25.12.01>
     // Description: <인원 엑셀 데이터 DB 자동 업로드 (통합 테이블 구조 반영)>
     // Last Modified: <25.12.01> - Updated for specific DB Schema
+    // Update Note: <26.01.06> - 다양한 파일명 날짜 형식 지원 추가
     // =============================================
 
     // --- Setup and Includes ---
-    include '../session/ip_session.php';
-    include '../DB/DB2.php';
-    require_once '../vendor/autoload.php';
+    set_time_limit(0); // 실행 시간 제한 없음
+    require_once __DIR__ . '/../session/session_check.php';
+    require_once __DIR__ . '/../vendor/autoload.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
 
     use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -25,28 +27,56 @@
     try {
         // --- 1. 날짜 변수 설정 ---
         $today = new DateTime();
+        
         $YY = $today->format('Y');
-        $MM = $today->format('n');
-        $MM2 = $today->format('m');
-        $D = $today->format('j');
+        $MM = $today->format('n');  // 월 (앞에 0 없음)
+        $MM2 = $today->format('m'); // 월 (앞에 0 있음)
+        $D = $today->format('j');   // 일 (앞에 0 없음)
+        $D2 = $today->format('d');  // 일 (앞에 0 있음) - 추가됨
+        
         $Day_formatted = $today->format('Y-m-d'); // SORTING_DATE에 들어갈 값
 
-        $filename = "../../../../mnt4/{$YY}년/{$MM}월/일일현황보고({$MM2}월 {$D}일).xlsx";
-        echo "대상 파일: " . htmlspecialchars($filename, ENT_QUOTES, 'UTF-8') . "<br>";
+        // --- 2. 다양한 파일명 형식 탐색 ---
+        // 파일의 기본 경로 (디렉토리 + 파일명 접두사)
+        $base_path_prefix = "../../../../mnt4/{$YY}년/{$MM}월/일일현황보고";
+        
+        // 가능한 날짜 형식 조합 (우선순위 순서대로 배열 배치)
+        $possible_suffixes = [
+            "({$MM2}월 {$D}일).xlsx",   // 예: (01월 5일).xlsx
+            "({$MM2}월 {$D2}일).xlsx",  // 예: (01월 05일).xlsx
+            "({$MM}월 {$D}일).xlsx",    // 예: (1월 5일).xlsx
+            "({$MM}월 {$D2}일).xlsx"    // 예: (1월 05일).xlsx
+        ];
 
-        // --- 2. DB 및 파일 확인 ---
+        $filename = null; // 최종 선택된 파일명을 담을 변수
+
+        // 후보군을 순회하며 파일 존재 여부 확인
+        foreach ($possible_suffixes as $suffix) {
+            $temp_path = $base_path_prefix . $suffix;
+            if (is_readable($temp_path)) {
+                $filename = $temp_path;
+                echo "파일을 찾았습니다: " . htmlspecialchars($filename, ENT_QUOTES, 'UTF-8') . "<br>";
+                break; // 파일을 찾으면 루프 종료
+            }
+        }
+
+        // --- 3. DB 및 파일 예외 처리 ---
         if ($connect === false) {
             throw new Exception("데이터베이스 연결에 실패했습니다.");
         }
-        if (!is_readable($filename)) {
-            throw new Exception("엑셀 파일을 찾을 수 없거나 읽을 수 없습니다.");
-        }      
 
-        // --- 3. 엑셀 파일 로드 ---
+        // 파일이 설정되지 않았거나 읽을 수 없는 경우
+        if ($filename === null || !is_readable($filename)) {
+            // 디버깅을 위해 탐색한 경로 힌트 출력
+            $search_hint = htmlspecialchars($base_path_prefix, ENT_QUOTES, 'UTF-8') . "(...날짜...).xlsx";
+            throw new Exception("엑셀 파일을 찾을 수 없습니다.<br>탐색 경로 패턴: {$search_hint}<br>가능한 모든 날짜 형식을 확인했지만 파일이 없습니다.");
+        }
+
+        // --- 4. 엑셀 파일 로드 ---
         $spreadsheet = IOFactory::load($filename);
         $worksheet = $spreadsheet->getSheet(2); // 3번째 시트
 
-        // --- 4. 데이터 추출 (한 번에 모든 행 읽기) ---
+        // --- 5. 데이터 추출 (한 번에 모든 행 읽기) ---
         
         // [A] 관리직 (Row 4) -> SAMU_...
         $SAMU_TOTAL     = getNumValue($worksheet, 'B3');
@@ -76,7 +106,7 @@
         $NONFIELD_SICK      = getNumValue($worksheet, 'O12');
 
 
-        // --- [추가됨] 5. 중복 데이터 확인 (SORTING_DATE 기준) ---
+        // --- 6. 중복 데이터 확인 (SORTING_DATE 기준) ---
         $checkSql = "SELECT COUNT(*) AS cnt FROM CONNECT.dbo.ATTEND WHERE SORTING_DATE = ?";
         $checkStmt = sqlsrv_query($connect, $checkSql, [$Day_formatted]);
 
@@ -93,7 +123,7 @@
             echo "중복 입력을 방지하기 위해 INSERT를 수행하지 않았습니다.<br>";
         } 
         else {
-            // --- 6. DB INSERT 실행 (데이터가 없을 때만 실행) ---
+            // --- 7. DB INSERT 실행 (데이터가 없을 때만 실행) ---
             
             $sql = "INSERT INTO CONNECT.dbo.ATTEND (
                         SAMU_TOTAL, SAMU_FOREIGN, SAMU_ANNUAL, SAMU_OFFICIAL, SAMU_EDUCATION, SAMU_BISINESS, SAMU_ABSENCE,

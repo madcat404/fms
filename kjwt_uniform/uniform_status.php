@@ -6,8 +6,8 @@
     // Last Modified: <25.09.25> - Refactored for PHP 8.x and security.
 	// =============================================
 
-    //★DB연결 및 함수사용
-    include_once __DIR__ . '/../session/ip_session.php';    
+    //★DB연결 및 함수사용  
+    require_once __DIR__ . '/../session/session_check.php';
     include_once __DIR__ . '/../DB/DB2.php';
     include_once __DIR__ . '/../FUNCTION.php';
 

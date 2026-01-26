@@ -5,8 +5,9 @@
 	// Description: <당직명령 생성 모듈>
 	// Last Modified: <25.10.13> - Refactored for PHP 8.x and security.
 	// =============================================
-	include '../session/ip_session.php';
-	include '../DB/DB1.php';
+	require_once __DIR__ . '/../session/session_check.php';
+	include_once __DIR__ . '/../DB/DB1.php';
+	include_once __DIR__ . '/../FUNCTION.php';
 
 	// --- 1. 날짜 설정 (DateTime 객체 사용) ---
 	try {

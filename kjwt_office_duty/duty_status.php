@@ -7,9 +7,10 @@
     // =============================================
     
     //★DB연결 및 함수사용
-    include '../FUNCTION.php'; 
-    include '../DB/DB1.php'; 
-    include '../DB/DB6.php'; 
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB1.php';
+    include_once __DIR__ . '/../DB/DB6.php';
+    include_once __DIR__ . '/../FUNCTION.php';
 
     // TODO: 이 키는 보안을 위해 외부 설정 파일로 이동해야 합니다.
     define('NFC_AUTH_KEY', '6218132365');

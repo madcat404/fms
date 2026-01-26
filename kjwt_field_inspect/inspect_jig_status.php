@@ -6,8 +6,8 @@
     // Last Modified: <25.10.13> - Refactored for PHP 8.x
     // =============================================
 
-    include 'inspect_session.php';  
-    include '../DB/DB2.php';   
+    require_once __DIR__ .'/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';   
     
     $s_date = date("Ymd");
 

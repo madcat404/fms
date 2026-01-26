@@ -4,7 +4,7 @@
 // Create date: 21.09.30
 // Description: fms 리뉴얼
 // =============================================
-require_once 'session/session_check.php';
+require_once './session/session_check.php';
 
 // Function to generate card HTML
 function generateCard($href, $icon, $text) {

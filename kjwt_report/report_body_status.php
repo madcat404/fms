@@ -7,9 +7,10 @@
     // =============================================
   
     //★DB연결 및 함수사용
-    include '../session/ip_session.php'; 
-    include '../DB/DB2.php';
-    include '../DB/DB3.php';
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
+    include_once __DIR__ . '/../DB/DB3.php'; 
+    include_once __DIR__ . '/../FUNCTION.php';
 
     //★탭활성화
     //메뉴 진입 시 탭활성화 start
@@ -745,75 +746,77 @@
     $graphData = [];  // 그래프용 집계 데이터
 
     try {
-        // 1. 조회 기준 날짜 결정 (수정 없음)
+        // 1. [테이블용] 기준 연도 설정 (데이터가 없으면 전년도 Fallback)
+        $QC_Table_YY = $currentYear; 
+        
+        // 금년도 데이터 존재 여부 체크
+        $sql_check_exists = "SELECT TOP 1 1 FROM CONNECT.dbo.QC WHERE YY = ?";
+        $stmt_check_exists = sqlsrv_query($connect, $sql_check_exists, [$currentYear]);
+        
+        // 데이터가 없으면 테이블은 전년도(예: 2025)를 보여줌
+        if ($stmt_check_exists === false || !sqlsrv_has_rows($stmt_check_exists)) {
+            $QC_Table_YY = $previousYear; 
+        }
+
+        // 테이블용 변수 (비교 연도 설정)
+        $QC_Current = $QC_Table_YY;
+        $QC_Previous = (string)((int)$QC_Table_YY - 1);
+        $QC_Before = (string)((int)$QC_Table_YY - 2);
+
+        // 2. [그래프용] 데이터 조회 연도 설정 (항상 시스템 연도 기준: 2026, 2025, 2024)
+        // 그래프는 데이터가 없어도 금년도(2026)를 0으로 표시해야 함 (전년도 데이터 복사 방지)
+        $Graph_Current = $currentYear;
+        $Graph_Previous = $previousYear;
+        $Graph_Before = $yearBeforePrevious;
+
+        // 3. 데이터 조회를 위한 날짜 결정 (테이블용 $QC_Current 기준)
         $dates = [];
         $sql_check_today = "SELECT 1 FROM CONNECT.dbo.QC WHERE SORTING_DATE = ?";
         $stmt_check_today = sqlsrv_query($connect, $sql_check_today, [$Hyphen_today]);
-        if (sqlsrv_fetch($stmt_check_today)) {
-            $dates[$currentYear] = $Hyphen_today;
+        
+        if ($QC_Current == $currentYear && sqlsrv_fetch($stmt_check_today)) {
+            $dates[$QC_Current] = $Hyphen_today;
         } else {
-            $sql_latest_current_year = "SELECT TOP 1 SORTING_DATE FROM CONNECT.dbo.QC WHERE YY = ? ORDER BY SORTING_DATE DESC";
-            $stmt_latest_current_year = sqlsrv_query($connect, $sql_latest_current_year, [$currentYear]);
-            $row = sqlsrv_fetch_array($stmt_latest_current_year);
-            $dates[$currentYear] = $row ? $row['SORTING_DATE']->format('Y-m-d') : null;
+            $sql_latest_current = "SELECT TOP 1 SORTING_DATE FROM CONNECT.dbo.QC WHERE YY = ? ORDER BY SORTING_DATE DESC";
+            $stmt_latest_current = sqlsrv_query($connect, $sql_latest_current, [$QC_Current]);
+            $row = sqlsrv_fetch_array($stmt_latest_current);
+            $dates[$QC_Current] = $row ? $row['SORTING_DATE']->format('Y-m-d') : null;
         }
-        $sql_latest_agg_year = "SELECT TOP 1 SORTING_DATE FROM CONNECT.dbo.QC WHERE YY = ? AND MM = '13' ORDER BY SORTING_DATE DESC";
-        $stmt_minus1 = sqlsrv_query($connect, $sql_latest_agg_year, [$previousYear]);
-        $row_minus1 = sqlsrv_fetch_array($stmt_minus1);
-        $dates[$previousYear] = $row_minus1 ? $row_minus1['SORTING_DATE']->format('Y-m-d') : null;
-        $stmt_minus2 = sqlsrv_query($connect, $sql_latest_agg_year, [$yearBeforePrevious]);
-        $row_minus2 = sqlsrv_fetch_array($stmt_minus2);
-        $dates[$yearBeforePrevious] = $row_minus2 ? $row_minus2['SORTING_DATE']->format('Y-m-d') : null;
 
-        // 2. 모든 상세 항목 데이터 가져오기 (수정)
+        // 4. 상세 항목 데이터 가져오기 (테이블용)
         $qcData = [];
-        $usingPreviousYearData = false;
-        if (!empty($dates[$currentYear])) {
+        if (!empty($dates[$QC_Current])) {
             $sql_main = "SELECT * FROM CONNECT.dbo.QC WHERE SORTING_DATE = ? AND KIND IN ('시트히터', '핸들', '통풍') ORDER BY NO";
-            $main_results = sqlsrv_query($connect, $sql_main, [$dates[$currentYear]]);
-            if ($main_results) {
-                while ($row = sqlsrv_fetch_array($main_results, SQLSRV_FETCH_ASSOC)) {
-                    $qcData[trim($row['KIND'])][trim($row['KIND2'])][] = $row;
-                }
-            }
-        } elseif (!empty($dates[$previousYear])) {
-            // 금년 데이터가 없으면 전년도 MM=13 데이터를 가져옴
-            $usingPreviousYearData = true;
-            $sql_main = "SELECT * FROM CONNECT.dbo.QC WHERE SORTING_DATE = ? AND MM = '13' AND KIND IN ('시트히터', '핸들', '통풍') ORDER BY NO";
-            $main_results = sqlsrv_query($connect, $sql_main, [$dates[$previousYear]]);
-            if ($main_results) {
-                while ($row = sqlsrv_fetch_array($main_results, SQLSRV_FETCH_ASSOC)) {
-                    $qcData[$row['KIND']][$row['KIND2']][] = $row;
-                }
+            $main_results = sqlsrv_query($connect, $sql_main, [$dates[$QC_Current]]);
+            while ($row = sqlsrv_fetch_array($main_results, SQLSRV_FETCH_ASSOC)) {
+                $qcData[$row['KIND']][$row['KIND2']][] = $row;
             }
         }
 
-        // 3. 모든 그래프 데이터 가져오기 (수정 없음)
+        // 5. 그래프 데이터 가져오기 (Graph용 연도 + Table용 연도 모두 포함하여 조회)
+        // 필요한 모든 연도를 포함: $Graph_Current, $Graph_Previous, $Graph_Before
+        // (Table용 연도는 위 연도들에 포함되거나 중복됨)
         $graphData = [];
-        $sql_graph = "SELECT YY, KIND, SUM(M_MONEY) AS TOTAL_MONEY FROM CONNECT.dbo.QC WHERE MM = '13' AND KIND IN ('시트히터', '핸들', '통풍') AND ((YY = ? AND SORTING_DATE = ?) OR (YY = ? AND SORTING_DATE = ?) OR (YY = ? AND SORTING_DATE = ?)) GROUP BY YY, KIND";
-        $params_graph = [$currentYear, $dates[$currentYear], $previousYear, $dates[$previousYear], $yearBeforePrevious, $dates[$yearBeforePrevious]];
+        $sql_graph = "
+            SELECT YY, KIND, SUM(M_MONEY) AS TOTAL_MONEY 
+            FROM CONNECT.dbo.QC 
+            WHERE MM = '13' 
+              AND KIND IN ('시트히터', '핸들', '통풍') 
+              AND YY IN (?, ?, ?) 
+            GROUP BY YY, KIND
+        ";
+        // 2026, 2025, 2024 데이터 조회
+        $params_graph = [$Graph_Current, $Graph_Previous, $Graph_Before];
         $graph_results = sqlsrv_query($connect, $sql_graph, $params_graph);
         while ($row = sqlsrv_fetch_array($graph_results, SQLSRV_FETCH_ASSOC)) {
             $graphData[$row['YY']][$row['KIND']] = $row['TOTAL_MONEY'];
-        }
+        }       
 
-        // ★★★★★ (추가 수정) 금년 데이터만 월별 합산으로 덮어쓰기 ★★★★★
-        $sql_current_year_sum = "SELECT KIND, SUM(CONVERT(bigint, M_MONEY)) AS TOTAL_MONEY FROM CONNECT.dbo.QC WHERE YY = ? AND MM <> '13' AND KIND IN ('시트히터', '핸들', '통풍') GROUP BY KIND";
-        $params_current_year_sum = [$currentYear];
-        $result_current_year_sum = sqlsrv_query($connect, $sql_current_year_sum, $params_current_year_sum);
-        if ($result_current_year_sum) {
-            while($row_sum = sqlsrv_fetch_array($result_current_year_sum, SQLSRV_FETCH_ASSOC)) {
-                $graphData[$currentYear][$row_sum['KIND']] = $row_sum['TOTAL_MONEY'];
-            }
-        }
-        // ★★★★★ 수정 끝 ★★★★★
-
-        // 4. $qcData를 월별 데이터($monthlyData)로 가공
-        // 먼저 모든 카테고리에 대한 배열 구조를 0으로 생성하여 데이터 유무와 상관없이 항상 동일한 구조를 유지합니다.
+        // 6. $qcData를 월별 데이터($monthlyData)로 가공 (테이블 출력용)
         $monthlyData = [
             '시트히터' => [
                 '한국폐기 본사 스티칭' => array_fill(1, 13, 0), '한국폐기 본사 최종검사' => array_fill(1, 13, 0), '한국폐기 협력사귀책' => array_fill(1, 13, 0),
-                '한국리워크 본사' => array_fill(1, 13, 0), '한국리워크 BB베트남' => array_fill(1, 13, 0), '베트남 폐기' => array_fill(1, 13, 0),
+                '한국리워크 본사' => array_fill(1, 13, 0), '한국리워크 BB베트남' => array_fill(1, 13, 0), '베트남 폐기' => array_fill(1, 13, 0), '베트남 리워크' => array_fill(1, 13, 0),
                 '중국 폐기' => array_fill(1, 13, 0), '미국 폐기' => array_fill(1, 13, 0), '슬로박 폐기' => array_fill(1, 13, 0)
             ],
             '핸들' => [
@@ -825,67 +828,56 @@
             ]
         ];
 
-        // $qcData에 있는 실제 데이터를 월별로 합산합니다.
         if (!empty($qcData)) {
             foreach ($qcData as $kind => $subKindData) {
                 foreach ($subKindData as $kind2 => $records) {
-                    // if (isset($monthlyData[$kind][$kind2])) { // 미리 정의된 구조에 해당하는 데이터만 처리 -> 제거
+                    if (isset($monthlyData[$kind][$kind2])) { 
                         foreach ($records as $record) {
                             $month = (int)$record['MM'];
                             $money = (float)$record['M_MONEY'];
-                            if ($usingPreviousYearData) {
-                                if ($month === 13) {
-                                    // 전년도 데이터는 합계(13)에 바로 넣고, 월별 데이터는 0으로 유지됨
-                                    $monthlyData[$kind][$kind2][$month] += $money;
-                                }
-                            } else {
-                                if ($month >= 1 && $month <= 12) {
-                                    $monthlyData[$kind][$kind2][$month] += $money;
-                                }
+                            if ($month >= 1 && $month <= 12) {
+                                $monthlyData[$kind][$kind2][$month] += $money;
                             }
                         }
-                    // }
-                }
-            }
-        }
-
-        // 각 항목의 합계(13번째 값)를 계산합니다.
-        if (!$usingPreviousYearData) {
-            foreach ($monthlyData as $kind => &$subKinds) {
-                foreach ($subKinds as $kind2 => &$months) {
-                    $total = 0;
-                    for ($m = 1; $m <= 12; $m++) {
-                        $total += $months[$m];
                     }
-                    $months[13] = $total; // 13번째 인덱스에 합계 저장
                 }
             }
-            unset($subKinds, $months); // 참조 해제
         }
 
-        // 5. barChart7을 위한 데이터 가공 (수정 없음)
-        $currentYearHeater = $graphData[$currentYear]['시트히터'] ?? 0;
-        $currentYearHandle = $graphData[$currentYear]['핸들'] ?? 0;
-        $currentYearVent = $graphData[$currentYear]['통풍'] ?? 0;
-        $previousYearHeater = $graphData[$previousYear]['시트히터'] ?? 0;
+        foreach ($monthlyData as $kind => &$subKinds) {
+            foreach ($subKinds as $kind2 => &$months) {
+                $total = 0;
+                for ($m = 1; $m <= 12; $m++) {
+                    $total += $months[$m];
+                }
+                $months[13] = $total; 
+            }
+        }
+        unset($subKinds, $months); 
+
+        // 7. barChart7 데이터 가공 (★여기가 변경됨: 시스템 연도 사용★)
+        // $Graph_Current (2026), $Graph_Previous (2025), $Graph_Before (2024) 사용
+        $currentYearHeater = $graphData[$Graph_Current]['시트히터'] ?? 0;
+        $currentYearHandle = $graphData[$Graph_Current]['핸들'] ?? 0;
+        $currentYearVent = $graphData[$Graph_Current]['통풍'] ?? 0;
         $currentYearTotal = $currentYearHeater + $currentYearHandle + $currentYearVent;
+        
         $barChart7Data = [
             'labels' => ['합계', '시트히터', '발열핸들', '통풍시트'],
             'datasets' => [
-                ['label' => $currentYear . '년', 'backgroundColor' => 'rgba(40,192,141,1)', 'borderColor' => 'rgba(40,192,141,1)', 'data' => [$currentYearTotal, $currentYearHeater, $currentYearHandle, $currentYearVent]],
-                ['label' => $previousYear . '년', 'backgroundColor' => 'rgba(210, 214, 222, 1)', 'borderColor' => 'rgba(210, 214, 222, 1)', 'data' => [($graphData[$previousYear]['시트히터']??0)+($graphData[$previousYear]['핸들']??0)+($graphData[$previousYear]['통풍']??0), $graphData[$previousYear]['시트히터']??0, $graphData[$previousYear]['핸들']??0, $graphData[$previousYear]['통풍']??0]],
-                ['label' => $yearBeforePrevious . '년', 'backgroundColor' => 'rgba(175, 183, 197, 1)', 'borderColor' => 'rgba(175, 183, 197, 1)', 'data' => [($graphData[$yearBeforePrevious]['시트히터']??0)+($graphData[$yearBeforePrevious]['핸들']??0)+($graphData[$yearBeforePrevious]['통풍']??0), $graphData[$yearBeforePrevious]['시트히터']??0, $graphData[$yearBeforePrevious]['핸들']??0, $graphData[$yearBeforePrevious]['통풍']??0]]
+                ['label' => $Graph_Current . '년', 'backgroundColor' => 'rgba(40,192,141,1)', 'borderColor' => 'rgba(40,192,141,1)', 'data' => [$currentYearTotal, $currentYearHeater, $currentYearHandle, $currentYearVent]],
+                ['label' => $Graph_Previous . '년', 'backgroundColor' => 'rgba(210, 214, 222, 1)', 'borderColor' => 'rgba(210, 214, 222, 1)', 'data' => [($graphData[$Graph_Previous]['시트히터']??0)+($graphData[$Graph_Previous]['핸들']??0)+($graphData[$Graph_Previous]['통풍']??0), $graphData[$Graph_Previous]['시트히터']??0, $graphData[$Graph_Previous]['핸들']??0, $graphData[$Graph_Previous]['통풍']??0]],
+                ['label' => $Graph_Before . '년', 'backgroundColor' => 'rgba(175, 183, 197, 1)', 'borderColor' => 'rgba(175, 183, 197, 1)', 'data' => [($graphData[$Graph_Before]['시트히터']??0)+($graphData[$Graph_Before]['핸들']??0)+($graphData[$Graph_Before]['통풍']??0), $graphData[$Graph_Before]['시트히터']??0, $graphData[$Graph_Before]['핸들']??0, $graphData[$Graph_Before]['통풍']??0]]
             ]
         ];
 
-        // 6. 프론트엔드 JavaScript에서 사용할 변수 추출 (수정 없음)
+        // 프론트엔드용 JSON 데이터 (차트는 시스템 연도 기준)
         $currentYearJson    = json_encode($barChart7Data['datasets'][0]['data']);
         $previousYearJson   = json_encode($barChart7Data['datasets'][1]['data']);
         $yearBeforeJson     = json_encode($barChart7Data['datasets'][2]['data']);
 
     } catch (Throwable $e) {
         error_log("QC Data Fetch Error: " . $e->getMessage());
-        // 에러 발생 시 프론트엔드 변수가 정의되지 않는 것을 방지하기 위해 빈 값으로 초기화
         $qcData = [];
         $monthlyData = [];
         $graphData = [];

@@ -1,11 +1,10 @@
 <?php 
     // =============================================
-	// Author: <KWON SUNG KUN - sealclear@naver.com>	
-	// Create date: <21.10.12>
-	// Description:	<개인차량운행일지 리뉴얼>
-    // Last Modified: <25.09.30> - Refactored for PHP 8.x and security.
-    // Last Modified: <Current Date> - Mobile UI Optimization (Board Colors Restored)
-	// =============================================
+    // Author: <KWON SUNG KUN - sealclear@naver.com>    
+    // Create date: <21.10.12>
+    // Description: <개인차량운행일지 리뉴얼 (정산 완료 시에만 환산표기)>
+    // Last Modified: <Current Date> - Display Logic Updated (GIVE_CHECK check added)
+    // =============================================
     include 'individual_status.php';   
 
     // 금일 유가가 업데이트 되었는지 확인
@@ -47,6 +46,9 @@
             $status_data[] = $row;
         }
     }
+
+    // *** 뷰 계산용 휘발유 가격 확보 ***
+    $gasoline_price_for_view = $row11->OIL_PRICE ?? 0;
 ?>
 
 
@@ -121,7 +123,7 @@
                                     <h6 class="m-0 font-weight-bold text-primary">출발</h6>
                                 </a>
                                 <form method="POST" autocomplete="off" action="">
-                                    <div class="collapse show" id="collapseCardExample2">                                    
+                                    <div class="collapse show" id="collapseCardExample2">                                   
                                         <div class="card-body p-3">
                                             <div class="row"> 
                                                 <div class="col-md-3"><div class="form-group"><label>차량번호</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car"></i></span></div><input type="number" maxlength="4" class="form-control" name="my_car_num1" required></div></div></div>
@@ -142,7 +144,7 @@
                                     <h6 class="m-0 font-weight-bold text-primary">도착</h6>
                                 </a>
                                 <form method="POST" autocomplete="off" action="">
-                                    <div class="collapse show" id="collapseCardExample3">                                    
+                                    <div class="collapse show" id="collapseCardExample3">                                   
                                         <div class="card-body p-3">
                                             <div class="row">    
                                                 <div class="col-md-3"><div class="form-group"><label>차량번호</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car"></i></span></div><input type="number" maxlength="4" class="form-control" name="my_car_num2" required></div></div></div>
@@ -163,7 +165,7 @@
                                     <h6 class="m-0 font-weight-bold text-primary">증빙</h6>
                                 </a>
                                 <form method="POST" autocomplete="off" action="" enctype="multipart/form-data"> 
-                                    <div class="collapse show" id="collapseCardExample4">                                    
+                                    <div class="collapse show" id="collapseCardExample4">                                   
                                         <div class="card-body p-3">
                                             <div class="row">    
                                                 <div class="col-md-4"><div class="form-group"><label>차량번호</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car"></i></span></div><input type="number" maxlength="4" class="form-control" name="my_car_num3" required></div></div></div>
@@ -183,7 +185,7 @@
                                     <h6 class="m-0 font-weight-bold text-primary">관리자</h6>
                                 </a>
                                 <form method="POST" autocomplete="off" action=""> 
-                                    <div class="collapse" id="collapseCardExample6">                                    
+                                    <div class="collapse" id="collapseCardExample6">                                   
                                         <div class="card-body p-3">
                                             <div class="row">    
                                                 <div class="col-md-6"><div class="form-group"><label>차량번호 또는 all 명령어</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car"></i></span></div><input type="text" maxlength="4" class="form-control" name="my_car_num5" required></div></div></div>
@@ -243,9 +245,7 @@
                                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">전기 (급속/비회원)</div>
                                             <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo htmlspecialchars($row44->OIL_PRICE ?? '0', ENT_QUOTES, 'UTF-8'); ?> 원</div>
                                         </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-bolt fa-2x text-gray-300"></i>
-                                        </div>
+                                        <div class="col-auto"><i class="fas fa-bolt fa-2x text-gray-300"></i></div>
                                     </div>
                                 </div>
                             </div>
@@ -269,7 +269,25 @@
                                                     <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">경로</div><div class="col-8 small"><?= htmlspecialchars($row['DEPARTURE']) ?> → <?= htmlspecialchars($row['DESTINATION']) ?></div></div>
                                                     <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">주행/톨비</div><div class="col-8 small"><?= htmlspecialchars($row['KM']) ?> / <?= htmlspecialchars($row['TOLL_GATE']) ?></div></div>
                                                     <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">기록일</div><div class="col-8 small"><?= htmlspecialchars($row['SEARCH_DATE']) ?></div></div>
-                                                    <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">정산(L)</div><div class="col-8 small"><?= htmlspecialchars($row['GIVE_OIL']) ?></div></div>
+                                                    <div class="row mb-1"><div class="col-4 small font-weight-bold text-gray-600">정산</div>
+                                                        <div class="col-8 small">
+                                                            <?php 
+                                                                if ($row['CAR_OIL'] === '전기') {
+                                                                    echo htmlspecialchars($row['GIVE_OIL']) . " 원";
+                                                                    // [수정] GIVE_CHECK가 'Y'인 경우에만 괄호(L 환산) 출력
+                                                                    if ($row['GIVE_CHECK'] === 'Y') {
+                                                                        $km = (float)$row['KM'];
+                                                                        $toll = (int)$row['TOLL_GATE'];
+                                                                        $gPrice = ($gasoline_price_for_view > 0) ? $gasoline_price_for_view : 1;
+                                                                        $literEquiv = ceil(($km / 10) + ($toll / $gPrice));
+                                                                        echo " <span class='text-primary'>(" . $literEquiv . " L)</span>";
+                                                                    }
+                                                                } else {
+                                                                    echo htmlspecialchars($row['GIVE_OIL']) . " L";
+                                                                }
+                                                            ?>
+                                                        </div>
+                                                    </div>
                                                     <div class="row mb-0">
                                                         <div class="col-4 small font-weight-bold text-gray-600">사진</div>
                                                         <div class="col-8 small">
@@ -317,13 +335,26 @@
                                                             </td>
                                                             <td><?= htmlspecialchars($row['SEARCH_DATE']) ?></td>
                                                             <td>
-                                                                <?= htmlspecialchars($row['GIVE_OIL']) ?> 
-                                                                <?= ($row['CAR_OIL'] === '전기') ? '원' : 'L' ?>
+                                                                <?php 
+                                                                    if ($row['CAR_OIL'] === '전기') {
+                                                                        echo htmlspecialchars($row['GIVE_OIL']) . " 원";
+                                                                        // [수정] GIVE_CHECK가 'Y'인 경우에만 괄호(L 환산) 출력
+                                                                        if ($row['GIVE_CHECK'] === 'Y') {
+                                                                            $km = (float)$row['KM'];
+                                                                            $toll = (int)$row['TOLL_GATE'];
+                                                                            $gPrice = ($gasoline_price_for_view > 0) ? $gasoline_price_for_view : 1;
+                                                                            $literEquiv = ceil(($km / 10) + ($toll / $gPrice));
+                                                                            echo "<br><small class='text-primary'>(" . $literEquiv . " L)</small>";
+                                                                        }
+                                                                    } else {
+                                                                        echo htmlspecialchars($row['GIVE_OIL']) . " L";
+                                                                    }
+                                                                ?>
                                                             </td>
                                                         </tr>
                                                     <?php endforeach; ?> 
                                                 </tbody>
-                                            </table>                                     
+                                            </table>
                                         </div>
                                     </div>
                                 </div>

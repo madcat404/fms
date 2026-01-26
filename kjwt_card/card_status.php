@@ -7,9 +7,12 @@
     // =============================================
 
     // Using include_once and __DIR__ for robustness
-    include_once __DIR__ . '/../session/ip_session.php';    
+    //require_once __DIR__ . '/../session/session_check.php';     
+    //include '../FUNCTION.php';
+    require_once __DIR__ .'/../session/session_check.php';
     include_once __DIR__ . '/../DB/DB2.php';
     include_once __DIR__ . '/../DB/DB3.php'; // For $connect3
+    include_once __DIR__ . '/../FUNCTION.php';
 
     // This script might be run as a cron job, ensure $Hyphen_today is defined.
     if (!isset($Hyphen_today)) {

@@ -4,7 +4,7 @@
 // Create date: 21.09.30
 // Description: fms 리뉴얼
 // =============================================
-require_once 'session/session_check.php';
+require_once './session/session_check.php';
 
 // Function to generate card HTML
 function generateCard($href, $icon, $text) {
@@ -38,7 +38,8 @@ $cards = [
         ["./kjwt_sign/sign_select.php", "fa-file-signature", "교육회람"],    
         ["./kjwt_human/human.php", "fa-users", "HR"],
         ["./kjwt_facility/facility.php", "fa-tools", "시설"],
-        ["./kjwt_safety/safety.php", "fa-hard-hat", "안전"]
+        ["./kjwt_safety/safety.php", "fa-hard-hat", "안전"],
+        ["./kjwt_qr/qr.php", "fa-qrcode", "QR코드"]
     ],
     '전산' => [
         ["./index.php", "fa-arrow-left", "뒤로가기"],

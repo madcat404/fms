@@ -18,11 +18,10 @@
      */
 
     // 중요: 인증/세션 로직은 보안을 위해 반드시 활성화해야 합니다.
-    include '../session/ip_session.php'; 
-    
+    require_once __DIR__ . '/../session/session_check.php';     
     // Composer autoload를 사용하여 PhpSpreadsheet 라이브러리를 로드합니다.
-    require_once '../vendor/autoload.php';
-    include '../DB/DB2.php';
+    require_once __DIR__ . '/../vendor/autoload.php';
+    include_once __DIR__ . '/../DB/DB2.php';    
     
     use PhpOffice\PhpSpreadsheet\Spreadsheet;
     use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -31,9 +30,6 @@
     use PhpOffice\PhpSpreadsheet\Style\Fill;
 
     ini_set('memory_limit', '1024M');
-    // 오류가 엑셀 파일을 깨뜨리는 것을 방지하기 위해, 운영 환경에서는 오류 표시를 끄는 것이 좋습니다.
-    // error_reporting(0);
-    // ini_set('display_errors', 0);
 
     // --- 입력 값 검증 ---
     $s_dt3 = $_GET["s_dt"] ?? null;

@@ -15,10 +15,10 @@
     } 
     
     // 종료 날짜 설정
-    $endDate = '2025-09-01';
+    $endDate = '2026-01-01';
 
-    include '../session/ip_session.php'; 
-    include '../DB/DB2.php';  
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';        
 
     if ($send >= $endDate) {
         $filename = '../../../../mnt3/blacklistHASH/'.$send.'.csv'; // 읽어들일 엑셀 파일의 경로와 파일명을 지정한다.

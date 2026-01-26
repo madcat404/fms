@@ -9,8 +9,9 @@ declare(strict_types=1); // PHP 8.x 호환성: 엄격한 타입 모드를 활성
 	// =============================================
     
     //★DB연결 및 함수사용
-    include '../session/ip_session.php';
-    include '../DB/DB2.php';
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
+    include_once __DIR__ . '/../FUNCTION.php';
 
     //★ Helper functions for fetching monthly data to reduce code repetition.
 

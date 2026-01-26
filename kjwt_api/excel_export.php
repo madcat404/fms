@@ -7,9 +7,9 @@
     // =============================================
 
     // --- Setup and Includes ---
-    include '../session/ip_session.php';
-    include '../DB/DB2.php';
-    require_once '../vendor/autoload.php';
+    require_once __DIR__ . '/../session/session_check.php';
+    require_once __DIR__ . '/../vendor/autoload.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
 
     use PhpOffice\PhpSpreadsheet\IOFactory;
     use PhpOffice\PhpSpreadsheet\Shared\Date;

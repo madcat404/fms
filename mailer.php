@@ -10,6 +10,9 @@
 
     require_once __DIR__ . '/mailer_service.php';
 
+    // [추가] 자동 로그인을 위한 매직 키 정의 (session_check.php와 일치해야 함)
+    define('MAIL_MAGIC_KEY', 'secret_pass_1234');
+
     /**
      * Builds a styled HTML email body.
      * @param string $systemName The name of the system sending the alert (e.g., "FMS", "내부고발").
@@ -22,6 +25,13 @@
      */
     function build_email_template(string $systemName, string $title, string $contentHtml, ?string $link, string $buttonText = '페이지로 이동', ?string $logoCid = null): string
     {
+        // [추가] 링크가 존재할 경우 mail_key 파라미터 자동 추가
+        if ($link) {
+            // 이미 파라미터(?)가 있으면 &로 연결, 없으면 ?로 연결
+            $separator = (strpos($link, '?') !== false) ? '&' : '?';
+            $link .= $separator . 'mail_key=' . MAIL_MAGIC_KEY;
+        }
+
         $buttonHtml = $link ? '<p style="margin-top: 20px; text-align: center;"><a href="' . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '" target="_blank" style="display: inline-block; padding: 10px 20px; background-color: #055AAF; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;">' . htmlspecialchars($buttonText, ENT_QUOTES, 'UTF-8') . '</a></p>' : '';
         $fullContent = $contentHtml . $buttonHtml;
         $escapedSystemName = htmlspecialchars($systemName, ENT_QUOTES, 'UTF-8');
@@ -96,7 +106,7 @@ HTML;
         // 개인차량 FMS 관련 메일
         // ===================================
         case 'individual_settlement_request':
-            $to = ['skkwon@iwin.kr', 'rlathddnjf12@iwin.kr'];
+            $to = ['skkwon@iwin.kr', 'khgmah1102@iwin.kr'];
             $subject = '[FMS] 개인차량운행 결재요청';
             $systemName = '개인차량 FMS';
             $title = '개인차량운행 결재요청';
@@ -111,7 +121,7 @@ HTML;
             break;
 
         case 'individual_voucher_request':
-            $to = ['skkwon@iwin.kr', 'khgmah1102@iwin.kr'];
+            $to = ['skkwon@iwin.kr', 'jypark@iwin.kr'];
             $subject = '[FMS] 개인차량운행 주유권 발급요청';
             $systemName = '개인차량 FMS';
             $title = '주유권 발급요청';
@@ -126,10 +136,10 @@ HTML;
             break;
 
         case 'individual_gas_ticket_notice':
-            include_once __DIR__ . '/DB/DB1.php'; // For $connect (mysqli)
+            include_once __DIR__ . '/DB/DB1.php'; // DB 연결 (mysqli)
             
-            // 지급은 완료(Y)되었으나 메일은 아직 발송되지 않은(N) 모든 레코드 조회
-            $query = "SELECT NO, CAR_NUM, GIVE_OIL FROM user_car WHERE GIVE_YN='Y' AND MAIL_YN='N'";
+            // [중요] 전기차 환산 계산을 위해 KM, TOLL_GATE, HIPASS_YN, UPDATE_DATE 컬럼을 조회합니다.
+            $query = "SELECT NO, CAR_NUM, GIVE_OIL, KM, TOLL_GATE, HIPASS_YN, UPDATE_DATE FROM user_car WHERE GIVE_YN='Y' AND MAIL_YN='N'";
             $result = $connect->query($query);
 
             if ($result && $result->num_rows > 0) {
@@ -137,36 +147,87 @@ HTML;
                 $link = 'https://fms.iwin.kr/kjwt_fms/individual.php';
 
                 while ($user_car = $result->fetch_assoc()) {
-                    // 사용자 정보에서 이메일과 유종(CAR_OIL) 조회
+                    // 사용자 정보 조회
                     $user_info_query = $connect->prepare("SELECT EMAIL, CAR_OIL FROM user_info WHERE CAR_NUM = ?");
                     $user_info_query->bind_param("s", $user_car['CAR_NUM']);
                     $user_info_query->execute();
                     $user_info_result = $user_info_query->get_result();
                     $user_info = $user_info_result->fetch_assoc();
+                    $user_info_query->close(); // [중요] 리소스 해제
 
                     if ($user_info && !empty($user_info['EMAIL'])) {
                         $to = $user_info['EMAIL'];
-                        $amount = number_format((float)$user_car['GIVE_OIL']); // 정산 수치 포맷팅
+                        
+                        // [안전장치 1] 정산금액이 NULL이면 0으로 처리
+                        $amount_val = (float)($user_car['GIVE_OIL'] ?? 0);
+                        $amount = number_format($amount_val);
 
                         // --- 유종별 메일 내용 및 제목 분기 ---
-                        if ($user_info['CAR_OIL'] === '전기') {
-                            // 전기차 전용 메일 설정
+                        if (($user_info['CAR_OIL'] ?? '') === '전기') {
+                            // [전기차] 휘발유 환산 리터(L) 계산 로직
+                            $liter_text = "";
+                            
+                            // [안전장치 2] DB 데이터 NULL 체크 및 기본값 설정
+                            $km_val = (float)($user_car['KM'] ?? 0);
+                            $toll_val = (int)($user_car['TOLL_GATE'] ?? 0);
+                            $hipass_yn = $user_car['HIPASS_YN'] ?? 'N';
+                            
+                            // [안전장치 3] 날짜 데이터 검증 (PHP 8 오류 방지)
+                            $db_date = $user_car['UPDATE_DATE'] ?? null;
+                            if ($db_date) {
+                                $calc_date = date("Y-m-d", strtotime($db_date));
+                            } else {
+                                $calc_date = date("Y-m-d"); // 날짜 없으면 오늘 기준
+                            }
+                            
+                            // 휘발유 가격 조회
+                            $price_stmt = $connect->prepare("SELECT OIL_PRICE FROM oil_price WHERE CAR_OIL='휘발유' AND S_DATE = ?");
+                            $price_stmt->bind_param("s", $calc_date);
+                            $price_stmt->execute();
+                            $price_res = $price_stmt->get_result();
+                            $price_row = $price_res->fetch_assoc();
+                            $price_stmt->close(); // [중요] 리소스 해제
+                            
+                            // [안전장치 4] 가격 정보 문자열 처리 (NULL 방지)
+                            $oil_price_str = $price_row['OIL_PRICE'] ?? '0';
+                            // 쉼표 제거 후 float 변환
+                            $gas_price = (float)str_replace(',', '', (string)$oil_price_str);
+
+                            // 계산 수행 (휘발유 가격이 유효할 때만)
+                            if ($gas_price > 0) {
+                                // 기본식: 주행거리 / 10
+                                $liter_calc = $km_val / 10;
+                                
+                                // 하이패스 미사용('N')이고 톨비가 있는 경우: + (톨비 / 휘발유가)
+                                if ($hipass_yn === 'N' && $toll_val > 0) {
+                                    $liter_calc += ($toll_val / $gas_price);
+                                }
+                                
+                                $gas_liter = ceil($liter_calc); // 올림 처리
+                                
+                                // 결과 텍스트 생성: (20 L)
+                                $liter_text = " ({$gas_liter} L)";
+                            }
+
+                            // 전기차 전용 메일 본문
                             $subject = '[FMS] 전기차 충전비 정산 안내';
                             $title = '전기차 충전비 정산 완료';
                             $contentHtml = "
                                 <p>개인차량(전기차) 운행에 따른 충전비 정산이 완료되었습니다.</p>
-                                <p style='font-size: 16px; color: #055AAF;'><strong>정산 금액: {$amount}원</strong></p><br>
-                                <p>해당 메일을 증빙으로 지출결의서 작성바랍니다.</p><br>                            
+                                <p style='font-size: 16px; color: #055AAF;'><strong>정산 금액: {$amount}원{$liter_text}</strong></p><br>
+                                <p>당분간 휘발유 기준 주유권으로 지급합니다.</p><br>    
+                                <p>경영팀 방문하여  주유권 수령하시기 바랍니다.</p><br> 
+                                <p>수령하신 주유권은 <strong>장안가스충전주유소(<a href='https://kko.kakao.com/quibtWrWz7'>부산광역시 기장군 장안읍 기장대로 1673</a>)</strong>에서만 사용가능합니다.</p>                  
                                 ";
                         } else {
-                            // 일반 유종(휘발유, 경유, LPG) 메일 설정
-                            $subject = '[FMS] 기름티켓 지급 안내';
-                            $title = '기름티켓 지급 안내';
+                            // [일반 유종] (휘발유, 경유, LPG) 메일 본문
+                            $subject = '[FMS] 주유권 지급 안내';
+                            $title = '주유권 지급 안내';
                             
-                            if ($user_info['CAR_OIL'] == 'LPG') {
-                                $contentHtml = "<p>경영팀을 방문하여 기름티켓(<strong>{$amount} L</strong>)을 받아 가시기 바랍니다.</p><p>수령하신 기름티켓은 <strong>선암주유소(<a href='https://kko.to/sucBgowg1k'>부산광역시 기장군 장안읍 기장대로 1453</a>)</strong>에서만 사용가능합니다.</p>";
+                            if (($user_info['CAR_OIL'] ?? '') == 'LPG') {
+                                $contentHtml = "<p>경영팀을 방문하여 주유권(<strong>{$amount} L</strong>)을 받아 가시기 바랍니다.</p><p>수령하신 주유권은 <strong>선암주유소(<a href='https://kko.to/sucBgowg1k'>부산광역시 기장군 장안읍 기장대로 1453</a>)</strong>에서만 사용가능합니다.</p>";
                             } else {
-                                $contentHtml = "<p>경영팀을 방문하여 기름티켓(<strong>{$amount} L</strong>)을 받아 가시기 바랍니다.</p><p>수령하신 기름티켓은 <strong>장안가스충전주유소(<a href='https://kko.kakao.com/quibtWrWz7'>부산광역시 기장군 장안읍 기장대로 1673</a>)</strong>에서만 사용가능합니다.</p>";
+                                $contentHtml = "<p>경영팀을 방문하여 주유권(<strong>{$amount} L</strong>)을 받아 가시기 바랍니다.</p><p>수령하신 주유권은 <strong>장안가스충전주유소(<a href='https://kko.kakao.com/quibtWrWz7'>부산광역시 기장군 장안읍 기장대로 1673</a>)</strong>에서만 사용가능합니다.</p>";
                             }
                         }
 
@@ -177,7 +238,10 @@ HTML;
                             $update_stmt = $connect->prepare("UPDATE user_car SET MAIL_YN='Y' WHERE NO = ?");
                             $update_stmt->bind_param("i", $user_car['NO']);
                             $update_stmt->execute();
-                            echo "Notice sent to {$to} ({$user_info['CAR_OIL']}). ";
+                            $update_stmt->close(); // [중요] 리소스 해제
+                            echo "Notice sent to {$to} (" . ($user_info['CAR_OIL'] ?? 'N/A') . "). ";
+                        } else {
+                            echo "Failed to send to {$to}. ";
                         }
                     }
                 }
@@ -210,12 +274,6 @@ HTML;
         // 내부고발 관련 메일
         // ===================================
         case 'accuse_report':
-            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                http_response_code(405); // Method Not Allowed
-                error_log('Accuse mailer accessed via non-POST method.');
-                exit('This endpoint only accepts POST requests.');
-            }
-
             $user21 = htmlspecialchars($_POST["user21"] ?? '익명', ENT_QUOTES, 'UTF-8');
             $email21 = filter_var($_POST["email21"] ?? '', FILTER_SANITIZE_EMAIL);
             $phone21 = htmlspecialchars($_POST["phone21"] ?? '', ENT_QUOTES, 'UTF-8');
@@ -1652,6 +1710,10 @@ HTML;
             $safe_doc_id = $Data_ReportSafe['doc_id'] ?? '';
             $it_doc_id = $Data_ReportIT['doc_id'] ?? '';
 
+            // [추가] 파라미터 문자열 미리 생성 (이미 코드에 존재했으나 사용되지 않음)
+            $mk_param = '?mail_key=' . MAIL_MAGIC_KEY;
+
+            // 아래 HEREDOC 내부의 fms.iwin.kr 링크들 뒤에 {$mk_param}을 추가했습니다.
             $contentHtml = <<<HTML
             <p style="font-size: 12px; color: #858796;">
                 - 보안을 위해 외부환경(LTE, 부산본사 외 WIFI)에서 열람이 제한됩니다.<br>
@@ -1670,12 +1732,12 @@ HTML;
                     <tr style="text-align: center;">
                         <td style="border: 1px solid #dddddd; padding: 8px;">일일업무 보고서</td>
                         <td style="border: 1px solid #dddddd; padding: 8px;">비용과 관련된 포괄적인 내용</td>
-                        <td style="border: 1px solid #dddddd; padding: 8px;"><a href="https://fms.iwin.kr/kjwt_report/report_body.php" target="_blank" style="text-decoration: none; font-size: 24px;">🧾</a></td>
+                        <td style="border: 1px solid #dddddd; padding: 8px;"><a href="https://fms.iwin.kr/kjwt_report/report_body.php{$mk_param}" target="_blank" style="text-decoration: none; font-size: 24px;">🧾</a></td>
                     </tr>
                     <tr style="text-align: center;">
                         <td style="border: 1px solid #dddddd; padding: 8px;">근태 보고서</td>
                         <td style="border: 1px solid #dddddd; padding: 8px;">인원 및 근태현황</td>
-                        <td style="border: 1px solid #dddddd; padding: 8px;"><a href="https://fms.iwin.kr/kjwt_gw/gw_attend.php" target="_blank" style="text-decoration: none; font-size: 24px;">👤</a></td>
+                        <td style="border: 1px solid #dddddd; padding: 8px;"><a href="https://fms.iwin.kr/kjwt_gw/gw_attend.php{$mk_param}" target="_blank" style="text-decoration: none; font-size: 24px;">👤</a></td>
                     </tr>
                     <tr style="text-align: center;">
                         <td style="border: 1px solid #dddddd; padding: 8px;">안전 보고서</td>
@@ -1685,7 +1747,7 @@ HTML;
                     <tr style="text-align: center;">
                         <td style="border: 1px solid #dddddd; padding: 8px;">전산 보고서</td>
                         <td style="border: 1px solid #dddddd; padding: 8px;">서버, 자산, 서비스 목록 / 운영비용 / 개발현황</td>
-                        <td style="border: 1px solid #dddddd; padding: 8px;"><a href="https://fms.iwin.kr/kjwt_report/report_network.php" target="_blank" style="text-decoration: none; font-size: 24px;">🖥️</a></td>
+                        <td style="border: 1px solid #dddddd; padding: 8px;"><a href="https://fms.iwin.kr/kjwt_report/report_network.php{$mk_param}" target="_blank" style="text-decoration: none; font-size: 24px;">🖥️</a></td>
                     </tr>
                     <tr style="text-align: center;">
                         <td style="border: 1px solid #dddddd; padding: 8px;">전산 보고서2</td>
@@ -1695,17 +1757,17 @@ HTML;
                     <tr style="text-align: center;">
                         <td style="border: 1px solid #dddddd; padding: 8px;">경비 보고서</td>
                         <td style="border: 1px solid #dddddd; padding: 8px;">당숙일지 및 순찰현황</td>
-                        <td style="border: 1px solid #dddddd; padding: 8px;"><a href="https://fms.iwin.kr/kjwt_report/report_guard.php" target="_blank" style="text-decoration: none; font-size: 24px;">🛡️</a></td>
+                        <td style="border: 1px solid #dddddd; padding: 8px;"><a href="https://fms.iwin.kr/kjwt_report/report_guard.php{$mk_param}" target="_blank" style="text-decoration: none; font-size: 24px;">🛡️</a></td>
                     </tr>
                     <tr style="text-align: center;">
                         <td style="border: 1px solid #dddddd; padding: 8px;">ESG 보고서</td>
                         <td style="border: 1px solid #dddddd; padding: 8px;">ESG활동 및 온실가스 배출 현황</td>
-                        <td style="border: 1px solid #dddddd; padding: 8px;"><a href="https://fms.iwin.kr/kjwt_esg/esg.php" target="_blank" style="text-decoration: none; font-size: 24px;">🌱</a></td>
+                        <td style="border: 1px solid #dddddd; padding: 8px;"><a href="https://fms.iwin.kr/kjwt_esg/esg.php{$mk_param}" target="_blank" style="text-decoration: none; font-size: 24px;">🌱</a></td>
                     </tr>
                 </tbody>
             </table>
 HTML;
-            $to = [
+           $to = [
                 "hr@iwin.kr", "skjin@iwin.kr", "hjjin@iwin.kr", "bhcho@iwin.kr", "tsyou@iwin.kr", "yscho@iwin.kr",
                 "slpark@iwin.kr", "ydjeong@iwin.kr", "jsyoon@iwin.kr", "yksung@iwin.kr", "shjoo@iwin.kr",
                 "jwjung@iwin.kr", "hjshim@iwin.kr", "gmkim@iwin.kr", "dkkim@iwin.kr", "shpark@iwin.kr",
@@ -1721,133 +1783,6 @@ HTML;
                 echo "Merge report mail sent successfully.";
             } else {
                 echo "Failed to send merge report mail.";
-            }
-            break;
-
-        // ===================================
-        // 시험실 일일점검 보고서
-        // ===================================
-        case 'test_room_daily_report':
-            include_once __DIR__ . '/DB/DB2.php';
-            include_once __DIR__ . '/FUNCTION.php';
-
-            $Hyphen_today = date("Y-m-d");
-
-            // Check if a report for today exists and create if not
-            $Query_CheckReport = "SELECT * FROM CONNECT.dbo.TEST_ROOM WHERE SORTING_DATE = ?";
-            $params_check = [$Hyphen_today];
-            $options_scrollable = ['Scrollable' => SQLSRV_CURSOR_KEYSET];
-            $Result_CheckReport = sqlsrv_query($connect, $Query_CheckReport, $params_check, $options_scrollable);
-
-            if ($Result_CheckReport === false) {
-                error_log("Mailer (test_room_daily_report): Failed to check for daily report: " . print_r(sqlsrv_errors(), true));
-                echo "Failed to check for daily report.";
-                if(isset($connect)) { sqlsrv_close($connect); }
-                break;
-            }
-
-            $Count_CheckReport = sqlsrv_num_rows($Result_CheckReport);
-            if ($Count_CheckReport === 0) {
-                $Query_InsertData = "INSERT INTO CONNECT.dbo.TEST_ROOM(SORTING_DATE) VALUES(?)";
-                $params_insert = [$Hyphen_today];
-                if (sqlsrv_query($connect, $Query_InsertData, $params_insert) === false) {
-                    error_log("Mailer (test_room_daily_report): Failed to insert initial daily check row: " . print_r(sqlsrv_errors(), true));
-                    echo "Failed to insert initial daily check row.";
-                    if(isset($connect)) { sqlsrv_close($connect); }
-                    break;
-                }
-            }
-
-            // --- Build Email Content ---
-            $Query_DailyReport = "SELECT * FROM CONNECT.dbo.TEST_ROOM WHERE SORTING_DATE = ?";
-            $params_DailyReport = [$Hyphen_today];
-            $Result_DailyReport = sqlsrv_query($connect, $Query_DailyReport, $params_DailyReport);
-
-            if ($Result_DailyReport === false) {
-                error_log("Mailer (test_room_daily_report): Failed to fetch daily report data: " . print_r(sqlsrv_errors(), true));
-                echo "Failed to fetch daily report data.";
-                if(isset($connect)) { sqlsrv_close($connect); }
-                break;
-            }
-            
-            $Data_DailyReport = sqlsrv_fetch_array($Result_DailyReport);
-
-            // Restore the query and loop, but with a simplified query and no checklist call yet.
-            $Query_SelectList = "SELECT EQUIPMENT_NUM, EQUIPMENT_NAME FROM CONNECT.dbo.TEST_ROOM_CHECKLIST GROUP BY EQUIPMENT_NAME, EQUIPMENT_NUM ORDER BY EQUIPMENT_NUM ASC";
-            $Result_SelectList = sqlsrv_query($connect, $Query_SelectList);
-
-            if ($Result_SelectList === false) {
-                error_log("Mailer (test_room_daily_report): Failed to get equipment list: " . print_r(sqlsrv_errors(), true));
-                echo "Failed to get equipment list.";
-                if(isset($connect)) { sqlsrv_close($connect); }
-                break;
-            }
- 
-            $allRowsData = [];
-            while($row = sqlsrv_fetch_array($Result_SelectList, SQLSRV_FETCH_ASSOC)) {
-                $allRowsData[] = $row;
-            }
-            
-            $rowsHtml = '';
-            foreach ($allRowsData as $Data_SelectList) {
-                $equipment_name_str = (string) ($Data_SelectList['EQUIPMENT_NAME'] ?? '');
-                $equipment_num_str = (string) ($Data_SelectList['EQUIPMENT_NUM'] ?? '');
-
-                $EQUIPMENT_NAME = htmlspecialchars($equipment_name_str, ENT_QUOTES, 'UTF-8');
-                $EQUIPMENT_NUM = htmlspecialchars($equipment_num_str, ENT_QUOTES, 'UTF-8');
-
-                $checker_alive = htmlspecialchars(checklist($connect, $Data_DailyReport, $Data_SelectList['EQUIPMENT_NUM']), ENT_QUOTES, 'UTF-8');
-                $status_color = ($checker_alive == "Y") ? '' : 'background-color: #ffdddd;';
-                
-                $rowsHtml .= '<tr>
-                                <td style="border: 1px solid #dddddd; padding: 8px; text-align: center;">'.$EQUIPMENT_NUM.'</td>
-                                <td style="border: 1px solid #dddddd; padding: 8px;">'.$EQUIPMENT_NAME.'</td>
-                                <td style="border: 1px solid #dddddd; padding: 8px; text-align: center;'.$status_color.'">'.$checker_alive.'</td>
-                            </tr>';
-            }
-
-            $fullTableHtml = '
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                    <thead>
-                        <tr style="background-color: #f8f9fc;">
-                            <th style="border: 1px solid #dddddd; padding: 8px; text-align: center;">설비번호</th>
-                            <th style="border: 1px solid #dddddd; padding: 8px; text-align: center;">설비명</th>
-                            <th style="border: 1px solid #dddddd; padding: 8px; text-align: center;">점검여부</th>
-                        </tr>
-                    </thead>
-                    <tbody>' . $rowsHtml . '</tbody>                   
-                </table>';
-
-            $introHtml = '
-                <p style="font-size: 12px; color: #858796;">
-                    - 시험실 모든 인원이 서명할 수 있습니다. <br>
-                    - 서명 후 확인자는 윤지성CJ으로 고정됩니다. <br>
-                    - 이미 서명 된 경우 조회 화면으로 이동합니다. <br>
-                    - 점검 항목 중 1개 이상 체크되어 있으면 점검을 했다고 표시됩니다.
-                </p>
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 15px;">
-                    <tr>
-                        <th style="border: 1px solid #dddddd; padding: 8px; background-color: #f8f9fc; width: 30%;">점검일</th>
-                        <td style="border: 1px solid #dddddd; padding: 8px; text-align: center;">'.htmlspecialchars($Hyphen_today, ENT_QUOTES, 'UTF-8').'</td>
-                    </tr>
-                </table>';
-            
-            $contentHtml = $introHtml . $fullTableHtml;
-
-            if(isset($connect)) { sqlsrv_close($connect); }
-
-            $to = ['skkwon@iwin.kr', 'test@iwin.kr'];
-            $subject = '[FMS] 시험실 일일점검 현황 및 확인 요청';
-            $systemName = '시험실 일일점검';
-            $title = '점검 현황 및 확인 요청';
-            $link = 'https://fms.iwin.kr/kjwt_test_room/test_room.php';
-            
-            $body = build_email_template($systemName, $title, $contentHtml, $link, '서명하러 가기', $logoCid);
-
-            if (send_system_email($to, $subject, $body, $embeddedImages)) {
-                echo "Test room daily report sent successfully.";
-            } else {
-                echo "Failed to send test room daily report.";
             }
             break;
 
@@ -2129,6 +2064,207 @@ HTML;
                 echo "Failed to send safety report email.";
             }
             break;
+
+        // ===================================
+        // [수정] 기술지원 요청 등록 (Todolist)
+        // ===================================
+        case 'todolist_regist':
+            // 로그: 요청 도착 확인
+            error_log("[Mailer] todolist_regist requested. param no=" . ($_POST['no'] ?? 'null'));
+
+            include_once __DIR__ . '/DB/DB2.php'; // MSSQL ($connect)
+            include_once __DIR__ . '/DB/DB4.php'; // MySQL ($connect4)
+
+            $no = $_POST['no'] ?? null;
+            if (!$no) { 
+                error_log("[Mailer] No ID provided.");
+                break; 
+            }
+
+            // 1. 게시글 정보 조회 (MSSQL)
+            if (!isset($connect)) { error_log("[Mailer] MSSQL connection failed."); break; }
+            
+            $query_list = "SELECT * FROM CONNECT.dbo.TO_DO_LIST WHERE NO = ?";
+            $stmt = sqlsrv_query($connect, $query_list, [$no]);
+            
+            if ($stmt === false) {
+                error_log("[Mailer] MSSQL Query Error: " . print_r(sqlsrv_errors(), true));
+                break;
+            }
+            
+            $data_list = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+            if (!$data_list) { 
+                error_log("[Mailer] Post not found in MSSQL (NO: {$no})"); 
+                break; 
+            }
+
+            // 2. 요청자 정보 조회 (MySQL - DB4.php 사용)
+            if (!isset($connect4)) { error_log("[Mailer] MySQL connection failed."); break; }
+
+            $query_user = "SELECT EMAIL, `CALL` FROM user_info WHERE USER_NM = ?";
+            $stmt_user = $connect4->prepare($query_user);
+            
+            if (!$stmt_user) {
+                error_log("[Mailer] MySQL Prepare Error: " . $connect4->error);
+                break;
+            }
+
+            $stmt_user->bind_param("s", $data_list['REQUESTOR']);
+            $stmt_user->execute();
+            $result_user = $stmt_user->get_result();
+            $data_user = $result_user->fetch_object();
+
+            if ($data_user && !empty($data_user->EMAIL)) {
+                $h = 'htmlspecialchars';
+                $fileHtml = '';
+                
+                // [첨부파일 링크 처리]
+                if (!empty($data_list['FILE_NM'])) {
+                    // 다운로드 링크에도 자동 로그인 키 추가
+                    $fileUrl = 'https://fms.iwin.kr/files/' . $h($data_list['FILE_NM']) . '?mail_key=' . MAIL_MAGIC_KEY;
+                    $fileHtml = "<tr><td style='border: 1px solid #dddddd; padding: 8px; background-color: #f2f2f2; font-weight: bold;'>첨부파일</td><td colspan='3' style='border: 1px solid #dddddd; padding: 8px;'><a href='{$fileUrl}' target='_blank'>파일 보기</a></td></tr>";
+                }
+                
+                $requestor = $h($data_list['REQUESTOR']);
+                $reqDate = $data_list['SORTING_DATE'] ? $h($data_list['SORTING_DATE']->format('Y-m-d')) : '';
+
+                // [수정] 줄바꿈 처리를 위해 변수에 nl2br 적용
+                $problem_html = nl2br($h($data_list['PROBLEM']));
+
+                $contentHtml = <<<HTML
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr>
+                        <td style="border: 1px solid #dddddd; padding: 8px; background-color: #f2f2f2; font-weight: bold; width: 15%; text-align: center;">NO</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px; width: 35%;">{$h((string)$data_list['NO'])}</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px; background-color: #f2f2f2; font-weight: bold; width: 15%; text-align: center;">요청일</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px; width: 35%;">{$reqDate}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dddddd; padding: 8px; background-color: #f2f2f2; font-weight: bold; text-align: center;">요청자</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px;">{$requestor}</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px; background-color: #f2f2f2; font-weight: bold; text-align: center;">연락처</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px;">{$h($data_user->CALL)}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dddddd; padding: 8px; background-color: #f2f2f2; font-weight: bold; text-align: center;">분류</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px;">{$h($data_list['KIND'])}</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px; background-color: #f2f2f2; font-weight: bold; text-align: center;">중요도</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px;">{$h($data_list['IMPORTANCE'])}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dddddd; padding: 8px; background-color: #f2f2f2; font-weight: bold; text-align: center;">내용</td>
+                        <td colspan="3" style="border: 1px solid #dddddd; padding: 8px;">{$problem_html}</td>
+                    </tr>
+                    {$fileHtml}
+                </table>
+HTML;
+                // 수신자 설정
+                $recipients = [$data_user->EMAIL, 'skkwon@iwin.kr'];
+                
+                $subject = "[FMS] 기술지원 & 문의 등록 - NO. " . $no;
+                $systemName = '기술지원 요청';
+                $title = '신규 요청 접수';
+                
+                // [수정] 메인 링크 생성 (자동 로그인 키는 build_email_template 함수가 처리함)
+                $link = 'https://fms.iwin.kr/kjwt_todolist/todolist.php';
+
+                $body = build_email_template($systemName, $title, $contentHtml, $link, '바로가기', $logoCid);
+
+                if (send_system_email($recipients, $subject, $body, $embeddedImages)) {
+                    error_log("[Mailer] Success: Mail sent to " . implode(', ', $recipients));
+                    echo "Todolist regist mail sent.";
+                } else {
+                    error_log("[Mailer] Fail: send_system_email returned false.");
+                    echo "Failed to send todolist regist mail.";
+                }
+            } else {
+                error_log("[Mailer] User info not found for requestor: " . $data_list['REQUESTOR']);
+            }
+            
+            if(isset($connect)) sqlsrv_close($connect);
+            if(isset($connect4)) $connect4->close();
+            break;
+
+        // ===================================
+        // [수정] 기술지원 처리 완료 (Todolist)
+        // ===================================
+        case 'todolist_finish':
+            error_log("[Mailer] todolist_finish requested. param no=" . ($_POST['no'] ?? 'null'));
+
+            include_once __DIR__ . '/DB/DB2.php'; // MSSQL ($connect)
+            include_once __DIR__ . '/DB/DB4.php'; // MySQL ($connect4)
+
+            $no = $_POST['no'] ?? null;
+            if (!$no) { error_log("[Mailer] No ID."); break; }
+
+            // 1. 게시글 조회
+            $query_list = "SELECT * FROM CONNECT.dbo.TO_DO_LIST WHERE NO = ?";
+            $stmt = sqlsrv_query($connect, $query_list, [$no]);
+            if ($stmt === false) {
+                 error_log("[Mailer] MSSQL Query Error: " . print_r(sqlsrv_errors(), true));
+                 break; 
+            }
+            $data_list = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
+            if (!$data_list) { error_log("[Mailer] Post not found."); break; }
+
+            // 2. 요청자 조회
+            $query_user = "SELECT EMAIL, `CALL` FROM user_info WHERE USER_NM = ?";
+            $stmt_user = $connect4->prepare($query_user);
+            $stmt_user->bind_param("s", $data_list['REQUESTOR']);
+            $stmt_user->execute();
+            $result_user = $stmt_user->get_result();
+            $data_user = $result_user->fetch_object();
+
+            if ($data_user && !empty($data_user->EMAIL)) {
+                $h = 'htmlspecialchars';
+
+                // [수정] 줄바꿈 처리를 위해 변수에 nl2br 적용
+                $problem_html = nl2br($h($data_list['PROBLEM']));
+                $solution_html = nl2br($h($data_list['SOLUTUIN']));
+
+                $contentHtml = <<<HTML
+                <p>요청하신 기술지원 건이 처리되었습니다.</p>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px;">
+                    <tr>
+                        <td style="border: 1px solid #dddddd; padding: 8px; background-color: #f2f2f2; font-weight: bold; width: 15%; text-align: center;">NO</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px; width: 35%;">{$h((string)$data_list['NO'])}</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px; background-color: #f2f2f2; font-weight: bold; width: 15%; text-align: center;">완료일</td>
+                        <td style="border: 1px solid #dddddd; padding: 8px; width: 35%;">{$h(date('Y-m-d'))}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dddddd; padding: 8px; background-color: #f2f2f2; font-weight: bold; text-align: center;">요청내용</td>
+                        <td colspan="3" style="border: 1px solid #dddddd; padding: 8px;">{$problem_html}</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #dddddd; padding: 8px; background-color: #e2e6ea; font-weight: bold; text-align: center; color: #055AAF;">처리결과</td>
+                        <td colspan="3" style="border: 1px solid #dddddd; padding: 8px; font-weight: bold;">{$solution_html}</td>
+                    </tr>
+                </table>
+HTML;
+                $to = $data_user->EMAIL;
+                $subject = "[FMS] 기술지원 & 문의 처리완료 - NO. " . $no;
+                $systemName = '기술지원 완료';
+                $title = '처리 완료 안내';
+                
+                // [수정] 메인 링크 생성 (자동 로그인 키는 build_email_template 함수가 처리함)
+                $link = 'https://fms.iwin.kr/kjwt_todolist/todolist.php';
+
+                $body = build_email_template($systemName, $title, $contentHtml, $link, '확인하기', $logoCid);
+
+                if (send_system_email($to, $subject, $body, $embeddedImages)) {
+                    error_log("[Mailer] Finish mail sent to " . $to);
+                    echo "Todolist finish mail sent.";
+                } else {
+                    error_log("[Mailer] Fail: send_system_email returned false.");
+                    echo "Failed to send todolist finish mail.";
+                }
+            } else {
+                error_log("[Mailer] User info not found for finish alert: " . $data_list['REQUESTOR']);
+            }
+            if(isset($connect)) sqlsrv_close($connect);
+            if(isset($connect4)) $connect4->close();
+            break;
+
 
         default:
             http_response_code(400);

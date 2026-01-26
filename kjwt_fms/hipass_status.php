@@ -6,7 +6,7 @@
     // Last Modified: <25.09.29> - Refactored for PHP 8.x and security.
     // =============================================
   
-    include 'fms_session.php';
+    require_once __DIR__ . '/../session/session_check.php';
     include_once __DIR__ . '/../DB/DB1.php';
     
     // PHP 8.x and security enhancements

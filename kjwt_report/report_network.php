@@ -39,15 +39,14 @@
     $maintenance_costs = [
         ['알약(서버)', '1년', '9.30', '2,700,000', '서버 백신 (6copy)'],
         ['알약(사용자)', '1년', '1.28', '2,380,000', '사용자 백신 (70copy)'],
-        ['캐드', '1년', '1.23', '1,240,000', '기술연구소 S/W'],
+        ['캐드', '1년', '1.23', '1,420,000', '기술연구소 S/W'],
         ['카티아', '1년', '2.11', '32,400,000', '기술연구소 S/W'],
         ['PDM', '1년', '1.31', '9,000,000', '도면관리 프로그램'],
         ['ERP', '1년', '2.28', '22,000,000', '자원관리 프로그램'],
         ['스팸필터', '1년', '4.30', '1,150,000', '스팸메일 필터 (120유저)'],
-        ['도메인1', '1년', '1.5', '28,600', 'Iwin.kr 사용료'],
-        ['도메인2', '1년', '3.25', '57,200', 'Iwinauto.kr / iwinplus.kr 사용료'],
+        ['도메인1', '3년', '1.5', '70,200', 'Iwin.kr 사용료'],
         ['SSL 인증서', '1년', '5.20', '484,000', 'HTTPS 보안 인증서'],
-        ['그룹웨어', '1년', '11.26', '5,614,000', '-'],
+        ['그룹웨어', '1년', '11.26', '5,614,000', '26년 그룹웨어 변경계획으로 인하여 유지보수 계약 연장 안함'],
         ['네트워크, 서버 유지보수', '1개월', '-', '1,036,666', '-'],
     ];
 
@@ -173,7 +172,7 @@
                                                     <!-- Card Content - Collapse -->
                                                     <div class="collapse show" id="collapseCardExample11">
                                                         <div class="card-body table-responsive p-2">  
-                                                            - 24년 1월 기준<br>       
+                                                            - 25년 2월 기준<br>       
                                                             <br>
                                                             [가상화]<br>
                                                             - 이전에는 서비스당 실물 서버컴퓨터 1대씩 구매해야 했음<br>
@@ -434,7 +433,7 @@
                                                     <!-- Card Content - Collapse -->
                                                     <div class="collapse show" id="collapseCardExample51">
                                                         <div class="card-body table-responsive p-2">  
-                                                            - 25년 2월 기준<br>
+                                                            - 26년 1월 기준<br>
                                                             <br>
                                                             [알약]<br>
                                                             - 제일 저렴한 카스퍼스키 러시아 백신을 사용하다가 우크라이나 전쟁 때 외산 백신 백도어 이슈로 국산 백신으로 교체함<br>
@@ -493,7 +492,7 @@
                                                                         <?php endforeach; ?>
                                                                         <tr>
                                                                             <td colspan="3" style="vertical-align: middle; text-align: center;">1년 지출 금액</td>
-                                                                            <td colspan="2" style="vertical-align: middle; text-align: center;">89,493,792</td>            
+                                                                            <td colspan="2" style="vertical-align: middle; text-align: center;">89,611,392</td>            
                                                                         </tr>                                                                                                                                        
                                                                     </tbody>
                                                                 </table> 

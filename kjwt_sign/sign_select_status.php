@@ -8,13 +8,14 @@
     
     //★DB연결 및 함수사용
     //esg활동 같이 바깥에서 싸인해야 하는 경우도 있으므로 세션 확인안함
-    include '../FUNCTION.php';
-    include '../DB/DB2.php'; 
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
+    include_once __DIR__ . '/../FUNCTION.php';
 
 
     //★매뉴 진입 시 탭활성화
     $tab_sequence=2; 
-    include '../TAB.php';    
+    include_once __DIR__ . '/../TAB.php';   
       
 
     //★변수모음   

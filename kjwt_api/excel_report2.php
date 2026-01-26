@@ -4,101 +4,128 @@
     // Create date: <23.06.13>
     // Description: <품질 엑셀 데이터 db 자동 업로드>
     // Last Modified: <25.09.15> - Refactored for PHP 8.x, Security, and Stability
+    // Update Note: <26.01.06> - 연도 판단 알고리즘 고도화 (C1 + 데이터 기반 작년 감지)
     // =============================================
 
     // --- Setup and Includes ---
-    set_time_limit(0);
-    include '../session/ip_session.php';
-    include '../DB/DB2.php';
-    require_once '../vendor/autoload.php';
+    set_time_limit(0); // 실행 시간 제한 없음
+    
+    // 경로에 맞게 include 파일 수정 필요 (사용자 환경 기준 유지)
+    require_once __DIR__ . '/../session/session_check.php';
+    require_once __DIR__ . '/../vendor/autoload.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
 
     use PhpOffice\PhpSpreadsheet\IOFactory;
+    use PhpOffice\PhpSpreadsheet\Shared\Date; 
 
     // --- Main Execution ---
     echo "일일 품질 보고서 처리를 시작합니다.<br>";
 
     try {
-        // --- 1. 날짜 변수 설정 ---
+        // --- 1. 기본 날짜 변수 설정 (시스템 기준) ---
         $today = new DateTime();
         $tomorrow = (new DateTime())->modify('+1 day');
 
-        $YY = $today->format('Y');
-        $MM = (int)$today->format('n');   // Month without leading zero (e.g., 1, 2)
-        $MM2 = $today->format('m');  // Month with leading zero (e.g., 01, 02)
-        $D = $today->format('j');    // Day without leading zero (e.g., 1, 2)
-        $D2 = $today->format('d');   // Day with leading zero (e.g., 01, 02)
+        $YY  = $today->format('Y');    // 기본값: 현재 연도 (예: 2026)
+        $MM  = (int)$today->format('n'); // 현재 월 (예: 1)
+        $MM2 = $today->format('m');    
+        $D   = $today->format('j');    
+        $D2  = $today->format('d');    
+        
         $Plus1Day_formatted = $tomorrow->format('Y-m-d');
 
-        // --- 다양한 파일명 형식 시도 ---
-        $base_filename_path = "../../../../mnt4/{$YY}년/{$MM}월/일일현황보고";
-        $possible_date_formats = [
-            "({$MM2}월 {$D}일).xlsx",      // 01월 5일
-            "({$MM2}월 {$D2}일).xlsx",     // 01월 05일
-            "({$MM}월 {$D}일).xlsx",       // 1월 5일
-            "({$MM}월 {$D2}일).xlsx"      // 1월 05일
+        // --- 2. 다양한 파일명 형식 탐색 ---
+        $base_path_prefix = "../../../../mnt4/{$YY}년/{$MM}월/일일현황보고";
+        
+        $possible_suffixes = [
+            "({$MM2}월 {$D}일).xlsx",   
+            "({$MM2}월 {$D2}일).xlsx",  
+            "({$MM}월 {$D}일).xlsx",    
+            "({$MM}월 {$D2}일).xlsx"    
         ];
 
-        $found_filename = false;
-        $filename = "";
-        foreach ($possible_date_formats as $format) {
-            $candidate_filename = $base_filename_path . $format;
-            if (is_readable($candidate_filename)) {
-                $filename = $candidate_filename;
-                $found_filename = true;
-                break;
+        $filename = null; 
+
+        foreach ($possible_suffixes as $suffix) {
+            $temp_path = $base_path_prefix . $suffix;
+            if (is_readable($temp_path)) {
+                $filename = $temp_path;
+                echo "파일을 찾았습니다: " . htmlspecialchars($filename, ENT_QUOTES, 'UTF-8') . "<br>";
+                break; 
             }
         }
 
-        // --- 2. DB 및 파일 확인 ---
+        // --- 3. DB 연결 및 파일 확인 ---
         if ($connect === false) {
             throw new Exception("데이터베이스 연결에 실패했습니다.");
         }
-        if (!$found_filename) {
-            throw new Exception("엑셀 파일을 찾을 수 없거나 읽을 수 없습니다. 시도된 경로: " . implode(', ', array_map(function($f) use ($base_filename_path) { return $base_filename_path . $f; }, $possible_date_formats)));
+
+        if ($filename === null || !is_readable($filename)) {
+            $search_hint = htmlspecialchars($base_path_prefix, ENT_QUOTES, 'UTF-8') . "(...날짜...).xlsx";
+            throw new Exception("엑셀 파일을 찾을 수 없습니다.<br>탐색 경로 패턴: {$search_hint}");
+        }
+
+        // --- 4. 엑셀 파일 로드 및 연도 판단 로직 ---
+        $spreadsheet = IOFactory::load($filename);
+        $worksheet = $spreadsheet->getSheet(0); 
+        
+        // [단계 1] C1 셀 기반 1차 연도 감지
+        $c1Cell = $worksheet->getCell('C1');
+        $c1Value = $c1Cell->getCalculatedValue();
+        $detectedYear = null;
+
+        if (Date::isDateTime($c1Cell)) {
+            $detectedYear = Date::excelToDateTimeObject($c1Value)->format('Y');
+        } else {
+            $formattedValue = $c1Cell->getFormattedValue();
+            if (preg_match('/(20\d{2})/', (string)$formattedValue, $matches)) {
+                $detectedYear = $matches[1];
+            } elseif (preg_match('/(\d{4})/', (string)$formattedValue, $matches)) {
+                $detectedYear = $matches[1];
+            }
         }
         
-        echo "대상 파일: " . htmlspecialchars($filename, ENT_QUOTES, 'UTF-8') . "<br>";
-
-        // --- 3. 엑셀 파일 처리 및 연도 결정 ---
-        $spreadsheet = IOFactory::load($filename);
-        $worksheet = $spreadsheet->getSheet(0);
-
-        // C1셀의 날짜/연도 값을 기준으로 YY, MM 변수 조정
-        $c1Cell = $worksheet->getCell('C1');
-        $c1Value = $c1Cell->getValue();
-        $excelYear = null;
-
-        if (\PhpOffice\PhpSpreadsheet\Shared\Date::isDateTime($c1Cell)) {
-             // 셀이 날짜 형식일 경우 (e.g., 2025-12-03)
-            $excelTimestamp = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToTimestamp($c1Value);
-            $excelYear = (int)date('Y', $excelTimestamp);
-        } elseif (is_string($c1Value) && preg_match('/^(\d{4})/', $c1Value, $matches)) {
-            // 셀이 'YYYY...' 형식의 문자열일 경우
-            $excelYear = (int)$matches[1];
-        } else if (is_numeric($c1Value) && $c1Value > 1900 && $c1Value < 3000) {
-            // 셀에 연도만 숫자로 적혀있을 경우 (e.g., 2025)
-            $excelYear = (int)$c1Value;
+        if ($detectedYear) {
+            if ($detectedYear != $YY) {
+                echo "엑셀(C1)에서 연도 감지: <b>{$detectedYear}년</b>으로 1차 설정.<br>";
+                $YY = $detectedYear; 
+            }
         }
 
-        if ($excelYear !== null && $excelYear == ((int)$YY - 1)) {
-            echo "감지: 이전 연도({$excelYear})의 최종 보고서입니다. 데이터 처리를 위해 연도와 월을 조정합니다.<br>";
-            $YY = $excelYear; // DB 작업을 위해 YY를 엑셀 파일 기준으로 변경
-            $MM = 13;         // 1월부터 13월(결산)까지 처리하도록 MM을 13으로 설정
+        // [단계 2] 데이터 기반 2차 연도 검증 (요청하신 로직 추가)
+        // 조건: 현재가 1월인데, '시트히터 베트남 폐기(O열)'의 10월 데이터(50행)가 존재하면 작년으로 판단
+        // (41행이 1월이므로, 10월은 41 + 9 = 50행)
+        
+        if ($MM == 1 or $MM == 2) { // 현재 시스템 월이 1~2월인 경우에만 체크
+            $checkCol = 'O'; // 베트남 폐기 컬럼
+            $checkRow = 50;  // 10월 데이터 행 (41 + 10 - 1)
+            
+            $checkValue = $worksheet->getCell($checkCol . $checkRow)->getCalculatedValue();
+            $checkValue = is_numeric($checkValue) ? $checkValue : 0;
+
+            if ($checkValue > 0) {
+                $prevYear = (string)((int)$today->format('Y') - 1); // 작년 연도 계산
+                echo "<span style='color:blue; font-weight:bold;'>[알고리즘 감지]</span> 현재 1월이나 엑셀에 10월 데이터(값: {$checkValue})가 확인됩니다.<br>";
+                echo "-> C1 값({$YY})을 무시하고, <b>작년({$prevYear}년)</b> 데이터로 확정하여 처리합니다.<br>";
+                $YY = $prevYear; // 연도를 작년으로 강제 변경
+            }
         }
 
-        // --- 4. 결정된 연도의 기존 QC 데이터 삭제 ---
-        echo "기존 QC 데이터 삭제 중 (연도: {$YY})... ";
+        // --- 5. 확정된 연도($YY)의 기존 QC 데이터 삭제 ---
+        echo "기존 QC 데이터 삭제 중 (대상 연도: {$YY})... ";
+        
         $deleteSql = "DELETE FROM CONNECT.dbo.QC WHERE YY = ? AND KIND IN ('시트히터', '핸들', '통풍')";
         $deleteStmt = sqlsrv_query($connect, $deleteSql, [$YY]);
+        
         if ($deleteStmt === false) {
             throw new Exception("기존 데이터 삭제 실패: " . print_r(sqlsrv_errors(), true));
         }
         echo "완료.<br>";
-        
-        $totalInsertCount = 0;
-        echo "<hr>데이터 입력을 시작합니다...<br>";
 
-        // --- 데이터 블록 정의 ---
+        // --- 6. 데이터 입력 시작 ---
+        $totalInsertCount = 0;
+        echo "<hr>데이터 입력을 시작합니다... (적용 연도: <b>{$YY}</b>)<br>";
+
         $dataBlocks = [
             '시트히터' => [
                 'startRow' => 41,
@@ -123,53 +150,31 @@
             ]
         ];
 
-        // --- 데이터 처리 루프 ---
         foreach ($dataBlocks as $kind => $block) {
             echo "<b>- {$kind} 데이터 처리 중...</b><br>";
             $sheetInsertCount = 0;
-
-            if ($MM === 13) { // Special handling for MM=13 (year-end summary/total)
-                $monthToInsert = 13;
-                $rowNum = $block['startRow'] + $monthToInsert - 1; // Read from the 13th row (e.g., summary row)
+            
+            for ($month = 1; $month <= 13; $month++) {
+                $rowNum = $block['startRow'] + $month - 1;
+                
                 foreach ($block['definitions'] as $col => $kind2) {
                     try {
                         $cellValue = $worksheet->getCell($col . $rowNum)->getCalculatedValue();
                         $money = is_numeric($cellValue) ? $cellValue : 0;
 
                         $insertSql = "INSERT INTO CONNECT.dbo.QC(KIND, KIND2, YY, MM, M_MONEY, SORTING_DATE) VALUES (?, ?, ?, ?, ?, ?)";
-                        $insertParams = [$kind, $kind2, $YY, $monthToInsert, $money, $Plus1Day_formatted];
+                        $insertParams = [$kind, $kind2, $YY, $month, $money, $Plus1Day_formatted];
                         
                         $insertStmt = sqlsrv_query($connect, $insertSql, $insertParams);
+                        
                         if ($insertStmt === false) {
-                            throw new Exception("INSERT 실패 (KIND: {$kind}, KIND2: {$kind2}, 월: {$monthToInsert})");
+                            $errors = print_r(sqlsrv_errors(), true);
+                            throw new Exception("INSERT 실패 (KIND: {$kind}, KIND2: {$kind2}, 월: {$month}) - DB Error: {$errors}");
                         }
                         $sheetInsertCount++;
+                        
                     } catch (Throwable $t) {
-                        error_log("오류 (KIND: {$kind}, 월: {$monthToInsert}, 컬럼: {$col}): " . $t->getMessage());
-                        continue;
-                    }
-                }
-            } else { // Normal monthly processing (1 to current MM)
-                // 1월부터 현재 월까지만 반복
-                for ($month = 1; $month <= $MM; $month++) {
-                    $rowNum = $block['startRow'] + $month - 1;
-                    foreach ($block['definitions'] as $col => $kind2) {
-                        try {
-                            $cellValue = $worksheet->getCell($col . $rowNum)->getCalculatedValue();
-                            $money = is_numeric($cellValue) ? $cellValue : 0;
-
-                            $insertSql = "INSERT INTO CONNECT.dbo.QC(KIND, KIND2, YY, MM, M_MONEY, SORTING_DATE) VALUES (?, ?, ?, ?, ?, ?)";
-                            $insertParams = [$kind, $kind2, $YY, $month, $money, $Plus1Day_formatted];
-                            
-                            $insertStmt = sqlsrv_query($connect, $insertSql, $insertParams);
-                            if ($insertStmt === false) {
-                                throw new Exception("INSERT 실패 (KIND: {$kind}, KIND2: {$kind2}, 월: {$month})");
-                            }
-                            $sheetInsertCount++;
-                        } catch (Throwable $t) {
-                            error_log("오류 (KIND: {$kind}, 월: {$month}, 컬럼: {$col}): " . $t->getMessage());
-                            continue;
-                        }
+                        error_log("오류 발생 (KIND: {$kind}, 월: {$month}, 컬럼: {$col}): " . $t->getMessage());
                     }
                 }
             }
@@ -178,13 +183,13 @@
         }
 
         echo "<hr><h2>최종 처리 완료</h2>";
-        echo "총 {$totalInsertCount}개의 레코드가 성공적으로 추가되었습니다.<br>";
+        echo "총 {$totalInsertCount}개의 레코드가 성공적으로 추가되었습니다. (적용 연도: {$YY})<br>";
 
     } catch (Throwable $t) {
         echo "<h2 style='color:red;'>스크립트 실행 중 심각한 오류가 발생했습니다</h2>";
         echo "<pre>" . htmlspecialchars($t->getMessage(), ENT_QUOTES, 'UTF-8') . "</pre>";
     } finally {
-        if (isset($connect4)) { mysqli_close($connect4); }
-        if (isset($connect)) { sqlsrv_close($connect); }
+        if (isset($connect4) && $connect4) { @mysqli_close($connect4); }
+        if (isset($connect) && $connect) { sqlsrv_close($connect); }
     }
 ?>

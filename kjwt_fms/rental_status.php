@@ -4,14 +4,15 @@
 	// Create date: <20.03.03>
 	// Description:	<법인차 운행일지 status>
 	// Last Modified: <25.10.20> - Refactored for PHP 8.x	
-    // =============================================	
+    // Last Modified: <Current Date> - Combined Damage & Return Logic for Mobile
+	// =============================================	
 
     //★DB연결 및 함수사용
-    //include '../session/ip_session.php';  
-    include '../DB/DB1.php';
-    include '../DB/DB3.php';
-    include '../DB/DB6.php';
-    include '../FUNCTION.php'; 
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB1.php';
+	include_once __DIR__ . '/../DB/DB3.php';
+	include_once __DIR__ . '/../DB/DB6.php';
+	include_once __DIR__ . '/../FUNCTION.php';
     
 
     //★메뉴 진입 시 탭활성화
@@ -222,6 +223,47 @@
 		$note = $_POST["note"];
 		$car4 = substr($car, 7, 4);
 
+        // [추가 로직] 반납 요청 시 파손 정보(damage24)가 함께 넘어왔다면(모바일) 먼저 업데이트 처리
+        $mobile_damage = $_POST["damage24"] ?? null;
+        if($mobile_damage) {
+            $uploadDir = "../files/";
+            // 1. 파손 여부 업데이트
+            $update_damage_query = $connect->prepare("UPDATE car_current SET DAMAGE_YN = ? WHERE CAR_NM = ? AND NO IN (SELECT MAX(NO) FROM car_current WHERE CAR_NM = ? GROUP BY CAR_NM)");
+            $update_damage_query->bind_param("sss", $mobile_damage, $car, $car);
+            $update_damage_query->execute();
+
+            // 2. 파일 업로드 (Y인 경우)
+            if($mobile_damage == 'Y' && isset($_FILES['file24'])) {
+                $upload_success = false;
+                foreach ($_FILES['file24']['name'] as $key => $name) {
+                    if ($_FILES['file24']['error'][$key] == UPLOAD_ERR_OK) {
+                        $tmpName = $_FILES['file24']['tmp_name'][$key];
+                        $fileExt = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+                        $name_date = date("Y-m-d_H-i-s");
+                        $uniqueName = $word2 . "_" . $name_date . "_" . $car . "_" . $key . "." . $fileExt;
+                        $filePath = $uploadDir . $uniqueName;
+
+                        if (move_uploaded_file($tmpName, $filePath)) {
+                            $query = $connect->prepare("INSERT INTO files (CAR_NUM, IMG_TYPE, FILE_NM, U_DATE, N_DATE, S_DATE, CHECK_YN, VIEW_YN, FILE_EXTENSION) VALUES (?, 'Damage', ?, ?, ?, ?, '-', '-', ?)");
+                            $query->bind_param("ssssss", $car, $uniqueName, $name_date, $name_date, $name_date, $fileExt);
+                            $query->execute();
+                            $upload_success = true;
+                        }
+                    }
+                }
+                if($upload_success) {
+                    $update_upload_yn = $connect->prepare("UPDATE car_current SET UPLOAD_YN = 'Y' WHERE CAR_NM = ? AND NO IN (SELECT MAX(NO) FROM car_current WHERE CAR_NM = ? GROUP BY CAR_NM)");
+                    $update_upload_yn->bind_param("ss", $car, $car);
+                    $update_upload_yn->execute();
+                }
+            } else {
+                 // N or E
+                 $update_upload_yn = $connect->prepare("UPDATE car_current SET UPLOAD_YN = 'N' WHERE CAR_NM = ? AND NO IN (SELECT MAX(NO) FROM car_current WHERE CAR_NM = ? GROUP BY CAR_NM)");
+                 $update_upload_yn->bind_param("ss", $car, $car);
+                 $update_upload_yn->execute();
+            }
+        }
+
         // 파손 유무를 먼저 입력했는지 확인
         $check_damage_stmt = $connect->prepare("SELECT DAMAGE_YN FROM car_current WHERE NO IN (SELECT MAX(NO) FROM car_current WHERE CAR_NM = ?)");
         $check_damage_stmt->bind_param("s", $car);
@@ -292,7 +334,7 @@
 					$query->bind_param("ssssss", $car4, $uniqueName, $DT, $name_date, $Hyphen_today, $fileExt);
 					$query->execute();
 
-					echo "<script>alert('업로드 완료!');</script>";
+					// echo "<script>alert('업로드 완료!');</script>"; // 모바일 플로우 끊김 방지
 				}								
 			}
 			else {
@@ -343,7 +385,7 @@
                         curl_close($ch);
 					}					
 
-					echo "<script>alert('차량 외관을 확인하고 경비실에 차키를 반납하세요!');location.href='rental_lastpic.php';</script>";
+					echo "<script>alert('차량 외관을 확인하고 경비실에 차키를 반납하세요!');</script>";
 				}
 				ELSE {
 					echo "<script>alert('출발 KM보다 작은 수를를 입력하였습니다. 정확한 KM를 입력하세요!');location.href='rental.php';</script>";	

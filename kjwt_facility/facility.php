@@ -1,21 +1,23 @@
 <?php
 // kjwt_facility/facility.php
-// 시설 관리 페이지 (시간 표시 제거 + 날짜 입력 + 등록 탭 최근 5건)
-
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// 시설 관리 페이지 (보안 공유 URL 기능 적용)
 
 session_start();
 
+require_once __DIR__ .'/../session/session_check.php';
+
 // 1. DB 연결
 if (file_exists('../DB/DB2.php')) {
-    include_once '../DB/DB2.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
 } else {
     die("오류: DB 연결 파일을 찾을 수 없습니다. (../DB/DB2.php 경로 확인 필요)");
 }
 
+// [중요] facility_view.php와 반드시 동일한 키여야 합니다.
+$secret_key = 'iwin_fms_secure_share_key_2026';
+
 if (file_exists('../FUNCTION.php')) {
-    include_once '../FUNCTION.php';
+    include_once __DIR__ . '/../FUNCTION.php';
 }
 
 // 2. CSRF 토큰
@@ -29,11 +31,9 @@ $active_tab = isset($_POST['btSearch']) ? 'tab4' : (isset($_GET['tab']) ? $_GET[
 
 // 4. [기본 데이터 조회] 최근 내역 (등록 탭용)
 $historyList = [];
-$total_cost = 0;
-$total_count = 0;
 
 if (isset($connect) && $connect) {
-    // 등록 탭용 최근 50건 (통계 및 리스트용)
+    // 등록 탭용 최근 50건
     $sql = "SELECT TOP 50 LogID, Location, IssueDescription, Resolution, RepairCost, PhotoPath, CreatedAt 
             FROM Facility 
             ORDER BY CreatedAt DESC";
@@ -80,6 +80,18 @@ function truncateText($text, $width = 30) {
     if (empty($text)) return '';
     return htmlspecialchars(mb_strimwidth($text, 0, $width, '...', 'UTF-8'));
 }
+
+// [공통 함수] 보안 공유 링크 생성 (토큰 포함)
+function generateShareLink($logID, $secret_key) {
+    $token = hash_hmac('sha256', $logID, $secret_key);
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http";
+    // 윈도우 환경 경로(\)를 URL 슬래시(/)로 치환
+    $dir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+    // 끝에 슬래시가 없으면 추가, 있으면 그대로
+    $dir = rtrim($dir, '/') . '/';
+    
+    return "{$protocol}://{$_SERVER['HTTP_HOST']}{$dir}facility_view.php?LogID={$logID}&token={$token}";
+}
 ?>
 
 <!DOCTYPE html>
@@ -120,33 +132,33 @@ function truncateText($text, $width = 30) {
     </style>
 
     <script>
-        function shareFacilityLink(logID, location, issue) {
-            let baseUrl = window.location.href.split('?')[0]; 
-            if (baseUrl.indexOf('facility.php') !== -1) {
-                baseUrl = baseUrl.replace('facility.php', 'facility_view.php');
-            } else {
-                baseUrl = baseUrl.replace(/\/$/, "") + '/facility_view.php';
-            }
-            const targetUrl = baseUrl + "?LogID=" + logID;
-            
+        // 수정됨: PHP에서 완성된 URL(fullUrl)을 직접 받아서 처리
+        function shareFacilityLink(fullUrl, location, issue) {
             const shareData = {
                 title: '시설물 수리 기록 공유',
                 text: `[FMS] ${location} - ${issue}`,
-                url: targetUrl
+                url: fullUrl
             };
 
+            // 1. 모바일 공유 API 지원 시
             if (navigator.share) {
                 navigator.share(shareData)
                     .then(() => console.log('공유 성공'))
                     .catch((error) => console.log('공유 실패', error));
-            } else {
+            } 
+            // 2. PC 또는 미지원 브라우저 (클립보드 복사)
+            else {
                 const tempInput = document.createElement("input");
                 document.body.appendChild(tempInput);
-                tempInput.value = targetUrl;
+                tempInput.value = fullUrl;
                 tempInput.select();
-                document.execCommand("copy");
+                try {
+                    document.execCommand("copy");
+                    alert("공유 링크가 복사되었습니다.\n원하는 곳에 붙여넣기(Ctrl+V) 하세요.");
+                } catch (e) {
+                    prompt("이 주소를 복사하세요:", fullUrl);
+                }
                 document.body.removeChild(tempInput);
-                alert("페이지 주소가 복사되었습니다.\n원하는 곳에 붙여넣기(Ctrl+V) 하세요.");
             }
         }
         
@@ -212,7 +224,8 @@ function truncateText($text, $width = 30) {
                                             [참조]<BR>
                                             - 사진 첨부 시 현장 상황을 더 빠르게 파악할 수 있습니다.<br>
                                             - '등록' 탭에서 최근 5건을 확인할 수 있습니다.<br>
-                                            - '내역 조회' 탭에서 전체 내역 검색 및 엑셀 다운로드가 가능합니다.<br><br>                                           
+                                            - '내역 조회' 탭에서 전체 내역 검색 및 엑셀 다운로드가 가능합니다.<br>
+                                            - <strong>공유하기 기능:</strong> 로그인하지 않은 사용자도 보안 링크를 통해 조회할 수 있습니다.<br><br>                                           
                                         </div>
                                         
                                         <div class="tab-pane fade <?= ($active_tab == 'tab3') ? 'show active' : '' ?>" id="tab3" role="tabpanel">
@@ -292,6 +305,9 @@ function truncateText($text, $width = 30) {
                                                                     <tbody>
                                                                         <?php foreach ($displayList as $row): 
                                                                             $logID = $row['LogID'];
+                                                                            // [수정] 보안 공유 URL 생성
+                                                                            $fullShareUrl = generateShareLink($logID, $secret_key);
+                                                                            
                                                                             $js_loc = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['Location'] ?? ''), ENT_QUOTES);
                                                                             $js_iss = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['IssueDescription'] ?? ''), ENT_QUOTES);
                                                                         ?>
@@ -320,13 +336,13 @@ function truncateText($text, $width = 30) {
                                                                                     </div>
                                                                                 <?php endif; ?>
                                                                             </td>
-                                                                            <td class="text-right"><?= number_format($row['RepairCost']) ?></td>
+                                                                            <td class="text-right"><?= number_format((float)$row['RepairCost']) ?></td>
                                                                             <td class="text-center" onclick="event.stopPropagation()">
                                                                                 <?php if (!empty($row['PhotoPath'])): ?><a href="../<?= htmlspecialchars($row['PhotoPath']) ?>" target="_blank"><img src="../<?= htmlspecialchars($row['PhotoPath']) ?>" class="photo-thumb"></a><?php else: echo "-"; endif; ?>
                                                                             </td>
                                                                             <td class="text-center" onclick="event.stopPropagation()">
                                                                                 <a href="facility_edit.php?LogID=<?= $row['LogID'] ?>" class="btn btn-info btn-sm btn-circle"><i class="fas fa-edit"></i></a>
-                                                                                <button class="btn btn-success btn-sm btn-circle" onclick="shareFacilityLink(<?= $logID ?>, '<?= $js_loc ?>', '<?= $js_iss ?>')"><i class="fas fa-share-alt"></i></button>
+                                                                                <button class="btn btn-success btn-sm btn-circle" onclick="shareFacilityLink('<?= $fullShareUrl ?>', '<?= $js_loc ?>', '<?= $js_iss ?>')"><i class="fas fa-share-alt"></i></button>
                                                                             </td>
                                                                         </tr>
                                                                         <?php endforeach; ?>
@@ -337,6 +353,11 @@ function truncateText($text, $width = 30) {
                                                             <div class="d-md-none">
                                                                 <?php foreach ($displayList as $row): 
                                                                     $logID = $row['LogID'];
+                                                                    // [수정] 모바일용 보안 URL 생성
+                                                                    $fullShareUrl = generateShareLink($logID, $secret_key);
+                                                                    $js_loc = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['Location'] ?? ''), ENT_QUOTES);
+                                                                    $js_iss = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['IssueDescription'] ?? ''), ENT_QUOTES);
+                                                                    
                                                                     $dateStr = isset($row['CreatedAt']) && $row['CreatedAt'] instanceof DateTime ? $row['CreatedAt']->format('Y-m-d') : substr($row['CreatedAt'] ?? '', 0, 10);
                                                                 ?>
                                                                 <div class="card mobile-card mb-3 shadow-sm clickable-row" onclick="goToView(<?= $logID ?>)">
@@ -360,9 +381,10 @@ function truncateText($text, $width = 30) {
                                                                                 <?php if (!empty($row['PhotoPath'])): ?><img src="../<?= htmlspecialchars($row['PhotoPath']) ?>" style="width:50px; height:50px; object-fit:cover; border-radius:4px;"><?php endif; ?>
                                                                             </div>
                                                                             <div class="text-right">
-                                                                                <div class="font-weight-bold mb-1"><?= number_format($row['RepairCost']) ?>원</div>
+                                                                                <div class="font-weight-bold mb-1"><?= number_format((float)$row['RepairCost']) ?>원</div>
                                                                                 <div onclick="event.stopPropagation()">
                                                                                     <a href="facility_edit.php?LogID=<?= $logID ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
+                                                                                    <button class="btn btn-sm btn-success" onclick="shareFacilityLink('<?= $fullShareUrl ?>', '<?= $js_loc ?>', '<?= $js_iss ?>')"><i class="fas fa-share-alt"></i></button>
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -442,6 +464,9 @@ function truncateText($text, $width = 30) {
                                                                             <tbody>
                                                                                 <?php foreach ($searchList as $row): 
                                                                                     $logID = $row['LogID'];
+                                                                                    // [수정] 검색 결과 목록용 보안 URL 생성
+                                                                                    $fullShareUrl = generateShareLink($logID, $secret_key);
+                                                                                    
                                                                                     $js_loc = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['Location'] ?? ''), ENT_QUOTES);
                                                                                     $js_iss = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['IssueDescription'] ?? ''), ENT_QUOTES);
                                                                                 ?>
@@ -470,13 +495,13 @@ function truncateText($text, $width = 30) {
                                                                                             </div>
                                                                                         <?php endif; ?>
                                                                                     </td>
-                                                                                    <td class="text-right"><?= number_format($row['RepairCost']) ?></td>
+                                                                                    <td class="text-right"><?= number_format((float)$row['RepairCost']) ?></td>
                                                                                     <td class="text-center" onclick="event.stopPropagation()">
                                                                                         <?php if (!empty($row['PhotoPath'])): ?><a href="../<?= htmlspecialchars($row['PhotoPath']) ?>" target="_blank"><img src="../<?= htmlspecialchars($row['PhotoPath']) ?>" class="photo-thumb"></a><?php else: echo "-"; endif; ?>
                                                                                     </td>
                                                                                     <td class="text-center" onclick="event.stopPropagation()">
                                                                                         <a href="facility_edit.php?LogID=<?= $row['LogID'] ?>" class="btn btn-info btn-sm btn-circle"><i class="fas fa-edit"></i></a>
-                                                                                        <button class="btn btn-success btn-sm btn-circle" onclick="shareFacilityLink(<?= $logID ?>, '<?= $js_loc ?>', '<?= $js_iss ?>')"><i class="fas fa-share-alt"></i></button>
+                                                                                        <button class="btn btn-success btn-sm btn-circle" onclick="shareFacilityLink('<?= $fullShareUrl ?>', '<?= $js_loc ?>', '<?= $js_iss ?>')"><i class="fas fa-share-alt"></i></button>
                                                                                     </td>
                                                                                 </tr>
                                                                                 <?php endforeach; ?>
@@ -487,6 +512,11 @@ function truncateText($text, $width = 30) {
                                                                     <div class="d-md-none" id="mobile-card-container-history">
                                                                         <?php foreach ($searchList as $row): 
                                                                             $logID = $row['LogID'];
+                                                                            // [수정] 검색 결과 모바일용 보안 URL 생성
+                                                                            $fullShareUrl = generateShareLink($logID, $secret_key);
+                                                                            
+                                                                            $js_loc = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['Location'] ?? ''), ENT_QUOTES);
+                                                                            $js_iss = htmlspecialchars(str_replace(["\r", "\n"], " ", $row['IssueDescription'] ?? ''), ENT_QUOTES);
                                                                             $dateStr = isset($row['CreatedAt']) && $row['CreatedAt'] instanceof DateTime ? $row['CreatedAt']->format('Y-m-d') : substr($row['CreatedAt'] ?? '', 0, 10);
                                                                         ?>
                                                                         <div class="card mobile-card mb-3 shadow-sm clickable-row" onclick="goToView(<?= $logID ?>)">
@@ -510,9 +540,10 @@ function truncateText($text, $width = 30) {
                                                                                         <?php if (!empty($row['PhotoPath'])): ?><img src="../<?= htmlspecialchars($row['PhotoPath']) ?>" style="width:50px; height:50px; object-fit:cover; border-radius:4px;"><?php endif; ?>
                                                                                     </div>
                                                                                     <div class="text-right">
-                                                                                        <div class="font-weight-bold mb-1"><?= number_format($row['RepairCost']) ?>원</div>
+                                                                                        <div class="font-weight-bold mb-1"><?= number_format((float)$row['RepairCost']) ?>원</div>
                                                                                         <div onclick="event.stopPropagation()">
                                                                                             <a href="facility_edit.php?LogID=<?= $logID ?>" class="btn btn-sm btn-info"><i class="fas fa-edit"></i></a>
+                                                                                            <button class="btn btn-sm btn-success" onclick="shareFacilityLink('<?= $fullShareUrl ?>', '<?= $js_loc ?>', '<?= $js_iss ?>')"><i class="fas fa-share-alt"></i></button>
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
@@ -603,12 +634,7 @@ function truncateText($text, $width = 30) {
                                 const dataTransfer = new DataTransfer();
                                 dataTransfer.items.add(newFile);
                                 fileInput.files = dataTransfer.files;
-
-                                // (선택) 줄어든 용량 로그 확인용
-                                // console.log('원본:', (file.size/1024/1024).toFixed(2) + 'MB');
-                                // console.log('압축:', (newFile.size/1024/1024).toFixed(2) + 'MB');
-
-                            }, 'image/jpeg', 0.7); // 0.7 = 70% 품질
+                            }, 'image/jpeg', 0.7); 
                         };
                         img.src = event.target.result;
                     };

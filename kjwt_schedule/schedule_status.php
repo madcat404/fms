@@ -7,7 +7,7 @@
     // =============================================
 
     //★DB연결 및 함수사용
-    include_once __DIR__ . '/../session/ip_session.php';
+    require_once __DIR__ . '/../session/session_check.php';
     include_once __DIR__ . '/../DB/DB3.php'; 
 
 

@@ -7,8 +7,8 @@
     // =============================================
     // --- Setup and Includes ---
     set_time_limit(120);
-    include '../session/ip_session.php';
-    include '../DB/DB2.php'; // For MSSQL $connect
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
 
     /**
      * Fetches the current stock price from Naver Finance.
@@ -139,8 +139,6 @@
         echo "<h2 style='color:red;'>스크립트 실행 중 오류가 발생했습니다</h2>";
         echo "<pre>" . htmlspecialchars($t->getMessage(), ENT_QUOTES, 'UTF-8') . "</pre>";
     } finally {
-        // Close connections
-        if (isset($connect4)) { mysqli_close($connect4); } // From ip_session.php
         if (isset($connect)) { sqlsrv_close($connect); }
     }
 

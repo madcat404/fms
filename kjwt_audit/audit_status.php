@@ -2,13 +2,13 @@
     // =============================================
 	// Author: <KWON SUNG KUN - sealclear@naver.com>	
 	// Create date: <22.06.10>
-	// Description:	<감사>
+	// Description:	<	// Description:	<내부회계>
     // Last Modified: <25.09.18> - Refactored for PHP 8.x, Security, and Performance
     // =============================================
 
     //★DB연결 및 함수사용
-    include_once '../session/ip_session.php';   
-    include_once '../DB/DB2.php'; 
+    require_once __DIR__ . '/../session/session_check.php'; 
+    include_once __DIR__ . '/../DB/DB2.php';
     
     //★변수정의 및 초기화
     $bt21 = $_POST['bt21'] ?? null;

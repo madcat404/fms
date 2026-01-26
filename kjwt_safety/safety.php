@@ -333,6 +333,9 @@
                                             <div class="d-none d-md-block mb-3">
                                                 <h6 class="m-0 font-weight-bold text-primary">산업안전보건법 위반 시 과태료 및 처벌 기준</h6>
                                             </div>
+                                            <p>[해당 열 영어 의미]<br>
+                                                Y: 적용 / N: 미적용 / P: 부분적용 / H: 해당 행위 시점 적용
+                                            </p>
                                             <?php if (empty($safety_law_data)): ?>
                                                 <div class="text-center py-5">등록된 데이터가 없습니다.</div>
                                             <?php else: ?>

@@ -7,9 +7,10 @@
     // =============================================
 
     //★DB연결 및 함수사용
-    include '../session/ip_session.php';
-    include '../DB/DB2.php';
-    include '../DB/DB21.php';
+    //require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';    
+    include_once __DIR__ . '/../DB/DB21.php';   
+    include_once __DIR__ . '/../FUNCTION.php'; 
 
     //★변수정의 (PHP 8.x 호환성을 위해 null 병합 연산자 ?? 사용)
     $modi = $_GET["modi"] ?? null;

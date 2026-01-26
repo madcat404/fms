@@ -7,13 +7,22 @@
 	// =============================================
 
     //★DB연결 및 함수사용
-    include '../session/ip_session.php'; 
-    include '../DB/DB2.php';    
-    include '../DB/DB21.php'; 
+    require_once __DIR__ .'/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';  
+    include_once __DIR__ . '/../DB/DB21.php';  
+    include_once __DIR__ . '/../FUNCTION.php'; 
+
+    // 변수 생성을 여기서 직접 해야 합니다.
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // ★★★ 이 부분이 빠져서 IP가 기록되지 않았던 것입니다. ★★★
+    $sip = $_SERVER['REMOTE_ADDR'];
 
     //★탭활성화
     $tab_sequence=2; 
-    include '../TAB.php';         
+    include_once __DIR__ . '/../TAB.php';        
 
     //★변수모음    
     //PDA - 입력	 

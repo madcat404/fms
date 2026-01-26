@@ -8,9 +8,9 @@
 
     // --- Setup and Includes ---
     set_time_limit(120);
-    include '../session/ip_session.php';
-    include '../DB/DB2.php';
-    require_once dirname(__DIR__) . '/vendor/autoload.php';
+    require_once __DIR__ . '/../session/session_check.php';
+    require_once __DIR__ . '/../vendor/autoload.php';
+    include_once __DIR__ . '/../DB/DB2.php';   
 
     use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -144,7 +144,6 @@
             echo "메일 발송 결과: " . htmlspecialchars($mailResult) . "<br>";
         }
     } finally {
-        if (isset($connect4)) { mysqli_close($connect4); }
         if (isset($connect)) { sqlsrv_close($connect); }
     }
 ?>

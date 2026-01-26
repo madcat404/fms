@@ -1,3 +1,21 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # ----------------------------------------------------------------------
+    # [보안 설정] video 폴더 접근 제어 (Cookie 인증)
+    # 'video_token'이라는 쿠키가 없는 상태로 접근하면 차단합니다.
+    # ----------------------------------------------------------------------
+    # 1. 요청한 주소가 /video/ 폴더인 경우
+    RewriteCond %{REQUEST_URI} ^/video/ [NC]
+    # 2. 'video_token' 쿠키가 'access_granted' 값을 가지고 있지 않다면
+    RewriteCond %{HTTP_COOKIE} !video_token=access_granted [NC]
+    # 3. 차단 (403 Forbidden)
+    RewriteRule ^ - [F]
+
+    # [기존 규칙 유지] files 폴더 뷰어 연결
+    RewriteRule ^files/(.*)$ /session/view_file.php?file=$1 [QSA,L]
+</IfModule>
+
 # ----------------------------------------------------------------------
 # 1. 디렉토리 리스팅 비활성화 (보안 필수)
 # 파일이 없는 폴더에 접속했을 때 파일 목록이 보이는 것을 방지합니다.

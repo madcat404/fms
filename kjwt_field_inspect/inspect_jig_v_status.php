@@ -6,8 +6,9 @@
     // Last Modified: <25.10.13> - Refactored for PHP 8.x
     // =============================================
 
-    include 'inspect_session.php'; 
-    include '../DB/DB2.php';    
+    require_once __DIR__ .'/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';   
+    
 
     //메뉴 진입 시 탭활성화 start
     $tab2 = 'active';

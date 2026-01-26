@@ -7,12 +7,10 @@
     // =============================================	  
     
     // 중요: 인증/세션 로직은 보안을 위해 반드시 활성화해야 합니다.
-    include '../session/ip_session.php'; 
-
-    // Composer autoload를 사용하여 PhpSpreadsheet 라이브러리를 로드합니다.
-    require_once '../vendor/autoload.php';
-    include '../DB/DB2.php';    
-    include_once '../FUNCTION.php'; // Hyphen 함수 및 날짜 변수($Hyphen_today 등)를 위해 명시적으로 포함
+    require_once __DIR__ .'/../session/session_check.php';
+    require_once __DIR__ .'/../vendor/autoload.php';
+    include_once __DIR__ . '/../DB/DB2.php'; 
+    include_once __DIR__ . '/../FUNCTION.php'; 
 
     use PhpOffice\PhpSpreadsheet\Spreadsheet;
     use PhpOffice\PhpSpreadsheet\Writer\Xlsx;

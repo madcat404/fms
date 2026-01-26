@@ -8,8 +8,8 @@
 
     header('Content-Type: text/html; charset=utf-8');
 
-    include '../session/ip_session.php';
-    include '../DB/DB2.php';
+    require_once __DIR__ . '/../session/session_check.php';
+    include_once __DIR__ . '/../DB/DB2.php';  
 
     // --- Configuration ---
     // 보안 참고: API 키를 코드에 직접 저장하는 것은 보안상 위험합니다.

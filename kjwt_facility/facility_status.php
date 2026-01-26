@@ -2,14 +2,13 @@
 // kjwt_facility/facility_status.php
 // 시설 관리 DB 처리 컨트롤러 (날짜 지정 저장 기능 포함)
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 session_start();
+
+require_once __DIR__ .'/../session/session_check.php';
 
 // 1. DB 연결
 if (file_exists('../DB/DB2.php')) {
-    include_once '../DB/DB2.php';
+    include_once __DIR__ . '/../DB/DB2.php';  
 } else {
     echo "<script>alert('DB 연결 파일 없음'); history.back();</script>";
     exit;
