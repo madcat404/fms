@@ -7,7 +7,7 @@
 	// =============================================
 
     // Using include_once to prevent multiple inclusions
-    //require_once __DIR__ . '/../session/session_check.php';
+    require_once __DIR__ . '/../session/session_check.php';
     include_once __DIR__ . '/../FUNCTION.php';
     include_once __DIR__ . '/../DB/DB4.php';  
     include_once __DIR__ . '/../DB/DB2.php';  

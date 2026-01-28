@@ -39,7 +39,8 @@ $cards = [
         ["./kjwt_human/human.php", "fa-users", "HR"],
         ["./kjwt_facility/facility.php", "fa-tools", "시설"],
         ["./kjwt_safety/safety.php", "fa-hard-hat", "안전"],
-        ["./kjwt_qr/qr.php", "fa-qrcode", "QR코드"]
+        ["./kjwt_qr/qr.php", "fa-qrcode", "QR코드"],
+        ["./kjwt_ghp/ghp_repair.php", "fa-wind", "GHP"]
     ],
     '전산' => [
         ["./index.php", "fa-arrow-left", "뒤로가기"],

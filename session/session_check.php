@@ -64,7 +64,9 @@
         // ------------------------------------------------------------------
         // [A] QR 코드 접근 자동 로그인
         // ------------------------------------------------------------------
-        if (isset($_GET['key']) && !empty($_GET['key']) || (isset($_GET['equipment']) && !empty($_GET['equipment']))) {
+        if ((isset($_GET['key']) && !empty($_GET['key'])) || 
+            (isset($_GET['equipment']) && !empty($_GET['equipment'])) || 
+            (isset($_GET['ghp_id']) && !empty($_GET['ghp_id']))) {
             $_SESSION['user_id'] = 'QR_GUEST';       
             $_SESSION['EMP_NAME'] = 'QR접속자';
             $_SESSION['level'] = 'qr_access';        
@@ -271,7 +273,11 @@
                 'guard.php',
                 'test_room_pop.php',
                 'test_room.php',
-                'test_room_process.php'
+                'test_room_process.php',
+                'ghp_repair.php',
+                'ghp_repair_status.php',
+                'ghp_view.php',
+                'ghp_edit.php'
             ];
 
             if (!in_array($current_file, $qr_allowed_files)) {

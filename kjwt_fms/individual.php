@@ -3,7 +3,7 @@
     // Author: <KWON SUNG KUN - sealclear@naver.com>    
     // Create date: <21.10.12>
     // Description: <개인차량운행일지 리뉴얼 (정산 완료 시에만 환산표기)>
-    // Last Modified: <Current Date> - Display Logic Updated (GIVE_CHECK check added)
+    // Last Modified: <Current Date> - PC View: Background Color Only / Mobile: Border Keep
     // =============================================
     include 'individual_status.php';   
 
@@ -47,6 +47,18 @@
         }
     }
 
+    // 로그인 사용자의 데이터를 리스트 최상단으로 정렬
+    if (!empty($login_user_car_num)) {
+        usort($status_data, function($a, $b) use ($login_user_car_num) {
+            $a_is_me = ($a['CAR_NUM'] == $login_user_car_num);
+            $b_is_me = ($b['CAR_NUM'] == $login_user_car_num);
+
+            if ($a_is_me && !$b_is_me) return -1; // 내 데이터는 무조건 위로
+            if (!$a_is_me && $b_is_me) return 1;  // 상대 데이터는 아래로
+            return strcmp($a['CAR_NUM'], $b['CAR_NUM']);
+        });
+    }
+
     // *** 뷰 계산용 휘발유 가격 확보 ***
     $gasoline_price_for_view = $row11->OIL_PRICE ?? 0;
 ?>
@@ -57,6 +69,13 @@
 
 <head>
     <?php include '../head_lv1.php' ?>
+    
+    <style>
+        /* [수정] PC 테이블 뷰: 테두리 제거하고 배경색만 변경 */
+        tr.my-car-row > td {
+            background-color: #ffecec !important; /* 연한 빨간색 배경 */
+        }
+    </style>
     
     <script language="javascript">
         function checkDisable(form)
@@ -69,6 +88,19 @@
             if (filepath) {
                 window.open("../files/" + filepath, "bigimg", "width=800,height=800,scrollbars=yes"); 
             }
+        }
+        
+        // 수정 모달 열기 함수
+        function openEditModal(no, departure, destination, km, toll, car_num) {
+            $('#edit_no').val(no);
+            $('#edit_car_num').val(car_num);
+            $('#edit_departure').val(departure);
+            $('#edit_destination').val(destination);
+            $('#edit_km').val(km);
+            $('#edit_tollgate').val(toll);
+            
+            // 모달 띄우기
+            $('#editModal').modal('show');
         }
     </script>
 </head>
@@ -90,7 +122,6 @@
                     </div>               
 
                     <div class="row"> 
-
                         <div class="col-lg-12"> 
                             <div class="card shadow mb-2">
                                 <a href="#collapseCardExample1" class="d-block card-header py-3" data-toggle="collapse" role="button" aria-expanded="true" aria-controls="collapseCardExample1">
@@ -110,8 +141,8 @@
                                              ※ 검색 시 나오는 평균 연비 5km/kWh 적용 (25.12.26)<br>
                                             - 장안주유소 및 선암가스충전소 실시간 유가를 출력합니다.(한국석유공사 제공)<br>
                                             - ★장안주유소 주소: 부산광역시 기장군 장안읍 기장대로 1673<br>
-                                            - ★선암가스충전소 주소: 부산광역시 기장군 장안읍 기장대로 1451<br>  
-                                        </p>                                            
+                                            - ★선암가스충전소 주소: 부산광역시 기장군 장안읍 기장대로 1451<br>   
+                                        </p>                                                    
                                     </div>
                                 </div>
                             </div>
@@ -126,7 +157,7 @@
                                     <div class="collapse show" id="collapseCardExample2">                                   
                                         <div class="card-body p-3">
                                             <div class="row"> 
-                                                <div class="col-md-3"><div class="form-group"><label>차량번호</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car"></i></span></div><input type="number" maxlength="4" class="form-control" name="my_car_num1" required></div></div></div>
+                                                <div class="col-md-3"><div class="form-group"><label>차량번호</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car"></i></span></div><input type="number" maxlength="4" class="form-control" name="my_car_num1" required value="<?php echo htmlspecialchars($login_user_car_num); ?>"></div></div></div>
                                                 <div class="col-md-3"><div class="form-group"><label>출발지</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span></div><input type="text" class="form-control" name="my_departure" required></div></div></div>
                                                 <div class="col-md-3"><div class="form-group"><label>경유지/목적지</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-route"></i></span></div><input type="text" class="form-control" name="my_destination" required></div></div></div>
                                                 <div class="col-md-3"><div class="form-group"><label>회사하이패스</label><select name="my_hipasscard" class="form-control select2" style="width: 100%;"><option value="" selected="selected">선택</option><option value="">회사하이패스 미사용</option><?php foreach ( $hipass_cards as $option ) : ?><option value="<?php echo htmlspecialchars((string)$option->NO, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($option->KIND, ENT_QUOTES, 'UTF-8'); ?></option><?php endforeach; ?></select></div></div>
@@ -147,7 +178,7 @@
                                     <div class="collapse show" id="collapseCardExample3">                                   
                                         <div class="card-body p-3">
                                             <div class="row">    
-                                                <div class="col-md-3"><div class="form-group"><label>차량번호</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car"></i></span></div><input type="number" maxlength="4" class="form-control" name="my_car_num2" required></div></div></div>
+                                                <div class="col-md-3"><div class="form-group"><label>차량번호</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car"></i></span></div><input type="number" maxlength="4" class="form-control" name="my_car_num2" required value="<?php echo htmlspecialchars($login_user_car_num); ?>"></div></div></div>
                                                 <div class="col-md-3"><div class="form-group"><label>주행거리</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-exchange-alt"></i></span></div><input type="number" class="form-control" name="my_km" step="0.1" required></div></div></div>
                                                 <div class="col-md-3"><div class="form-group"><label>회사 하이패스 잔액</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><input type="checkbox" checked="checked" name="cb2" onClick="checkDisable(this.form)"></span></div><input type="number" disabled class="form-control" name="tollgate" placeholder="사용 시 체크해제 후 입력"></div></div></div>
                                                 <div class="col-md-3"><div class="form-group"><label>톨게이트비(개인지출비)</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><input type="checkbox" checked="checked" name="cb3" onClick="checkDisable(this.form)"></span></div><input type="number" disabled class="form-control" name="tollgate2" placeholder="발생 시 체크해제 후 입력"></div></div></div>
@@ -168,7 +199,7 @@
                                     <div class="collapse show" id="collapseCardExample4">                                   
                                         <div class="card-body p-3">
                                             <div class="row">    
-                                                <div class="col-md-4"><div class="form-group"><label>차량번호</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car"></i></span></div><input type="number" maxlength="4" class="form-control" name="my_car_num3" required></div></div></div>
+                                                <div class="col-md-4"><div class="form-group"><label>차량번호</label><div class="input-group"><div class="input-group-prepend"><span class="input-group-text"><i class="fas fa-car"></i></span></div><input type="number" maxlength="4" class="form-control" name="my_car_num3" required value="<?php echo htmlspecialchars($login_user_car_num); ?>"></div></div></div>
                                                 <div class="col-md-4"><div class="form-group"><label>업로드 파일종류</label><select name="img_type" class="form-control select2" style="width: 100%;"><option value="" selected="selected">선택</option><option value="Km">주행거리</option><option value="TollGate">톨게이트비</option></select></div></div>
                                                 <div class="col-md-4"><div class="form-group"><label>파일선택</label><div class="custom-file"><input type="file" class="custom-file-input" id="file" name="file" required><label class="custom-file-label" for="file">파일선택</label></div></div></div>
                                             </div> 
@@ -260,7 +291,7 @@
                                     <div class="card-body p-2">
                                         <div class="d-md-none">
                                             <?php foreach ($status_data as $row): ?>
-                                            <div class="card mb-2">
+                                            <div class="card mb-2" <?php if(!empty($login_user_car_num) && $row['CAR_NUM'] == $login_user_car_num) echo 'style="border: 2px solid red;"'; ?>>
                                                 <div class="card-body p-3">
                                                     <div class="h6 font-weight-bold text-secondary text-uppercase mb-2">
                                                         <?= htmlspecialchars($row['USER_NM']) ?> (<?= htmlspecialchars($row['CAR_NUM']) ?>)
@@ -274,7 +305,6 @@
                                                             <?php 
                                                                 if ($row['CAR_OIL'] === '전기') {
                                                                     echo htmlspecialchars($row['GIVE_OIL']) . " 원";
-                                                                    // [수정] GIVE_CHECK가 'Y'인 경우에만 괄호(L 환산) 출력
                                                                     if ($row['GIVE_CHECK'] === 'Y') {
                                                                         $km = (float)$row['KM'];
                                                                         $toll = (int)$row['TOLL_GATE'];
@@ -288,7 +318,7 @@
                                                             ?>
                                                         </div>
                                                     </div>
-                                                    <div class="row mb-0">
+                                                    <div class="row mb-2">
                                                         <div class="col-4 small font-weight-bold text-gray-600">사진</div>
                                                         <div class="col-8 small">
                                                             <?php if($row['FILE_KM']): ?>
@@ -300,6 +330,21 @@
                                                             <?php if(!$row['FILE_KM'] && !$row['FILE_TOLL']) echo "-"; ?>
                                                         </div>
                                                     </div>
+                                                    
+                                                    <?php if(!empty($login_user_car_num) && $row['CAR_NUM'] == $login_user_car_num): ?>
+                                                        <?php if($row['GIVE_CHECK'] !== 'Y'): ?>
+                                                            <button class="btn btn-sm btn-warning btn-block" onclick="openEditModal(
+                                                                '<?= $row['NO'] ?>',
+                                                                '<?= htmlspecialchars($row['DEPARTURE'], ENT_QUOTES) ?>',
+                                                                '<?= htmlspecialchars($row['DESTINATION'], ENT_QUOTES) ?>',
+                                                                '<?= $row['KM'] ?>',
+                                                                '<?= $row['TOLL_GATE'] ?>',
+                                                                '<?= htmlspecialchars($row['CAR_NUM'], ENT_QUOTES) ?>'
+                                                            )">수정</button>
+                                                        <?php else: ?>
+                                                            <button class="btn btn-sm btn-secondary btn-block" disabled>정산완료</button>
+                                                        <?php endif; ?>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                             <?php endforeach; ?>
@@ -311,11 +356,11 @@
                                         <div class="table-responsive d-none d-md-block">
                                             <table class="table table-bordered table-hover text-nowrap" id="dataTable">
                                                 <thead>
-                                                    <tr><th>이름</th><th>차번</th><th>유종</th><th>출발지</th><th>경유/목적지</th><th>주행거리</th><th>톨비</th><th>주행거리사진</th><th>톨비사진</th><th>기록일</th><th>정산</th></tr>
+                                                    <tr><th>이름</th><th>차번</th><th>유종</th><th>출발지</th><th>경유/목적지</th><th>주행거리</th><th>톨비</th><th>주행거리사진</th><th>톨비사진</th><th>기록일</th><th>정산</th><th>관리</th></tr>
                                                 </thead>
                                                 <tbody>
                                                     <?php foreach ($status_data as $row): ?>
-                                                        <tr>
+                                                        <tr <?php if(!empty($login_user_car_num) && $row['CAR_NUM'] == $login_user_car_num) echo 'class="my-car-row"'; ?>>
                                                             <td><?= htmlspecialchars($row['USER_NM']) ?></td>
                                                             <td><?= htmlspecialchars($row['CAR_NUM']) ?></td>
                                                             <td><?= htmlspecialchars($row['CAR_OIL']) ?></td>
@@ -338,7 +383,6 @@
                                                                 <?php 
                                                                     if ($row['CAR_OIL'] === '전기') {
                                                                         echo htmlspecialchars($row['GIVE_OIL']) . " 원";
-                                                                        // [수정] GIVE_CHECK가 'Y'인 경우에만 괄호(L 환산) 출력
                                                                         if ($row['GIVE_CHECK'] === 'Y') {
                                                                             $km = (float)$row['KM'];
                                                                             $toll = (int)$row['TOLL_GATE'];
@@ -350,6 +394,25 @@
                                                                         echo htmlspecialchars($row['GIVE_OIL']) . " L";
                                                                     }
                                                                 ?>
+                                                            </td>
+                                                            
+                                                            <td class="text-center align-middle">
+                                                                <?php if(!empty($login_user_car_num) && $row['CAR_NUM'] == $login_user_car_num): ?>
+                                                                    <?php if($row['GIVE_CHECK'] !== 'Y'): ?>
+                                                                        <button class="btn btn-sm btn-warning" onclick="openEditModal(
+                                                                            '<?= $row['NO'] ?>',
+                                                                            '<?= htmlspecialchars($row['DEPARTURE'], ENT_QUOTES) ?>',
+                                                                            '<?= htmlspecialchars($row['DESTINATION'], ENT_QUOTES) ?>',
+                                                                            '<?= $row['KM'] ?>',
+                                                                            '<?= $row['TOLL_GATE'] ?>',
+                                                                            '<?= htmlspecialchars($row['CAR_NUM'], ENT_QUOTES) ?>'
+                                                                        )">수정</button>
+                                                                    <?php else: ?>
+                                                                        <span class="badge badge-secondary">정산완료</span>
+                                                                    <?php endif; ?>
+                                                                <?php else: ?>
+                                                                    <span class="text-gray-400">-</span>
+                                                                <?php endif; ?>
                                                             </td>
                                                         </tr>
                                                     <?php endforeach; ?> 
@@ -366,9 +429,109 @@
         </div>
     </div>
 
+    <div class="modal fade" id="editModal" tabindex="-1" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">운행일지 수정</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form method="POST" action="" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <input type="hidden" name="edit_no" id="edit_no">
+                        <input type="hidden" name="edit_car_num" id="edit_car_num">
+                        
+                        <div class="form-group">
+                            <label>출발지</label>
+                            <input type="text" class="form-control" name="edit_departure" id="edit_departure" required>
+                        </div>
+                        <div class="form-group">
+                            <label>경유지/목적지</label>
+                            <input type="text" class="form-control" name="edit_destination" id="edit_destination" required>
+                        </div>
+                        <div class="form-group">
+                            <label>주행거리 (Km)</label>
+                            <input type="number" step="0.1" class="form-control" name="edit_km" id="edit_km" required>
+                        </div>
+                        <div class="form-group">
+                            <label>톨게이트비</label>
+                            <input type="number" class="form-control" name="edit_tollgate" id="edit_tollgate" required>
+                        </div>
+                        <hr>
+                        <div class="form-group">
+                            <label>주행거리 사진 수정 (선택)</label>
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input" name="edit_file_km" id="edit_file_km">
+                                <label class="custom-file-label" for="edit_file_km">파일 선택</label>
+                            </div>
+                            <small class="form-text text-muted">새 파일을 선택하면 기존 사진이 교체됩니다.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>톨게이트 사진 수정 (선택)</label>
+                            <div class="custom-file">
+                                <input type="file" class="custom-file-input" name="edit_file_toll" id="edit_file_toll">
+                                <label class="custom-file-label" for="edit_file_toll">파일 선택</label>
+                            </div>
+                            <small class="form-text text-muted">새 파일을 선택하면 기존 사진이 교체됩니다.</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
+                        <button type="submit" name="bt_edit" class="btn btn-primary">수정 완료</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <a class="scroll-to-top rounded" href="#page-top"><i class="fas fa-angle-up"></i></a>
 
     <?php include '../plugin_lv1.php'; ?>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            <?php if ($pending_arrival): ?>
+                if (typeof $ !== 'undefined') {
+                    $('#collapseCardExample1').collapse('hide');
+                    $('#collapseCardExample2').collapse('hide');
+                }
+                var arrivalCard = document.getElementById('collapseCardExample3');
+                if (arrivalCard) {
+                    var cardContainer = arrivalCard.closest('.card');
+                    if (cardContainer) {
+                        setTimeout(function() {
+                            cardContainer.scrollIntoView({behavior: 'smooth', block: 'start'});
+                        }, 300);
+                    }
+                }
+            <?php elseif ($pending_upload): ?>
+                if (typeof $ !== 'undefined') {
+                    $('#collapseCardExample1').collapse('hide');
+                    $('#collapseCardExample2').collapse('hide');
+                    $('#collapseCardExample3').collapse('hide');
+                }
+                var uploadCard = document.getElementById('collapseCardExample4');
+                if (uploadCard) {
+                    var cardContainer = uploadCard.closest('.card');
+                    if (cardContainer) {
+                        setTimeout(function() {
+                            cardContainer.scrollIntoView({behavior: 'smooth', block: 'start'});
+                        }, 300);
+                    }
+                }
+            <?php endif; ?>
+            
+            // 파일 입력 라벨 변경 스크립트 (Bootstrap custom file input)
+            if(typeof $ !== 'undefined') {
+                $(".custom-file-input").on("change", function() {
+                    var fileName = $(this).val().split("\\").pop();
+                    $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+                });
+            }
+        });
+    </script>
 </body>
 </html>
 

@@ -1512,7 +1512,8 @@ HTML;
             1. 매월 예약<br>
             ㅁ 예약일정 : 회장님 지시하시는 날짜, 별말씀 없으시면 매주 목요일 (4회) / 첫째, 셋째 토요일<br>
             ㅁ 평일은 4주전 다음날 예약 가능하다 . (목요일 예약의 경우 4주전 금요일 예약신청)<br>
-            ㅁ 주말(공휴일포함)은 3주전(24일전) 수요일에 예약 가능하다. <br>
+            ㅁ 주말은 3주전(24일전) 수요일에 예약 가능하다. <br>
+            ㅁ 공휴일 예약은 평일처럼 4주전 다음날 예약하고, 횟수는 주말 횟수에서 차감된다. <br>
             ㅁ 회장님 별 말씀 없으시면<br>
             - 1순위 : 리베라 / 2순위 : 신안 / 3순위 : 그린힐<br>
             - 시간대 : 8시~9시<br>
@@ -2263,6 +2264,190 @@ HTML;
             }
             if(isset($connect)) sqlsrv_close($connect);
             if(isset($connect4)) $connect4->close();
+            break;
+
+        // ===================================
+        // GHP 수리 내역 알림 (새로 추가됨)
+        // ===================================
+        case 'ghp_repair_notice':
+            include_once __DIR__ . '/DB/DB2.php'; // MSSQL 연결
+
+            $RepairSeq = $_REQUEST['repair_seq'] ?? '';
+
+            if (empty($RepairSeq)) {
+                echo "잘못된 접근입니다. (일련번호 누락)";
+                break;
+            }
+
+            // 수리 내역 조회
+            $sql = "SELECT GHP_ID, WORKER_NAME, REPAIR_SYMPTOM, REPAIR_CONTENT, REPAIR_COST, CREATE_DT 
+                    FROM GHP_REPAIR_LOG WHERE REPAIR_SEQ = ?";
+            $stmt = sqlsrv_query($connect, $sql, array($RepairSeq));
+
+            if ($stmt && $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+                $to = "hr@iwin.kr";
+                $subject = "[FMS] GHP 수리 보고 ({$row['GHP_ID']})";
+                $systemName = 'GHP 수리 관리';
+                $title = '수리 내역 알림';
+
+                $cost = number_format((float)$row['REPAIR_COST']);
+                $date = $row['CREATE_DT']->format('Y-m-d');
+                $content = nl2br(htmlspecialchars($row['REPAIR_CONTENT'] ?? ''));
+                $symptom = htmlspecialchars($row['REPAIR_SYMPTOM'] ?? '');
+
+                $contentHtml = <<<HTML
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr><th style="border: 1px solid #ddd; padding: 8px; background: #f8f9fc; width: 30%;">기기명</th><td style="border: 1px solid #ddd; padding: 8px;">{$row['GHP_ID']}</td></tr>
+                    <tr><th style="border: 1px solid #ddd; padding: 8px; background: #f8f9fc;">작업자</th><td style="border: 1px solid #ddd; padding: 8px;">{$row['WORKER_NAME']}</td></tr>
+                    <tr><th style="border: 1px solid #ddd; padding: 8px; background: #f8f9fc;">작업일</th><td style="border: 1px solid #ddd; padding: 8px;">{$date}</td></tr>
+                    <tr><th style="border: 1px solid #ddd; padding: 8px; background: #f8f9fc;">증상</th><td style="border: 1px solid #ddd; padding: 8px;">{$symptom}</td></tr>
+                    <tr><th style="border: 1px solid #ddd; padding: 8px; background: #f8f9fc;">내용</th><td style="border: 1px solid #ddd; padding: 8px;">{$content}</td></tr>
+                    <tr><th style="border: 1px solid #ddd; padding: 8px; background: #f8f9fc;">비용</th><td style="border: 1px solid #ddd; padding: 8px;">{$cost} 원</td></tr>
+                </table>
+HTML;
+                
+                // 메일에서 바로 확인할 수 있는 링크 (보안 키 적용 로직이 복잡하므로 단순 뷰 페이지로 이동하거나 생략)
+                $link = 'https://fms.iwin.kr/kjwt_ghp/ghp_repair.php';
+                
+                $body = build_email_template($systemName, $title, $contentHtml, $link, '목록으로 이동', $logoCid);
+
+                if (send_system_email($to, $subject, $body, $embeddedImages)) {
+                    echo "메일이 성공적으로 발송되었습니다.";
+                } else {
+                    echo "메일 발송에 실패했습니다.";
+                }
+            } else {
+                echo "데이터를 찾을 수 없습니다.";
+            }
+
+            if(isset($connect)) { sqlsrv_close($connect); }
+            break;
+
+        // ===================================
+        // 시험실 일일점검 보고서
+        // ===================================
+        case 'test_room_daily_report':
+            include_once __DIR__ . '/DB/DB2.php';
+            include_once __DIR__ . '/FUNCTION.php';
+
+            $Hyphen_today = date("Y-m-d");
+
+            // Check if a report for today exists and create if not
+            $Query_CheckReport = "SELECT * FROM CONNECT.dbo.TEST_ROOM WHERE SORTING_DATE = ?";
+            $params_check = [$Hyphen_today];
+            $options_scrollable = ['Scrollable' => SQLSRV_CURSOR_KEYSET];
+            $Result_CheckReport = sqlsrv_query($connect, $Query_CheckReport, $params_check, $options_scrollable);
+
+            if ($Result_CheckReport === false) {
+                error_log("Mailer (test_room_daily_report): Failed to check for daily report: " . print_r(sqlsrv_errors(), true));
+                echo "Failed to check for daily report.";
+                if(isset($connect)) { sqlsrv_close($connect); }
+                break;
+            }
+
+            $Count_CheckReport = sqlsrv_num_rows($Result_CheckReport);
+            if ($Count_CheckReport === 0) {
+                $Query_InsertData = "INSERT INTO CONNECT.dbo.TEST_ROOM(SORTING_DATE) VALUES(?)";
+                $params_insert = [$Hyphen_today];
+                if (sqlsrv_query($connect, $Query_InsertData, $params_insert) === false) {
+                    error_log("Mailer (test_room_daily_report): Failed to insert initial daily check row: " . print_r(sqlsrv_errors(), true));
+                    echo "Failed to insert initial daily check row.";
+                    if(isset($connect)) { sqlsrv_close($connect); }
+                    break;
+                }
+            }
+
+            // --- Build Email Content ---
+            $Query_DailyReport = "SELECT * FROM CONNECT.dbo.TEST_ROOM WHERE SORTING_DATE = ?";
+            $params_DailyReport = [$Hyphen_today];
+            $Result_DailyReport = sqlsrv_query($connect, $Query_DailyReport, $params_DailyReport);
+
+            if ($Result_DailyReport === false) {
+                error_log("Mailer (test_room_daily_report): Failed to fetch daily report data: " . print_r(sqlsrv_errors(), true));
+                echo "Failed to fetch daily report data.";
+                if(isset($connect)) { sqlsrv_close($connect); }
+                break;
+            }
+            
+            $Data_DailyReport = sqlsrv_fetch_array($Result_DailyReport);
+
+            // Restore the query and loop, but with a simplified query and no checklist call yet.
+            $Query_SelectList = "SELECT EQUIPMENT_NUM, EQUIPMENT_NAME FROM CONNECT.dbo.TEST_ROOM_CHECKLIST GROUP BY EQUIPMENT_NAME, EQUIPMENT_NUM ORDER BY EQUIPMENT_NUM ASC";
+            $Result_SelectList = sqlsrv_query($connect, $Query_SelectList);
+
+            if ($Result_SelectList === false) {
+                error_log("Mailer (test_room_daily_report): Failed to get equipment list: " . print_r(sqlsrv_errors(), true));
+                echo "Failed to get equipment list.";
+                if(isset($connect)) { sqlsrv_close($connect); }
+                break;
+            }
+ 
+            $allRowsData = [];
+            while($row = sqlsrv_fetch_array($Result_SelectList, SQLSRV_FETCH_ASSOC)) {
+                $allRowsData[] = $row;
+            }
+            
+            $rowsHtml = '';
+            foreach ($allRowsData as $Data_SelectList) {
+                $equipment_name_str = (string) ($Data_SelectList['EQUIPMENT_NAME'] ?? '');
+                $equipment_num_str = (string) ($Data_SelectList['EQUIPMENT_NUM'] ?? '');
+
+                $EQUIPMENT_NAME = htmlspecialchars($equipment_name_str, ENT_QUOTES, 'UTF-8');
+                $EQUIPMENT_NUM = htmlspecialchars($equipment_num_str, ENT_QUOTES, 'UTF-8');
+
+                $checker_alive = htmlspecialchars(checklist($connect, $Data_DailyReport, $Data_SelectList['EQUIPMENT_NUM']), ENT_QUOTES, 'UTF-8');
+                $status_color = ($checker_alive == "Y") ? '' : 'background-color: #ffdddd;';
+                
+                $rowsHtml .= '<tr>
+                                <td style="border: 1px solid #dddddd; padding: 8px; text-align: center;">'.$EQUIPMENT_NUM.'</td>
+                                <td style="border: 1px solid #dddddd; padding: 8px;">'.$EQUIPMENT_NAME.'</td>
+                                <td style="border: 1px solid #dddddd; padding: 8px; text-align: center;'.$status_color.'">'.$checker_alive.'</td>
+                            </tr>';
+            }
+
+            $fullTableHtml = '
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                        <tr style="background-color: #f8f9fc;">
+                            <th style="border: 1px solid #dddddd; padding: 8px; text-align: center;">설비번호</th>
+                            <th style="border: 1px solid #dddddd; padding: 8px; text-align: center;">설비명</th>
+                            <th style="border: 1px solid #dddddd; padding: 8px; text-align: center;">점검여부</th>
+                        </tr>
+                    </thead>
+                    <tbody>' . $rowsHtml . '</tbody>                   
+                </table>';
+
+            $introHtml = '
+                <p style="font-size: 12px; color: #858796;">
+                    - 시험실 모든 인원이 서명할 수 있습니다. <br>
+                    - 서명 후 확인자는 윤지성CJ으로 고정됩니다. <br>
+                    - 이미 서명 된 경우 조회 화면으로 이동합니다. <br>
+                    - 점검 항목 중 1개 이상 체크되어 있으면 점검을 했다고 표시됩니다.
+                </p>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 15px;">
+                    <tr>
+                        <th style="border: 1px solid #dddddd; padding: 8px; background-color: #f8f9fc; width: 30%;">점검일</th>
+                        <td style="border: 1px solid #dddddd; padding: 8px; text-align: center;">'.htmlspecialchars($Hyphen_today, ENT_QUOTES, 'UTF-8').'</td>
+                    </tr>
+                </table>';
+            
+            $contentHtml = $introHtml . $fullTableHtml;
+
+            if(isset($connect)) { sqlsrv_close($connect); }
+
+            $to = ['skkwon@iwin.kr', 'test@iwin.kr'];
+            $subject = '[FMS] 시험실 일일점검 현황 및 확인 요청';
+            $systemName = '시험실 일일점검';
+            $title = '점검 현황 및 확인 요청';
+            $link = 'https://fms.iwin.kr/kjwt_test_room/test_room.php';
+            
+            $body = build_email_template($systemName, $title, $contentHtml, $link, '서명하러 가기', $logoCid);
+
+            if (send_system_email($to, $subject, $body, $embeddedImages)) {
+                echo "Test room daily report sent successfully.";
+            } else {
+                echo "Failed to send test room daily report.";
+            }
             break;
 
 

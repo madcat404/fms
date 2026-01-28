@@ -3,8 +3,7 @@
     // Author: <KWON SUNG KUN - sealclear@naver.com>    
     // Create date: <20.03.09>
     // Description: <개인차량 운행일지 통합 컨트롤러 및 데이터 조회>
-    // Last Modified: <25.11.07> - Refactored to use centralized mailer.php.
-    // Modified: <26.01.24> - 정산 메일 발송 조건 추가 (5의 배수일 때만 발송)
+    // Last Modified: <Current Date> - Prevent Edit if Settled
     // =============================================
 
     require_once __DIR__ . '/../session/session_check.php';
@@ -15,6 +14,101 @@
     // --- POST 요청 처리 컨트롤러 ---
     //================================================================================
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+        // [수정] '수정' 폼 처리 (bt_edit)
+        if (isset($_POST['bt_edit'])) {
+            $edit_no = filter_input(INPUT_POST, 'edit_no', FILTER_VALIDATE_INT);
+            $edit_departure = filter_input(INPUT_POST, 'edit_departure', FILTER_DEFAULT);
+            $edit_destination = filter_input(INPUT_POST, 'edit_destination', FILTER_DEFAULT);
+            $edit_km = filter_input(INPUT_POST, 'edit_km', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+            $edit_tollgate = filter_input(INPUT_POST, 'edit_tollgate', FILTER_SANITIZE_NUMBER_INT);
+            $edit_car_num = filter_input(INPUT_POST, 'edit_car_num', FILTER_DEFAULT); 
+
+            if (!$edit_no) { echo "<script>alert('잘못된 접근입니다.'); history.back();</script>"; exit; }
+
+            // [추가] 정산 여부 확인 (GIVE_CHECK='Y' 또는 GIVE_OIL > 0 이면 수정 불가)
+            $check_settled = $connect->prepare("SELECT GIVE_CHECK, GIVE_OIL FROM user_car WHERE NO = ?");
+            $check_settled->bind_param("i", $edit_no);
+            $check_settled->execute();
+            $settled_res = $check_settled->get_result();
+            $settled_row = $settled_res->fetch_object();
+
+            if ($settled_row && ($settled_row->GIVE_CHECK === 'Y' || $settled_row->GIVE_OIL > 0)) {
+                echo "<script>alert('이미 정산이 완료된 데이터는 수정할 수 없습니다.'); history.back();</script>";
+                exit;
+            }
+
+            // 1. 기본 정보 업데이트
+            $update_stmt = $connect->prepare("UPDATE user_car SET DEPARTURE = ?, DESTINATION = ?, KM = ?, TOLL_GATE = ? WHERE NO = ?");
+            $update_stmt->bind_param("ssdii", $edit_departure, $edit_destination, $edit_km, $edit_tollgate, $edit_no);
+            
+            if ($update_stmt->execute()) {
+                // 2. 파일 수정 처리 함수
+                function process_edit_file($connect, $file_input_name, $img_type, $car_num, $binding_num) {
+                    if (isset($_FILES[$file_input_name]) && $_FILES[$file_input_name]['error'] === UPLOAD_ERR_OK) {
+                        $tmpname = $_FILES[$file_input_name]['tmp_name'];
+                        $original_filename = $_FILES[$file_input_name]['name'];
+                        
+                        if(checkFileHash($tmpname)) return false; 
+                        $finfo = new finfo(FILEINFO_MIME_TYPE);
+                        $mimeType = $finfo->file($tmpname);
+                        $validMimeTypes = ['image/gif', 'image/png', 'image/jpeg', 'image/jpg', 'image/heic'];
+                        if (!in_array($mimeType, $validMimeTypes)) return false;
+
+                        $fileExt = strtolower(pathinfo($original_filename, PATHINFO_EXTENSION));
+                        $name_date = date("Y-m-d_H-i-s");
+                        $new_filename = "{$name_date}_{$car_num}_{$img_type}_{$binding_num}.{$fileExt}";
+                        $dir = "../files/{$new_filename}";
+
+                        if (move_uploaded_file($tmpname, $dir)) {
+                            $hide_stmt = $connect->prepare("UPDATE files SET VIEW_YN = 'N' WHERE BINDING_NUM = ? AND IMG_TYPE = ?");
+                            $hide_stmt->bind_param("is", $binding_num, $img_type);
+                            $hide_stmt->execute();
+
+                            $DT = date("Y-m-d H:i:s");
+                            $Hyphen_today = date("Y-m-d");
+                            $insert_file = $connect->prepare("INSERT INTO files (CAR_NUM, IMG_TYPE, FILE_NM, U_DATE, N_DATE, S_DATE, CHECK_YN, BINDING_NUM, VIEW_YN) VALUES (?, ?, ?, ?, ?, ?, 'N', ?, 'Y')");
+                            $insert_file->bind_param("ssssssi", $car_num, $img_type, $new_filename, $DT, $name_date, $Hyphen_today, $binding_num);
+                            $insert_file->execute();
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+                process_edit_file($connect, 'edit_file_km', 'Km', $edit_car_num, $edit_no);
+                process_edit_file($connect, 'edit_file_toll', 'TollGate', $edit_car_num, $edit_no);
+
+                // 증빙 여부(UPLOAD_YN) 재확인 로직
+                $check_km = $connect->query("SELECT 1 FROM files WHERE BINDING_NUM='$edit_no' AND IMG_TYPE='Km' AND VIEW_YN='Y' LIMIT 1");
+                $check_toll = $connect->query("SELECT 1 FROM files WHERE BINDING_NUM='$edit_no' AND IMG_TYPE='TollGate' AND VIEW_YN='Y' LIMIT 1");
+                
+                $has_km = $check_km->num_rows > 0;
+                $has_toll = $check_toll->num_rows > 0;
+                
+                $hp_check = $connect->query("SELECT HIPASS_YN, TOLL_GATE FROM user_car WHERE NO='$edit_no'");
+                $hp_row = $hp_check->fetch_object();
+                
+                $is_uploaded = 'N';
+                if ($hp_row) {
+                    if ($hp_row->HIPASS_YN == 'Y') {
+                        if ($has_km) $is_uploaded = 'Y';
+                    } else {
+                        if ($hp_row->TOLL_GATE == 0) {
+                            if ($has_km) $is_uploaded = 'Y';
+                        } else {
+                            if ($has_km && $has_toll) $is_uploaded = 'Y';
+                        }
+                    }
+                }
+                $connect->query("UPDATE user_car SET UPLOAD_YN='$is_uploaded' WHERE NO='$edit_no'");
+
+                echo "<script>alert('수정되었습니다.'); location.href='individual.php';</script>";
+            } else {
+                echo "<script>alert('수정 실패했습니다.'); history.back();</script>";
+            }
+            exit;
+        }
 
         // '출발' 폼 처리 (bt1)
         if (isset($_POST['bt1'])) {
@@ -234,7 +328,7 @@
             exit;
         }
 
-        // '관리자' 폼 처리 (bt4) - 정산 로직 핵심 수정됨
+        // '관리자' 폼 처리 (bt4)
         if (isset($_POST['bt4'])) {
             $car_num = filter_input(INPUT_POST, 'my_car_num5', FILTER_DEFAULT);
             $admin_code = filter_input(INPUT_POST, 'my_admin_code', FILTER_DEFAULT);
@@ -244,7 +338,6 @@
             $message = ""; 
 
             if ($admin_code == '2580') {
-                // 휘발유 가격 미리 확보 (톨비 환산용)
                 $gas_stmt = $connect->prepare("SELECT OIL_PRICE FROM oil_price WHERE car_oil='휘발유' AND s_date=?");
                 $gas_stmt->bind_param("s", $s_date);
                 $gas_stmt->execute();
@@ -252,7 +345,6 @@
                 $gas_row = $gas_res->fetch_object();
                 $gasoline_price = $gas_row->OIL_PRICE ?? 0;
 
-                // 유가 오류 체크 (경유, 휘발유 비교 등)
                 $diesel_stmt = $connect->prepare("SELECT OIL_PRICE FROM oil_price WHERE car_oil='경유' AND s_date=?");
                 $diesel_stmt->bind_param("s", $s_date);
                 $diesel_stmt->execute();
@@ -270,9 +362,8 @@
                     echo "<script>alert('한국석유공사 API에서 가져온 유가 정보에 오류가 의심됩니다.'); location.href='individual.php';</script>"; exit;
                 }
 
-                // 대상 조회
                 $target_stmt = null;
-                if (strcasecmp($car_num, 'all') !== 0) { // 단일
+                if (strcasecmp($car_num, 'all') !== 0) { 
                     $check_u = $connect->prepare("SELECT CAR_NUM FROM user_info WHERE CAR_NUM = ?");
                     $check_u->bind_param("s", $car_num);
                     $check_u->execute();
@@ -282,7 +373,7 @@
                     } else {
                         $message = "등록되지 않은 번호입니다!";
                     }
-                } else { // 일괄
+                } else { 
                     $target_stmt = $connect->prepare("SELECT * FROM user_car WHERE GIVE_OIL = 0 AND GIVE_CHECK = 'N' AND UPLOAD_YN = 'Y'");
                     $message = "도착정보를 입력한 데이터만 결재하였습니다!";
                 }
@@ -292,7 +383,6 @@
                     $target_res = $target_stmt->get_result();
                     
                     while ($row = $target_res->fetch_object()) {
-                        // 해당 차량 유종의 가격 조회
                         $price_stmt = $connect->prepare("SELECT OIL_PRICE FROM oil_price WHERE CAR_OIL = ? AND S_DATE = ?");
                         $price_stmt->bind_param("ss", $row->CAR_OIL, $s_date);
                         $price_stmt->execute();
@@ -301,12 +391,10 @@
 
                         $calc = 0;
                         if ($row->CAR_OIL === '전기') {
-                            // 전기차: 원 단위 계산
                             $calc = ($row->HIPASS_YN == 'N') 
                                     ? ceil(($row->KM / 5 * $current_oil_price) + $row->TOLL_GATE) 
                                     : ceil($row->KM / 5 * $current_oil_price);                             
                         } else {
-                            // 화석연료: 리터(L) 단위 계산
                             $toll_divisor = ($row->TOLL_GATE > 0 && $gasoline_price > 0) ? $gasoline_price : $current_oil_price;
 
                             $calc = ($row->HIPASS_YN == 'N') 
@@ -326,8 +414,6 @@
                     }
                     if(empty($message)) $message = "정산되었습니다!";
                     
-                    // 메일 발송 로직 변경 (2025-01-24)
-                    // 조건: 정산 완료(GIVE_CHECK='Y')되었으나 미지급(GIVE_YN='N')인 데이터가 5의 배수일 때만 발송
                     $voucher_check_query = $connect->query("SELECT COUNT(*) as cnt FROM user_car WHERE GIVE_CHECK='Y' AND GIVE_YN='N'");
                     $voucher_cnt = 0;
                     if($voucher_check_query) {
@@ -346,7 +432,7 @@
                 }
 
             } elseif ($admin_code == '323650') {
-                if (strcasecmp($car_num, 'all') !== 0) { // 단일
+                if (strcasecmp($car_num, 'all') !== 0) { 
                     $check_u = $connect->prepare("SELECT CAR_NUM FROM user_info WHERE CAR_NUM = ?");
                     $check_u->bind_param("s", $car_num);
                     $check_u->execute();
@@ -358,7 +444,7 @@
                     } else {
                         $message = "등록되지 않은 번호입니다!";
                     }
-                } else { // 일괄
+                } else { 
                     $all_give_stmt = $connect->prepare("UPDATE user_car SET GIVE_YN = 'Y', UPDATE_DATE = ? WHERE GIVE_CHECK = 'Y' AND GIVE_YN = 'N'");
                     $all_give_stmt->bind_param("s", $search_date);
                     $all_give_stmt->execute();
@@ -432,5 +518,40 @@
             $update_stmt->bind_param("i", $overdue_row->NO);
             $update_stmt->execute();
         }
+    }
+
+    // -------------------------------------------------------------
+    // [수정] 로그인한 사용자의 차량번호 조회 및 미종료/미증빙 확인
+    // -------------------------------------------------------------
+    $login_user_car_num = '';
+    $pending_arrival = false;
+    $pending_upload = false; 
+
+    if (isset($_SESSION['user_id'])) {
+        // user_info 테이블에서 ENG_NM이 로그인 세션 ID와 같은 사용자의 CAR_NUM을 조회
+        $user_car_stmt = $connect->prepare("SELECT CAR_NUM FROM user_info WHERE ENG_NM = ?");
+        $user_car_stmt->bind_param("s", $_SESSION['user_id']);
+        $user_car_stmt->execute();
+        $user_car_res = $user_car_stmt->get_result();
+        
+        if ($user_car_row = $user_car_res->fetch_assoc()) {
+            $login_user_car_num = $user_car_row['CAR_NUM'];
+            
+            // 해당 차량번호의 최신 기록을 확인하여 상태 판단
+            $stmt = $connect->prepare("SELECT KM, UPLOAD_YN FROM user_car WHERE CAR_NUM = ? ORDER BY NO DESC LIMIT 1");
+            $stmt->bind_param("s", $login_user_car_num);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($row = $res->fetch_assoc()) {
+                if ((float)$row['KM'] == 0) {
+                    $pending_arrival = true; // 도착 입력 대기 상태
+                } elseif ($row['UPLOAD_YN'] == 'N') {
+                    // KM > 0 인데 증빙 업로드가 안 된 경우
+                    $pending_upload = true;
+                }
+            }
+            $stmt->close();
+        }
+        $user_car_stmt->close();
     }
 ?>
