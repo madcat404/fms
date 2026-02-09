@@ -138,6 +138,7 @@ if ($auth_success) {
     }
 
     session_regenerate_id(true);
+    $_SESSION['name'] = $user_row->USER_NM;
     $_SESSION['user_id'] = $user_row->ENG_NM;
     $_SESSION['level'] = $user_row->LEVEL; // [수정] 호환성을 위해 session_level로 복구
     $_SESSION['ip_address'] = $ip;

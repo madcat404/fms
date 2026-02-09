@@ -103,6 +103,23 @@
         }
 
         // ------------------------------------------------------------------
+        // [E] 공용 뷰어 토큰 접근 및 특정 페이지 자동 허용 [수정 및 추가]
+        // ------------------------------------------------------------------
+        else if (
+            (isset($_GET['token']) && $_GET['token'] === 'iwin_public_secure') || 
+            (isset($_GET['no']) && !empty($_GET['no'])) ||
+            ($current_file === 'report_network.php' && isset($_GET['tab']) && $_GET['tab'] === 'report') // 네트워크 리포트 자동 로그인 조건 추가
+        ) {
+            $_SESSION['user_id'] = 'PUBLIC_VIEWER';
+            $_SESSION['EMP_NAME'] = '게스트';
+            $_SESSION['level'] = 'public_access'; // 공용 접근 레벨 부여
+            $_SESSION['ip_address'] = $client_ip;
+            $_SESSION['user_agent'] = $user_agent;
+            $_SESSION['created'] = time();
+            $_SESSION['LAST_ACTIVITY'] = time();
+        }
+
+        // ------------------------------------------------------------------
         // [C] IP 기반 자동 로그인 (경비실 / 키오스크 / 현장PC / 스캐너 / 업데이트PC)
         // ------------------------------------------------------------------
         else {
@@ -228,7 +245,7 @@
         // ======================================================================
         // [3] 외부망 접근 통제
         // ======================================================================
-        $allowed_external_levels = ['kjwt', 'master', 'vietnam', 'seetech', 'qr_access', 'nfc_access', 'email_access']; 
+        $allowed_external_levels = ['kjwt', 'master', 'vietnam', 'seetech', 'qr_access', 'nfc_access', 'email_access', 'public_access']; 
         $user_level = isset($_SESSION['level']) ? $_SESSION['level'] : '';
 
         if (!isInternalIp($client_ip)) {
@@ -277,7 +294,8 @@
                 'ghp_repair.php',
                 'ghp_repair_status.php',
                 'ghp_view.php',
-                'ghp_edit.php'
+                'ghp_edit.php',
+                'duty.php'
             ];
 
             if (!in_array($current_file, $qr_allowed_files)) {
@@ -393,7 +411,7 @@
                 'guard.php',
                 'duty.php',
                 'hipass.php',
-                'rental.php',                
+                'rental.php',                                
                 'safety.php',
                 'todolist.php',
                 'esg.php',
@@ -425,6 +443,28 @@
             ];
             if (!in_array($current_file, $force_allowed_files)) {
                 end_session_alert('Không thể tiếp cận được.');
+            }
+        }
+
+        // [4-12] 공용 뷰어(public_access) 접근 통제 [수정 및 추가]
+        if ($user_level === 'public_access') {
+            $public_allowed_files = [
+                'report_body.php',
+                'food.php',
+                'rental.php',
+                'todolist.php',
+                'duty.php',
+                'network.php',
+                'report_network.php', // 허용 리스트에 추가됨
+                'video.php',
+                'view_file.php',
+                'sign_gate.php',
+                'sign_select.php',
+                'sign.php'
+            ];
+
+            if (!in_array($current_file, $public_allowed_files)) {
+                end_session_alert('게스트 권한으로 접근할 수 없는 페이지입니다.');
             }
         }
     }

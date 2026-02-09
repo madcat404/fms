@@ -1,11 +1,24 @@
 <?php 
   // =============================================
-	// Author: <KWON SUNG KUN - sealclear@naver.com>	
-	// Create date: <21.02.01>
-	// Description:	<그룹웨어 일일지표 뷰어>
+  // Author: <KWON SUNG KUN - sealclear@naver.com>  
+  // Create date: <21.02.01>
+  // Description: <그룹웨어 일일지표 뷰어>
   // Last Modified: <25.09.30> - Refactored for PHP 8.x and security.
-	// =============================================
+  // Updated: <26.01.29> - Added Token propagation for shortcut links.
+  // =============================================
   include 'gw_indicator_status.php';
+
+  // [Token Helper] 현재 페이지의 토큰을 가져옵니다.
+  $current_token = isset($_GET['token']) ? $_GET['token'] : '';
+
+  // [Token Helper] URL에 토큰을 자동으로 붙여주는 함수
+  function appendToken($url, $token) {
+      if (empty($token)) return $url;
+      
+      // 이미 쿼리 파라미터가 있는지 확인 (?가 있는지)
+      $separator = (strpos($url, '?') !== false) ? '&' : '?';
+      return $url . $separator . 'token=' . urlencode($token);
+  }
 
   // Helper function to generate weather icon
   function getWeatherIcon($status) {
@@ -52,13 +65,10 @@
     <meta name="author" content="madcat">
     <title>FMS</title>
 
-    <!-- style -->
     <link rel="stylesheet" href="../css/reset.css">
 
-    <!-- Font-Awesome 아이콘 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    <!-- 파비콘 -->
     <link rel="shortcut icon" href="../icon/kjwt_favicon.ico">
     <link rel="apple-touch-icon-precomposed" href="../icon/kjwt_ci_152.png">
     <link rel="icon" href="../icon/kjwt_favicon.png">
@@ -68,14 +78,11 @@
     <link rel="icon" href="../icon/kjwt_ci_64.png" sizes="64x64"> 
     <link rel="icon" href="../icon/kjwt_ci_128.png" sizes="128x128">
 
-    <!-- 웹 폰트 -->
     <link href="https://fonts.googleapis.com/css?family=Nanum+Gothic" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Abel" rel="stylesheet">
 
-    <!-- 차트 -->
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
-    <!-- tooltip -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
@@ -178,56 +185,56 @@
   <div style="background-color: white; text-align: center; min-height:100vh; max-width:100vw;">
     <div style="font-weight: bold; font-size: 10px; padding-top: 7px; padding-bottom: 0px; min-height:5vh; max-width:100vw; text-align: left;">
       &nbsp &nbsp 바로가기 : 
-      <a href="https://fms.iwin.kr/kjwt_report/report_body.php" target="_blank" data-toggle="tooltip" title="일일업무보고">
-        <span class="fa-stack fa-2x" style="text-align: center;">                                    
+      <a href="<?php echo appendToken('https://fms.iwin.kr/kjwt_report/report_body.php', $current_token); ?>" target="_blank" data-toggle="tooltip" title="일일업무보고">
+        <span class="fa-stack fa-2x" style="text-align: center;">                                   
           <i class="fas fa-square fa-2x"></i>
           <i class="fas fa-chart-pie fa-stack-1x fa-inverse"></i>                                   
         </span>    
       </a>
-      <a href="https://fms.iwin.kr/kjwt_office_food/food.php" target="_blank" data-toggle="tooltip" title="식단표">
-        <span class="fa-stack fa-2x" style="text-align: center;">                                    
+      <a href="<?php echo appendToken('https://fms.iwin.kr/kjwt_office_food/food.php', $current_token); ?>" target="_blank" data-toggle="tooltip" title="식단표">
+        <span class="fa-stack fa-2x" style="text-align: center;">                                   
           <i class="fas fa-square fa-2x"></i>
           <i class="fas fa-hamburger fa-stack-1x fa-inverse"></i>                                   
         </span>    
       </a>
-      <a href="https://fms.iwin.kr/kjwt_fms/rental.php" target="_blank" data-toggle="tooltip" title="법인차 대여">
-        <span class="fa-stack fa-2x" style="text-align: center;">                                    
+      <a href="<?php echo appendToken('https://fms.iwin.kr/kjwt_fms/rental.php', $current_token); ?>" target="_blank" data-toggle="tooltip" title="법인차 대여">
+        <span class="fa-stack fa-2x" style="text-align: center;">                                   
           <i class="fas fa-square fa-2x"></i>
           <i class="fas fa-car fa-stack-1x fa-inverse"></i>                                   
         </span>    
       </a>
-      <a href="https://fms.iwin.kr/kjwt_todolist/todolist.php" target="_blank" data-toggle="tooltip" title="기술지원요청">
-        <span class="fa-stack fa-2x" style="text-align: center;">                                    
+      <a href="<?php echo appendToken('https://fms.iwin.kr/kjwt_todolist/todolist.php', $current_token); ?>" target="_blank" data-toggle="tooltip" title="기술지원요청">
+        <span class="fa-stack fa-2x" style="text-align: center;">                                   
           <i class="fas fa-square fa-2x"></i>
           <i class="fas fa-headset fa-stack-1x fa-inverse"></i>                                   
         </span>    
       </a>
-      <a href="https://fms.iwin.kr/kjwt_office_duty/duty.php" target="_blank" data-toggle="tooltip" title="당직">
-        <span class="fa-stack fa-2x" style="text-align: center;">                                    
+      <a href="<?php echo appendToken('https://fms.iwin.kr/kjwt_office_duty/duty.php', $current_token); ?>" target="_blank" data-toggle="tooltip" title="당직">
+        <span class="fa-stack fa-2x" style="text-align: center;">                                   
           <i class="fas fa-square fa-2x"></i>
           <i class="fas fa-user-check fa-stack-1x fa-inverse"></i>                                   
         </span>    
       </a>
-      <a href="https://fms.iwin.kr/kjwt_network/network.php" target="_blank" data-toggle="tooltip" title="비상연락망">
-        <span class="fa-stack fa-2x" style="text-align: center;">                                    
+      <a href="<?php echo appendToken('https://fms.iwin.kr/kjwt_network/network.php', $current_token); ?>" target="_blank" data-toggle="tooltip" title="비상연락망">
+        <span class="fa-stack fa-2x" style="text-align: center;">                                   
           <i class="fas fa-square fa-2x"></i>
           <i class="fas fa-phone fa-stack-1x fa-inverse"></i>                                   
         </span>    
       </a>
-      <a href="https://fms.iwin.kr/kjwt_report/report_body.php?tab=management" target="_blank" data-toggle="tooltip" title="경영">
-        <span class="fa-stack fa-2x" style="text-align: center;">                                    
+      <a href="<?php echo appendToken('https://fms.iwin.kr/kjwt_report/report_body.php?tab=management', $current_token); ?>" target="_blank" data-toggle="tooltip" title="경영">
+        <span class="fa-stack fa-2x" style="text-align: center;">                                   
           <i class="fas fa-square fa-2x"></i>
           <i class="fas fa-poll-h fa-stack-1x fa-inverse"></i>                                   
         </span>    
       </a>
-      <a href="https://fms.iwin.kr/kjwt_video/video.php" target="_blank" data-toggle="tooltip" title="매뉴얼">
-        <span class="fa-stack fa-2x" style="text-align: center;">                                    
+      <a href="<?php echo appendToken('https://fms.iwin.kr/kjwt_video/video.php', $current_token); ?>" target="_blank" data-toggle="tooltip" title="매뉴얼">
+        <span class="fa-stack fa-2x" style="text-align: center;">                                   
           <i class="fas fa-square fa-2x"></i>
           <i class="fas fa-pen fa-stack-1x fa-inverse"></i>                                   
         </span>    
       </a>
       <a href="https://earth.nullschool.net/#current/wind/surface/level/orthographic=-226.05,30.25,1296" target="_blank" data-toggle="tooltip" title="태풍">
-        <span class="fa-stack fa-2x" style="text-align: center;">                                    
+        <span class="fa-stack fa-2x" style="text-align: center;">                                   
           <i class="fas fa-square fa-2x"></i>
           <i class="fas fa-wind fa-stack-1x fa-inverse"></i>                                   
         </span>    
@@ -235,7 +242,7 @@
     </div>
     <hr>
     <div style="display: inline-block; font-weight: bold; font-size: 19px; padding-top: 0px; padding-bottom: 5px; min-height:5vh; max-width:100vw;">
-      <span class="fa-stack fa-lg">                                    
+      <span class="fa-stack fa-lg">                                   
         <i class="fas fa-square fa-2x"></i>
         <i class="fas fa-chart-line fa-stack-1x fa-inverse"></i>                                   
       </span>    
@@ -254,10 +261,7 @@
     <div id="table_div6" style="max-width:100vw;"></div><br>  
     <div id="table_div4" style="max-width:100vw;"></div>
   <div>
-  <!-- JavaScript Libraries -->
-  <!-- 제이쿼리 -->
   <script src="../js/jquery.min_1.12.4.js"></script>
-  <!-- 호환성(브라우저 기능검사) -->
   <script src="../js/modernizr-custom.js"></script>
 </body>
 </html>

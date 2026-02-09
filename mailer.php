@@ -1510,10 +1510,12 @@ HTML;
             - 모두 신안그룹에 소속된 골프장인데 특이하게 에버리스만 전화로 예약해야 한다.<br><br>
 
             1. 매월 예약<br>
-            ㅁ 예약일정 : 회장님 지시하시는 날짜, 별말씀 없으시면 매주 목요일 (4회) / 첫째, 셋째 토요일<br>
+            ㅁ 예약일정 : 회장님 지시하시는 날짜, 별말씀 없으시면 매주 목요일 (4회) / 둘째, 넷째 토요일<br>
             ㅁ 평일은 4주전 다음날 예약 가능하다 . (목요일 예약의 경우 4주전 금요일 예약신청)<br>
             ㅁ 주말은 3주전(24일전) 수요일에 예약 가능하다. <br>
             ㅁ 공휴일 예약은 평일처럼 4주전 다음날 예약하고, 횟수는 주말 횟수에서 차감된다. <br>
+            ㅁ 1,2,3주 (목) 그린힐 08시대 / 4주 (목) 리베라 12시대
+            ㅁ 2,4주 (토) 리베라 08시대<br>
             ㅁ 회장님 별 말씀 없으시면<br>
             - 1순위 : 리베라 / 2순위 : 신안 / 3순위 : 그린힐<br>
             - 시간대 : 8시~9시<br>
@@ -2450,6 +2452,204 @@ HTML;
             }
             break;
 
+        // ===================================
+        // 안전시 전 구역 일일점검 통합 보고서
+        // ===================================
+        case 'safety_daily_total_report':
+            include_once __DIR__ . '/DB/DB2.php';
+            include_once __DIR__ . '/FUNCTION.php';
+
+            $Hyphen_today = date("Y-m-d");
+            $Year = date("Y");
+            $Month = date("m");
+            
+            // 1. 점검 대상 구역 설정 (8개 구역)
+            $location_list = [
+                '시험실' => 'TEST_ROOM', 
+                '연구소' => 'RESEARCH_ROOM', 
+                '현장' => 'FIELD_ROOM',
+                '공무실' => 'MAINTENANCE_ROOM', 
+                '자재창고' => 'MATERIAL_WH', 
+                'bb창고' => 'BB_WH',
+                '완성품창고' => 'PRODUCT_WH', 
+                'ecu창고' => 'ECU_WH'
+            ];
+            $TotalLocCount = count($location_list); 
+
+            $rowsHtml = '';
+            foreach ($location_list as $locName => $tableName) {
+                // 담당자 설정
+                if ($locName === '시험실') { $managerName = '윤지성'; } 
+                elseif ($locName === '연구소') { $managerName = '심형준'; } 
+                elseif ($locName === '완성품창고') { $managerName = '주상훈'; } 
+                elseif ($locName === 'ecu창고') { $managerName = '주상훈'; } 
+                else { $managerName = '김규만'; }
+
+                $checkStatus = "N";
+                try {
+                    // 오늘 점검 여부 확인
+                    $Query_Check = "SELECT WRITER FROM CONNECT.dbo.{$tableName} WHERE SORTING_DATE = ?";
+                    $params_check = [$Hyphen_today];
+                    $stmt = sqlsrv_query($connect, $Query_Check, $params_check);
+                    if ($stmt && $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+                        if (!empty($row['WRITER'])) { $checkStatus = "Y"; }
+                    }
+                } catch (Exception $e) {
+                    error_log("Safety Check Error ({$locName}): " . $e->getMessage());
+                }
+
+                $encodedLoc = urlencode($locName);
+                $directUrl = "https://fms.iwin.kr/kjwt_safety/safety.php?loc={$encodedLoc}&tab=tab2&search_date={$Hyphen_today}";
+                
+                $statusStyle = ($checkStatus == "Y") 
+                    ? "color: #2e7d32; font-weight: bold;" 
+                    : "color: #d32f2f; font-weight: bold; background-color: #fff1f1;";
+                
+                $rowsHtml .= "
+                    <tr>
+                        <td style='border: 1px solid #dddddd; padding: 12px; text-align: center;'>".htmlspecialchars($locName, ENT_QUOTES, 'UTF-8')."</td>
+                        <td style='border: 1px solid #dddddd; padding: 12px; text-align: center;'>".htmlspecialchars($managerName, ENT_QUOTES, 'UTF-8')."</td>
+                        <td style='border: 1px solid #dddddd; padding: 12px; text-align: center; {$statusStyle}'>{$checkStatus}</td>
+                        <td style='border: 1px solid #dddddd; padding: 12px; text-align: center;'>
+                            <a href='{$directUrl}' style='display: inline-block; padding: 5px 10px; background-color: #4e73df; color: white; text-decoration: none; border-radius: 4px; font-size: 12px;'>점검하기</a>
+                        </td>
+                    </tr>";
+            }
+
+            // 2. 캘린더 데이터 조회
+            $calendarData = [];
+            try {
+                $Query_Cal = "SELECT CHECK_DATE, COUNT(DISTINCT LOCATION) AS DONE_COUNT 
+                              FROM CONNECT.dbo.SAFETY 
+                              WHERE YEAR(CHECK_DATE) = ? AND MONTH(CHECK_DATE) = ? 
+                              GROUP BY CHECK_DATE";
+                $params_cal = [$Year, $Month];
+                $stmt_cal = sqlsrv_query($connect, $Query_Cal, $params_cal);
+                
+                if ($stmt_cal) {
+                    while ($cRow = sqlsrv_fetch_array($stmt_cal, SQLSRV_FETCH_ASSOC)) {
+                        $dateVal = $cRow['CHECK_DATE'];
+                        $dKey = ($dateVal instanceof DateTime) ? $dateVal->format('Y-m-d') : (string)$dateVal;
+                        $doneCount = (int)$cRow['DONE_COUNT'];
+
+                        if ($doneCount >= $TotalLocCount) {
+                            $resStatus = 'ALL_OK';      // 전구역 완료 (초록)
+                        } elseif ($doneCount > 0) {
+                            $resStatus = 'PARTIAL_NG';  // 일부 누락 (주황)
+                        } else {
+                            $resStatus = 'ALL_NG';      // 전체 누락 (빨강 - 데이터 있으나 0개)
+                        }
+                        $calendarData[$dKey] = $resStatus;
+                    }
+                }
+            } catch (Exception $e) { 
+                error_log("Calendar Query Error: " . $e->getMessage()); 
+            }
+
+            // 3. 캘린더 HTML 생성 (요청 로직 적용)
+            $firstDayTS = strtotime("$Year-$Month-01");
+            $lastDay = date('t', $firstDayTS);
+            $startWeek = date('w', $firstDayTS);
+            
+            $calendarHtml = "<table style='width:100%; border-collapse:collapse; margin-top:20px; table-layout:fixed;'>";
+            $calendarHtml .= "<tr><th colspan='7' style='padding:10px; background:#f8f9fc; border:1px solid #ddd; font-size:14px; text-align:center;'>{$Year}년 {$Month}월 안전점검 현황</th></tr>";
+            $calendarHtml .= "<tr style='background:#eee; font-size:12px; text-align:center;'>
+                                <th style='border:1px solid #ddd; padding:5px; color:red;'>일</th>
+                                <th style='border:1px solid #ddd; padding:5px;'>월</th>
+                                <th style='border:1px solid #ddd; padding:5px;'>화</th>
+                                <th style='border:1px solid #ddd; padding:5px;'>수</th>
+                                <th style='border:1px solid #ddd; padding:5px;'>목</th>
+                                <th style='border:1px solid #ddd; padding:5px;'>금</th>
+                                <th style='border:1px solid #ddd; padding:5px; color:blue;'>토</th>
+                              </tr><tr>";
+
+            // 빈 칸 채우기 (시작 요일 전)
+            for ($i = 0; $i < $startWeek; $i++) { $calendarHtml .= "<td style='border:1px solid #ddd; padding:10px;'></td>"; }
+            
+            for ($day = 1; $day <= $lastDay; $day++) {
+                if (($day + $startWeek - 1) % 7 == 0 && $day != 1) { $calendarHtml .= "</tr><tr>"; }
+                
+                $currentDate = date('Y-m-d', strtotime("$Year-$Month-$day"));
+                
+                // [수정된 로직 시작]
+                // 1. 기본 색상 설정 (데이터 없음 가정)
+                $weekDay = date('w', strtotime($currentDate)); // 0:일, 6:토
+                $isWeekend = ($weekDay == 0 || $weekDay == 6);
+                $isFuture = ($currentDate > $Hyphen_today);
+
+                $bgColor = "#ffffff";
+                $textColor = "#333333";
+
+                // 2. 데이터가 있는 경우 우선 적용
+                if (isset($calendarData[$currentDate])) {
+                    $status = $calendarData[$currentDate];
+                    if ($status == 'ALL_OK') { 
+                        $bgColor = "#28a745"; $textColor = "#ffffff"; // 초록
+                    } elseif ($status == 'PARTIAL_NG') { 
+                        $bgColor = "#fd7e14"; $textColor = "#ffffff"; // 주황
+                    } else { 
+                        $bgColor = "#e74a3b"; $textColor = "#ffffff"; // 빨강
+                    }
+                } 
+                // 3. 데이터가 없는 경우 (요청사항 적용)
+                else {
+                    // 미래가 아니고, 주말이 아니면 => 평일인데 데이터가 없음 => 빨강
+                    if (!$isFuture && !$isWeekend) {
+                        $bgColor = "#e74a3b"; // 빨강 (미점검)
+                        $textColor = "#ffffff";
+                    }
+                    // 미래이거나 주말이면 => 흰색 유지
+                }
+                // [수정된 로직 끝]
+                
+                $calendarHtml .= "<td style='border:1px solid #ddd; padding:10px; text-align:center; background:{$bgColor}; color:{$textColor}; font-weight:bold; font-size:12px;'>{$day}</td>";
+            }
+
+            // 빈 칸 채우기 (마지막 주)
+            $remaining = (7 - (($lastDay + $startWeek) % 7)) % 7;
+            for ($i = 0; $i < $remaining; $i++) { $calendarHtml .= "<td style='border:1px solid #ddd; padding:10px;'></td>"; }
+            $calendarHtml .= "</tr></table>";
+
+            // 4. 이메일 본문 결합
+            $contentHtml = "
+                <p style='font-size: 14px; margin-bottom: 20px;'>금일(<strong>{$Hyphen_today}</strong>) 작업 전 구역별 안전점검 바랍니다.</p>
+                <table style='width: 100%; border-collapse: collapse; font-size: 14px;'>
+                    <thead>
+                        <tr style='background-color: #f8f9fc;'>
+                            <th style='border: 1px solid #dddddd; padding: 12px;'>점검 구역</th>
+                            <th style='border: 1px solid #dddddd; padding: 12px;'>관리감독자</th>
+                            <th style='border: 1px solid #dddddd; padding: 12px;'>상태</th>
+                            <th style='border: 1px solid #dddddd; padding: 12px;'>조회/등록</th>
+                        </tr>
+                    </thead>
+                    <tbody>{$rowsHtml}</tbody>
+                </table>
+                
+                {$calendarHtml} <div style='margin-top: 20px; padding: 15px; background-color: #fdf6ed; border-left: 4px solid #f6c23e; font-size: 12px;'>
+                    <strong style='display:block; margin-bottom:5px;'>안전점검 범례:</strong>
+                    - <span style='color:#28a745; font-weight:bold;'>■ 초록</span>: 전구역 점검 완료<br>
+                    - <span style='color:#fd7e14; font-weight:bold;'>■ 주황</span>: 일부 구역 점검 누락<br>
+                    - <span style='color:#e74a3b; font-weight:bold;'>■ 빨강</span>: 미점검 (평일 기준)<br>
+                </div>
+            ";
+
+           // $to = ['skkwon@iwin.kr', 'hjshim@iwin.kr', 'test@iwin.kr', 'gmkim@iwin.kr', 'dykim@iwin.kr', 'shjoo@iwin.kr'];
+            $to = ['skkwon@iwin.kr', 'shjoo@iwin.kr'];
+            $subject = "[FMS] 안전 일일점검 (" . $Hyphen_today . ")";
+            $systemName = "안전 통합 관리";
+            $title = "일일점검 현황 및 알림";
+            $link = "https://fms.iwin.kr/kjwt_safety/safety.php"; 
+            
+            $body = build_email_template($systemName, $title, $contentHtml, $link, '전체 현황판 이동', $logoCid);
+
+            if (send_system_email($to, $subject, $body, $embeddedImages)) {
+                echo "Safety report sent successfully.";
+            } else {
+                echo "Failed to send safety report.";
+            }
+
+            if(isset($connect)) { sqlsrv_close($connect); }
+            break;
 
         default:
             http_response_code(400);

@@ -153,6 +153,7 @@ if ($location_param) {
         }
     }
 }
+                
 
 // 법적 제재 기준 조회
 $sql_law = "SELECT LAW_TYPE, CATEGORY, PENALTY_CONTENT, LEGAL_BASIS, IS_APPLICABLE, ACTION_PLAN, EVIDENCE FROM SAFETY_LAW ORDER BY LAW_TYPE ASC, ID ASC";
